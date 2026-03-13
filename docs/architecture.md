@@ -1,6 +1,6 @@
 # All Set - Estrutura de Pastas do Front Mobile
 
-> Arquitetura inspirada no `app-boilerplate`, adaptada para Expo + React Native + NativeWind.
+> Arquitetura Expo + React Native + NativeWind.
 > O objetivo desta base e manter o projeto organizado por responsabilidade, sem perder velocidade de entrega no MVP.
 
 ---
@@ -57,11 +57,9 @@ TCC-front/
 
 ---
 
-## Principios da Organizacao
 
-### 1. Base inspirada no boilerplate
-
-O projeto reaproveita a ideia central do `app-boilerplate`: separar navegacao, contexto global, telas, componentes e tema. Isso reduz acoplamento e evita que o `App.tsx` vire um ponto unico de responsabilidade.
+### 1. Principios da Organizacao
+O projeto tem a ideia central de separar navegacao, contexto global, telas, componentes e tema. Isso reduz acoplamento e evita que o `App.tsx` vire um ponto unico de responsabilidade.
 
 ### 2. Responsabilidade clara por camada
 

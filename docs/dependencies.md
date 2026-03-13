@@ -33,7 +33,7 @@ TypeScript foi mantido desde o inicio porque:
 
 ### React Navigation
 
-A navegacao foi implementada com `React Navigation`, seguindo a referencia estrutural do `app-boilerplate`.
+A navegacao foi implementada com `React Navigation`.
 
 Motivos da escolha:
 
