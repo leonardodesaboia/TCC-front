@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -16,23 +17,26 @@ import {
   serviceCategories,
   trustPoints,
 } from '../../constants/home';
-import { useThemeContext } from '../../../contexts/ui/ThemeContext';
 
 export function HomeScreen() {
-  const { theme, toggleTheme } = useThemeContext();
+  const navigation = useNavigation<any>();
 
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
         <View className="px-5 pb-8 pt-3">
-          <View className="mb-6 flex-row items-center justify-between">
+          <View className="mb-6 flex-row items-start justify-between gap-4">
             <View className="gap-1">
               <Text className="text-label-lg font-bold uppercase tracking-[1.2px] text-brown-light">Front mobile MVP</Text>
               <BrandMark />
             </View>
 
-            <Pressable className="h-12 w-12 items-center justify-center rounded-2xl border border-gray-2 bg-white" onPress={toggleTheme}>
-              <Ionicons color="#5C2F12" name={theme === 'light' ? 'moon-outline' : 'sunny-outline'} size={20} />
+            <Pressable
+              className="flex-row items-center gap-2 rounded-full border border-gray-2 bg-white px-4 py-3"
+              onPress={() => navigation.navigate('Profile')}
+            >
+              <Ionicons color="#D77219" name="person-circle-outline" size={22} />
+              <Text className="text-body-sm font-bold text-brown">Login</Text>
             </Pressable>
           </View>
 
@@ -59,6 +63,25 @@ export function HomeScreen() {
             <View className="mt-6 gap-3">
               <Button fullWidth label="Contratar servico" variant="inverse" />
               <Button fullWidth label="Oferecer servico" variant="outline-light" />
+            </View>
+          </View>
+
+          <View className="mt-5 rounded-card border border-gray-2 bg-white p-5">
+            <View className="flex-row items-start gap-4">
+              <View className="h-12 w-12 items-center justify-center rounded-2xl bg-surface-alt">
+                <Ionicons color="#D77219" name="person-circle-outline" size={24} />
+              </View>
+
+              <View className="flex-1">
+                <Text className="text-body-lg font-bold text-brown">Entrar ficou mais fácil</Text>
+                <Text className="mt-2 text-body-sm text-brown-light">
+                  Acesse a aba Conta para fazer login com e-mail e senha, acompanhar pedidos ou gerenciar sua atuação como profissional.
+                </Text>
+              </View>
+            </View>
+
+            <View className="mt-4">
+              <Button fullWidth label="Abrir minha conta" onPress={() => navigation.navigate('Profile')} />
             </View>
           </View>
 

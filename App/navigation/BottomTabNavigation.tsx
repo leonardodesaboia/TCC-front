@@ -52,7 +52,7 @@ export default function BottomTabNavigation() {
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: 'Inicio' }} />
       <Tab.Screen name="Explore" component={ExploreScreen} options={{ tabBarLabel: 'Explorar' }} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'Perfil' }} />
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'Conta' }} />
     </Tab.Navigator>
   );
 }

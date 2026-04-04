@@ -1,4 +1,4 @@
-import { Pressable, Text } from 'react-native';
+import { ActivityIndicator, Pressable, Text } from 'react-native';
 
 type ButtonVariant = 'solid' | 'outline' | 'inverse' | 'outline-light';
 
@@ -7,11 +7,15 @@ type ButtonProps = {
   onPress?: () => void;
   variant?: ButtonVariant;
   fullWidth?: boolean;
+  disabled?: boolean;
+  loading?: boolean;
 };
 
-export function Button({ label, onPress, variant = 'solid', fullWidth = false }: ButtonProps) {
+export function Button({ label, onPress, variant = 'solid', fullWidth = false, disabled = false, loading = false }: ButtonProps) {
+  const isDisabled = disabled || loading;
   const containerClassName = [
     'items-center justify-center rounded-2xl px-5 py-4',
+    isDisabled ? 'opacity-60' : '',
     fullWidth ? 'w-full' : '',
     variant === 'solid' ? 'bg-primary' : '',
     variant === 'outline' ? 'border border-primary bg-transparent' : '',
@@ -31,9 +35,11 @@ export function Button({ label, onPress, variant = 'solid', fullWidth = false }:
     .filter(Boolean)
     .join(' ');
 
+  const spinnerColor = variant === 'solid' ? '#FFFFFF' : '#D77219';
+
   return (
-    <Pressable className={containerClassName} onPress={onPress}>
-      <Text className={textClassName}>{label}</Text>
+    <Pressable className={containerClassName} disabled={isDisabled} onPress={onPress}>
+      {loading ? <ActivityIndicator color={spinnerColor} /> : <Text className={textClassName}>{label}</Text>}
     </Pressable>
   );
 }
