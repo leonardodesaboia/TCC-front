@@ -1,50 +1,159 @@
-import { StyleSheet, View } from 'react-native';
-import { UserRound } from 'lucide-react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import {
+  Bell,
+  ChevronRight,
+  HelpCircle,
+  LogOut,
+  MapPin,
+  Settings,
+  Shield,
+} from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
-import { Text } from '@/components/ui';
-import { colors, layout, radius, shadows, spacing } from '@/theme';
+import { Avatar, Divider, Text } from '@/components/ui';
+import { useAuth } from '@/providers/AuthProvider';
+import { useLogout } from '@/lib/hooks/useAuth';
+import { colors, radius, spacing } from '@/theme';
+
+interface MenuItemProps {
+  icon: React.ReactNode;
+  label: string;
+  onPress: () => void;
+  danger?: boolean;
+}
+
+function MenuItem({ icon, label, onPress, danger }: MenuItemProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+    >
+      {icon}
+      <Text
+        variant="bodySm"
+        color={danger ? colors.error : colors.neutral[900]}
+        style={styles.menuLabel}
+      >
+        {label}
+      </Text>
+      <ChevronRight color={colors.neutral[300]} size={18} />
+    </Pressable>
+  );
+}
 
 export default function ProfileScreen() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const logout = useLogout();
+
+  const name = user?.name ?? 'Cliente AllSet';
+  const email = user?.email ?? 'email@exemplo.com';
+
   return (
-    <Screen edges={['top']}>
-      <View style={styles.hero}>
-        <Text variant="displaySm">Perfil</Text>
-        <Text color={colors.neutral[500]}>
-          A base visual para dados pessoais, endereços e configurações já está no lugar.
+    <Screen edges={['top']} style={styles.screen}>
+      {/* Profile card */}
+      <Pressable style={styles.profileCard} onPress={() => router.push('/(client)/(profile)/edit')}>
+        <Avatar uri={user?.profileImage} name={name} size="xl" />
+        <View style={styles.profileInfo}>
+          <Text variant="titleLg">{name}</Text>
+          <Text variant="bodySm" color={colors.neutral[500]}>{email}</Text>
+        </View>
+      </Pressable>
+
+      {/* Menu sections */}
+      <View style={styles.menuSection}>
+        <Text variant="labelLg" color={colors.neutral[500]} style={styles.menuSectionTitle}>
+          CONTA
         </Text>
+        <MenuItem
+          icon={<MapPin color={colors.neutral[600]} size={20} />}
+          label="Meus endereços"
+          onPress={() => router.push('/(client)/(profile)/addresses')}
+        />
+        <Divider />
+        <MenuItem
+          icon={<Bell color={colors.neutral[600]} size={20} />}
+          label="Notificações"
+          onPress={() => router.push('/(client)/(home)/notifications')}
+        />
+        <Divider />
+        <MenuItem
+          icon={<Shield color={colors.neutral[600]} size={20} />}
+          label="Segurança"
+          onPress={() => {}}
+        />
       </View>
 
-      <View style={styles.card}>
-        <View style={styles.iconWrap}>
-          <UserRound color={colors.primary.default} size={22} />
-        </View>
-        <Text variant="titleSm">Espaço reservado para sua conta</Text>
-        <Text color={colors.neutral[500]}>
-          Aqui entram os dados do usuário, edição de perfil, endereços e preferências mantendo o mesmo sistema de cartões e tipografia.
+      <View style={styles.menuSection}>
+        <Text variant="labelLg" color={colors.neutral[500]} style={styles.menuSectionTitle}>
+          GERAL
         </Text>
+        <MenuItem
+          icon={<Settings color={colors.neutral[600]} size={20} />}
+          label="Configurações"
+          onPress={() => router.push('/(client)/(profile)/settings')}
+        />
+        <Divider />
+        <MenuItem
+          icon={<HelpCircle color={colors.neutral[600]} size={20} />}
+          label="Ajuda"
+          onPress={() => {}}
+        />
       </View>
+
+      <View style={styles.menuSection}>
+        <MenuItem
+          icon={<LogOut color={colors.error} size={20} />}
+          label="Sair"
+          onPress={() => logout.mutate()}
+          danger
+        />
+      </View>
+
+      <Text variant="labelSm" color={colors.neutral[400]} style={styles.version}>
+        AllSet v1.0.0
+      </Text>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    gap: spacing[2],
-    marginBottom: layout.sectionGap,
+  screen: {
+    gap: spacing[6],
   },
-  card: {
-    gap: spacing[3],
-    borderRadius: radius.xl,
-    backgroundColor: colors.surface,
-    padding: layout.cardPadding,
-    ...shadows.md,
-  },
-  iconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.full,
+  profileCard: {
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFF1E5',
+    gap: spacing[4],
+    paddingVertical: spacing[4],
+  },
+  profileInfo: {
+    alignItems: 'center',
+    gap: spacing[1],
+  },
+  menuSection: {
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[50],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+  },
+  menuSectionTitle: {
+    paddingVertical: spacing[2],
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    paddingVertical: spacing[3],
+  },
+  menuItemPressed: {
+    opacity: 0.6,
+  },
+  menuLabel: {
+    flex: 1,
+  },
+  version: {
+    textAlign: 'center',
   },
 });

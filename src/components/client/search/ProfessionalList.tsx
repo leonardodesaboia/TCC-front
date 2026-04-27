@@ -7,10 +7,7 @@ interface ProfessionalListProps {
   onPressProfessional?: (professionalId: string) => void;
 }
 
-export function ProfessionalList({
-  professionals,
-  onPressProfessional,
-}: ProfessionalListProps) {
+export function ProfessionalList({ professionals, onPressProfessional }: ProfessionalListProps) {
   return (
     <View style={styles.list}>
       {professionals.map((professional) => (
@@ -25,7 +22,5 @@ export function ProfessionalList({
 }
 
 const styles = StyleSheet.create({
-  list: {
-    gap: spacing[3],
-  },
+  list: { gap: spacing[3] },
 });

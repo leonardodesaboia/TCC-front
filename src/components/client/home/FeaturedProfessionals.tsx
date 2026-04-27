@@ -1,7 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { ArrowRight, Star } from 'lucide-react-native';
-import { Text } from '@/components/ui';
-import { colors, radius, shadows, spacing } from '@/theme';
+import { Star } from 'lucide-react-native';
+import { Avatar, Text } from '@/components/ui';
+import { colors, radius, spacing } from '@/theme';
 
 export interface FeaturedProfessional {
   id: string;
@@ -18,58 +18,17 @@ interface FeaturedProfessionalsProps {
   onPressProfessional?: (professionalId: string) => void;
 }
 
-export function FeaturedProfessionals({
-  professionals,
-  onPressProfessional,
-}: FeaturedProfessionalsProps) {
+export function FeaturedProfessionals({ professionals, onPressProfessional }: FeaturedProfessionalsProps) {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.content}
-    >
-      {professionals.map((professional) => (
-        <Pressable
-          key={professional.id}
-          onPress={() => onPressProfessional?.(professional.id)}
-          style={styles.card}
-        >
-          <View style={[styles.hero, { backgroundColor: professional.accentColor ?? '#F6D8BF' }]}>
-            <View style={styles.badge}>
-              <Text variant="labelLg" color={colors.secondary.default}>
-                {professional.badge}
-              </Text>
-            </View>
-            <View style={styles.avatar}>
-              <Text variant="titleLg" color={colors.neutral[50]}>
-                {professional.name.slice(0, 1)}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.info}>
-            <View style={styles.texts}>
-              <Text variant="titleSm">{professional.name}</Text>
-              <Text color={colors.neutral[500]}>{professional.profession}</Text>
-            </View>
-
-            <Text color={colors.secondary.light}>{professional.highlight}</Text>
-
-            <View style={styles.footer}>
-              <View style={styles.rating}>
-                <Star color={colors.primary.default} fill={colors.primary.default} size={16} />
-                <Text variant="labelLg" color={colors.secondary.default}>
-                  {professional.rating}
-                </Text>
-              </View>
-
-              <View style={styles.link}>
-                <Text variant="labelLg" color={colors.primary.default}>
-                  Conhecer
-                </Text>
-                <ArrowRight color={colors.primary.default} size={16} />
-              </View>
-            </View>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      {professionals.map((p) => (
+        <Pressable key={p.id} onPress={() => onPressProfessional?.(p.id)} style={styles.card}>
+          <Avatar name={p.name} size="lg" backgroundColor={p.accentColor} />
+          <Text variant="titleSm">{p.name}</Text>
+          <Text variant="labelLg" color={colors.neutral[500]}>{p.profession}</Text>
+          <View style={styles.ratingRow}>
+            <Star color={colors.warning} fill={colors.warning} size={14} />
+            <Text variant="labelLg">{p.rating}</Text>
           </View>
         </Pressable>
       ))}
@@ -78,57 +37,17 @@ export function FeaturedProfessionals({
 }
 
 const styles = StyleSheet.create({
-  content: {
-    gap: spacing[4],
-    paddingRight: spacing[4],
-  },
+  scroll: { gap: spacing[3] },
   card: {
-    width: 240,
-    borderRadius: radius.lg,
+    width: 140,
+    alignItems: 'center',
+    gap: spacing[2],
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
     backgroundColor: colors.neutral[50],
-    overflow: 'hidden',
-    ...shadows.sm,
-  },
-  hero: {
-    minHeight: 112,
-    justifyContent: 'space-between',
-    padding: spacing[4],
-  },
-  badge: {
-    alignSelf: 'flex-start',
-    borderRadius: radius.full,
-    backgroundColor: 'rgba(255,255,255,0.86)',
+    paddingVertical: spacing[5],
     paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
   },
-  avatar: {
-    width: 54,
-    height: 54,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.secondary.default,
-  },
-  info: {
-    gap: spacing[3],
-    padding: spacing[4],
-  },
-  texts: {
-    gap: spacing[1],
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  rating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-  },
-  link: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-  },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[1] },
 });

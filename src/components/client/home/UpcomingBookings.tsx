@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-import { CalendarDays, Clock3, MapPin, ArrowRight } from 'lucide-react-native';
-import { Text } from '@/components/ui';
-import { colors, radius, shadows, spacing } from '@/theme';
+import { Calendar, Clock, MapPin } from 'lucide-react-native';
+import { Avatar, Badge, Text } from '@/components/ui';
+import { colors, radius, spacing } from '@/theme';
 
 export interface UpcomingBooking {
   id: string;
@@ -19,57 +19,23 @@ interface UpcomingBookingsProps {
   onPressBooking?: (bookingId: string) => void;
 }
 
-export function UpcomingBookings({
-  bookings,
-  onPressBooking,
-}: UpcomingBookingsProps) {
+export function UpcomingBookings({ bookings, onPressBooking }: UpcomingBookingsProps) {
   return (
     <View style={styles.list}>
-      {bookings.map((booking) => (
-        <Pressable
-          key={booking.id}
-          onPress={() => onPressBooking?.(booking.id)}
-          style={styles.card}
-        >
-          <View style={[styles.accent, { backgroundColor: booking.accentColor ?? colors.primary.default }]} />
-          <View style={styles.content}>
-            <View style={styles.topRow}>
-              <View style={styles.topText}>
-                <Text variant="titleSm">{booking.title}</Text>
-                <Text color={colors.neutral[500]}>
-                  com {booking.professionalName}
-                </Text>
-              </View>
-              <View style={styles.badge}>
-                <Text variant="labelLg" color={colors.primary.default}>
-                  {booking.statusLabel}
-                </Text>
-              </View>
+      {bookings.map((b) => (
+        <Pressable key={b.id} onPress={() => onPressBooking?.(b.id)} style={styles.card}>
+          <View style={styles.top}>
+            <Avatar name={b.professionalName} size="md" backgroundColor={b.accentColor} />
+            <View style={styles.info}>
+              <Text variant="titleSm">{b.title}</Text>
+              <Text variant="bodySm" color={colors.neutral[500]}>{b.professionalName}</Text>
             </View>
-
-            <View style={styles.metaList}>
-              <View style={styles.metaRow}>
-                <CalendarDays color={colors.neutral[500]} size={16} />
-                <Text color={colors.neutral[500]}>{booking.dateLabel}</Text>
-              </View>
-              <View style={styles.metaRow}>
-                <Clock3 color={colors.neutral[500]} size={16} />
-                <Text color={colors.neutral[500]}>{booking.timeLabel}</Text>
-              </View>
-              <View style={styles.metaRow}>
-                <MapPin color={colors.neutral[500]} size={16} />
-                <Text color={colors.neutral[500]} numberOfLines={1}>
-                  {booking.locationLabel}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.footer}>
-              <Text variant="labelLg" color={colors.secondary.default}>
-                Ver detalhes
-              </Text>
-              <ArrowRight color={colors.primary.default} size={16} />
-            </View>
+            <Badge label={b.statusLabel} />
+          </View>
+          <View style={styles.meta}>
+            <View style={styles.metaItem}><Calendar color={colors.neutral[400]} size={14} /><Text variant="labelLg" color={colors.neutral[600]}>{b.dateLabel}</Text></View>
+            <View style={styles.metaItem}><Clock color={colors.neutral[400]} size={14} /><Text variant="labelLg" color={colors.neutral[600]}>{b.timeLabel}</Text></View>
+            <View style={styles.metaItem}><MapPin color={colors.neutral[400]} size={14} /><Text variant="labelLg" color={colors.neutral[600]} numberOfLines={1}>{b.locationLabel}</Text></View>
           </View>
         </Pressable>
       ))}
@@ -78,51 +44,17 @@ export function UpcomingBookings({
 }
 
 const styles = StyleSheet.create({
-  list: {
-    gap: spacing[3],
-  },
+  list: { gap: spacing[3] },
   card: {
-    flexDirection: 'row',
-    overflow: 'hidden',
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
     backgroundColor: colors.neutral[50],
-    ...shadows.sm,
-  },
-  accent: {
-    width: 6,
-  },
-  content: {
-    flex: 1,
-    gap: spacing[3],
     padding: spacing[4],
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
     gap: spacing[3],
   },
-  topText: {
-    flex: 1,
-    gap: spacing[1],
-  },
-  badge: {
-    borderRadius: radius.full,
-    backgroundColor: '#FFF1E5',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-  },
-  metaList: {
-    gap: spacing[2],
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
+  top: { flexDirection: 'row', alignItems: 'center', gap: spacing[3] },
+  info: { flex: 1, gap: 2 },
+  meta: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[3] },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: spacing[1] },
 });

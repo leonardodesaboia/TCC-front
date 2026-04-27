@@ -17,45 +17,18 @@ interface AppointmentsCalendarProps {
   onSelectDay: (dayId: string) => void;
 }
 
-export function AppointmentsCalendar({
-  days,
-  selectedDayId,
-  onSelectDay,
-}: AppointmentsCalendarProps) {
+export function AppointmentsCalendar({ days, selectedDayId, onSelectDay }: AppointmentsCalendarProps) {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.content}
-    >
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.content}>
       {days.map((day) => {
-        const isSelected = day.id === selectedDayId;
-
+        const selected = day.id === selectedDayId;
         return (
-          <Pressable
-            key={day.id}
-            onPress={() => onSelectDay(day.id)}
-            style={[styles.card, isSelected && styles.cardSelected]}
-          >
-            <Text
-              variant="labelLg"
-              color={isSelected ? colors.neutral[50] : colors.neutral[500]}
-            >
-              {day.weekday}
-            </Text>
-            <Text
-              variant="titleSm"
-              color={isSelected ? colors.neutral[50] : colors.secondary.default}
-            >
-              {day.dayNumber}
-            </Text>
-            <Text
-              variant="labelSm"
-              color={isSelected ? '#FDE8D7' : day.isToday ? colors.primary.default : colors.neutral[500]}
-            >
-              {day.label}
-            </Text>
-            <View style={[styles.dot, day.hasAppointments && styles.dotVisible, isSelected && styles.dotSelected]} />
+          <Pressable key={day.id} onPress={() => onSelectDay(day.id)} style={[styles.card, selected && styles.cardSelected]}>
+            <Text variant="labelLg" color={selected ? '#FFFFFF' : colors.neutral[500]}>{day.weekday}</Text>
+            <Text variant="titleSm" color={selected ? '#FFFFFF' : colors.neutral[900]}>{day.dayNumber}</Text>
+            {day.hasAppointments ? (
+              <View style={[styles.dot, selected && styles.dotSelected]} />
+            ) : null}
           </Pressable>
         );
       })}
@@ -64,36 +37,16 @@ export function AppointmentsCalendar({
 }
 
 const styles = StyleSheet.create({
-  content: {
-    gap: spacing[3],
-    paddingRight: spacing[4],
-  },
+  content: { gap: spacing[2] },
   card: {
-    width: 88,
-    borderRadius: radius.lg,
-    backgroundColor: colors.neutral[50],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[4],
+    width: 56,
     alignItems: 'center',
     gap: spacing[1],
+    borderRadius: radius.lg,
+    backgroundColor: colors.neutral[100],
+    paddingVertical: spacing[3],
   },
-  cardSelected: {
-    backgroundColor: colors.primary.default,
-    borderColor: colors.primary.default,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    marginTop: spacing[2],
-    borderRadius: radius.full,
-    backgroundColor: colors.transparent,
-  },
-  dotVisible: {
-    backgroundColor: colors.primary.default,
-  },
-  dotSelected: {
-    backgroundColor: colors.neutral[50],
-  },
+  cardSelected: { backgroundColor: colors.neutral[900] },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary.default, marginTop: spacing[1] },
+  dotSelected: { backgroundColor: '#FFFFFF' },
 });

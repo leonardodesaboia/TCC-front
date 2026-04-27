@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-import { ArrowRight, MapPin, Star } from 'lucide-react-native';
-import { Text } from '@/components/ui';
-import { colors, radius, shadows, spacing } from '@/theme';
+import { MapPin, Star } from 'lucide-react-native';
+import { Avatar, Badge, Text } from '@/components/ui';
+import { colors, radius, spacing } from '@/theme';
 
 export interface SearchProfessional {
   id: string;
@@ -23,57 +23,46 @@ interface ProfessionalCardProps {
 
 export function ProfessionalCard({ professional, onPress }: ProfessionalCardProps) {
   return (
-    <Pressable onPress={onPress} style={styles.card}>
-      <View style={[styles.avatar, { backgroundColor: professional.accentColor ?? colors.primary.default }]}>
-        <Text variant="titleLg" color={colors.neutral[50]}>
-          {professional.name.slice(0, 1)}
-        </Text>
-      </View>
-
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <View style={styles.headerText}>
-            <Text variant="titleSm">{professional.name}</Text>
-            <Text color={colors.neutral[500]}>{professional.profession}</Text>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+    >
+      <View style={styles.top}>
+        <Avatar
+          name={professional.name}
+          size="lg"
+          backgroundColor={professional.accentColor ?? colors.primary.default}
+        />
+        <View style={styles.info}>
+          <View style={styles.nameRow}>
+            <Text variant="titleSm" style={styles.name}>{professional.name}</Text>
+            {professional.badge ? <Badge label={professional.badge} /> : null}
           </View>
-          {professional.badge ? (
-            <View style={styles.badge}>
-              <Text variant="labelLg" color={colors.primary.default}>
-                {professional.badge}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        <Text color={colors.secondary.light}>{professional.specialties.join(' • ')}</Text>
-
-        <View style={styles.metaRow}>
-          <View style={styles.metaItem}>
-            <Star color={colors.primary.default} fill={colors.primary.default} size={15} />
-            <Text variant="labelLg">{professional.rating}</Text>
+          <Text variant="bodySm" color={colors.neutral[500]}>
+            {professional.profession}
+          </Text>
+          <View style={styles.ratingRow}>
+            <Star color={colors.warning} fill={colors.warning} size={14} />
+            <Text variant="labelLg" color={colors.neutral[800]}>
+              {professional.rating}
+            </Text>
             <Text variant="labelSm" color={colors.neutral[500]}>
               ({professional.reviewCount})
             </Text>
           </View>
-          <View style={styles.metaItem}>
-            <MapPin color={colors.neutral[500]} size={15} />
-            <Text color={colors.neutral[500]} numberOfLines={1}>
-              {professional.neighborhood}
-            </Text>
-          </View>
         </View>
+      </View>
 
-        <View style={styles.footer}>
-          <Text variant="labelLg" color={colors.secondary.default}>
-            {professional.availability}
+      <View style={styles.bottom}>
+        <View style={styles.metaItem}>
+          <MapPin color={colors.neutral[400]} size={14} />
+          <Text variant="labelLg" color={colors.neutral[600]}>
+            {professional.neighborhood}
           </Text>
-          <View style={styles.link}>
-            <Text variant="labelLg" color={colors.primary.default}>
-              Ver perfil
-            </Text>
-            <ArrowRight color={colors.primary.default} size={16} />
-          </View>
         </View>
+        <Text variant="labelLg" color={colors.primary.default}>
+          {professional.availability}
+        </Text>
       </View>
     </Pressable>
   );
@@ -81,58 +70,44 @@ export function ProfessionalCard({ professional, onPress }: ProfessionalCardProp
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row',
-    gap: spacing[3],
     borderRadius: radius.xl,
-    backgroundColor: '#FFF9F4',
+    backgroundColor: colors.neutral[50],
     borderWidth: 1,
-    borderColor: '#F6D8BF',
+    borderColor: colors.neutral[200],
     padding: spacing[4],
-    ...shadows.md,
-  },
-  avatar: {
-    width: 58,
-    height: 58,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  content: {
-    flex: 1,
     gap: spacing[3],
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: spacing[2],
+  pressed: {
+    backgroundColor: colors.neutral[100],
   },
-  headerText: {
+  top: {
+    flexDirection: 'row',
+    gap: spacing[3],
+  },
+  info: {
     flex: 1,
     gap: spacing[1],
   },
-  badge: {
-    borderRadius: radius.full,
-    backgroundColor: '#FFE5CF',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-  },
-  metaRow: {
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing[2],
+  },
+  name: {
+    flexShrink: 1,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    marginTop: spacing[1],
+  },
+  bottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing[2],
-  },
-  link: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[1],

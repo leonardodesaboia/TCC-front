@@ -1,115 +1,100 @@
-import { Pressable, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ArrowLeft, Bell, CalendarClock, ReceiptText } from 'lucide-react-native';
+import { StyleSheet, View } from 'react-native';
+import { Bell, CalendarClock, ReceiptText } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
+import { Header } from '@/components/layout/Header';
 import { Text } from '@/components/ui';
-import { colors, layout, radius, shadows, spacing } from '@/theme';
+import { EmptyState } from '@/components/feedback/EmptyState';
+import { colors, radius, spacing } from '@/theme';
 
 const NOTIFICATIONS = [
   {
     id: 'n-1',
-    title: 'Visita confirmada para hoje',
+    title: 'Visita confirmada',
     body: 'Mariana Costa confirmou presença para o atendimento das 14:00.',
+    time: '2h atrás',
     icon: CalendarClock,
+    unread: true,
   },
   {
     id: 'n-2',
     title: 'Pedido atualizado',
-    body: 'Seu agendamento de manutenção teve o horário ajustado para 09:30.',
+    body: 'Seu agendamento de manutenção foi ajustado para 09:30.',
+    time: '5h atrás',
     icon: ReceiptText,
+    unread: false,
   },
 ];
 
 export default function NotificationsScreen() {
-  const router = useRouter();
-
   return (
     <Screen edges={['top']}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft color={colors.secondary.default} size={20} />
-        </Pressable>
-        <View style={styles.headerText}>
-          <Text variant="displaySm">Notificações</Text>
-          <Text color={colors.neutral[500]}>
-            Atualizações relevantes para sua rotina de serviços.
-          </Text>
-        </View>
-      </View>
+      <Header title="Notificações" showBack />
 
       <View style={styles.list}>
         {NOTIFICATIONS.map((item) => {
           const Icon = item.icon;
-
           return (
-            <View key={item.id} style={styles.card}>
+            <View key={item.id} style={[styles.card, item.unread && styles.cardUnread]}>
               <View style={styles.iconWrap}>
                 <Icon color={colors.primary.default} size={18} />
               </View>
               <View style={styles.cardText}>
-                <Text variant="titleSm">{item.title}</Text>
-                <Text color={colors.neutral[500]}>{item.body}</Text>
+                <View style={styles.cardTitleRow}>
+                  <Text variant="titleSm" style={styles.cardTitle}>{item.title}</Text>
+                  <Text variant="labelSm" color={colors.neutral[400]}>{item.time}</Text>
+                </View>
+                <Text variant="bodySm" color={colors.neutral[500]}>{item.body}</Text>
               </View>
             </View>
           );
         })}
-
-        <View style={styles.emptyCard}>
-          <Bell color={colors.neutral[500]} size={20} />
-          <Text variant="titleSm">Tudo em ordem por aqui.</Text>
-          <Text color={colors.neutral[500]}>
-            Novas notificações vão aparecer conforme seus pedidos avançarem.
-          </Text>
-        </View>
       </View>
+
+      <EmptyState
+        icon={Bell}
+        title="Tudo em dia"
+        description="Novas notificações aparecerão conforme seus pedidos avançarem."
+      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    gap: spacing[4],
-    marginBottom: layout.sectionGap,
-  },
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-  },
-  headerText: {
-    gap: spacing[2],
-  },
   list: {
-    gap: spacing[3],
+    gap: spacing[2],
+    marginTop: spacing[4],
   },
   card: {
     flexDirection: 'row',
     gap: spacing[3],
     borderRadius: radius.xl,
     backgroundColor: colors.neutral[50],
-    padding: layout.cardPadding,
-    ...shadows.md,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    padding: spacing[4],
+  },
+  cardUnread: {
+    backgroundColor: colors.primary.light,
+    borderColor: colors.primary.light,
   },
   iconWrap: {
-    width: 42,
-    height: 42,
+    width: 40,
+    height: 40,
     borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFF1E5',
+    backgroundColor: colors.neutral[50],
   },
   cardText: {
     flex: 1,
     gap: spacing[1],
   },
-  emptyCard: {
+  cardTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: spacing[2],
-    borderRadius: radius.xl,
-    backgroundColor: colors.surface,
-    padding: layout.cardPadding,
+  },
+  cardTitle: {
+    flex: 1,
   },
 });

@@ -4,9 +4,9 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { ClipboardList, Home, Search, UserRound } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui';
-import { colors, layout, radius, shadows, spacing } from '@/theme';
+import { colors, radius, spacing } from '@/theme';
 
-type TabIcon = ComponentType<{ color?: string; size?: number }>;
+type TabIcon = ComponentType<{ color?: string; size?: number; strokeWidth?: number }>;
 
 const CLIENT_TABS: Array<{ name: string; label: string; icon: TabIcon }> = [
   { name: '(home)', label: 'Início', icon: Home },
@@ -19,8 +19,9 @@ export function ClientTabBar({ state, descriptors, navigation }: BottomTabBarPro
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.outer, { paddingBottom: Math.max(insets.bottom, spacing[2]) }]}>
-      <View style={styles.inner}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+      <View style={styles.divider} />
+      <View style={styles.tabs}>
         {CLIENT_TABS.map((tab) => {
           const routeIndex = state.routes.findIndex((route) => route.name === tab.name);
           if (routeIndex === -1) return null;
@@ -37,13 +38,18 @@ export function ClientTabBar({ state, descriptors, navigation }: BottomTabBarPro
               accessibilityState={{ selected: isFocused }}
               accessibilityLabel={descriptor.options.tabBarAccessibilityLabel ?? tab.label}
               onPress={() => navigation.navigate(route.name, route.params)}
-              style={[styles.tab, isFocused && styles.tabActive]}
+              style={styles.tab}
             >
-              <Icon color={isFocused ? colors.primary.default : colors.neutral[500]} size={22} />
+              <View style={[styles.iconContainer, isFocused && styles.iconContainerActive]}>
+                <Icon
+                  color={isFocused ? colors.primary.default : colors.neutral[400]}
+                  size={22}
+                  strokeWidth={isFocused ? 2.5 : 1.8}
+                />
+              </View>
               <Text
                 variant="labelSm"
-                color={isFocused ? colors.primary.default : colors.neutral[500]}
-                style={styles.label}
+                color={isFocused ? colors.primary.default : colors.neutral[400]}
               >
                 {tab.label}
               </Text>
@@ -56,34 +62,33 @@ export function ClientTabBar({ state, descriptors, navigation }: BottomTabBarPro
 }
 
 const styles = StyleSheet.create({
-  outer: {
+  container: {
     backgroundColor: colors.background,
-    paddingHorizontal: spacing[4],
     paddingTop: spacing[2],
   },
-  inner: {
-    minHeight: layout.bottomTabHeight,
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.neutral[200],
+  },
+  tabs: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: radius.xl,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[2],
-    ...shadows.md,
+    paddingTop: spacing[2],
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing[1],
-    borderRadius: radius.lg,
-    paddingVertical: spacing[2],
+    minHeight: 44,
   },
-  tabActive: {
-    backgroundColor: '#FFF1E5',
+  iconContainer: {
+    width: 44,
+    height: 30,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  label: {
-    textAlign: 'center',
+  iconContainerActive: {
+    backgroundColor: colors.primary.light,
   },
 });

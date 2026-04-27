@@ -1,241 +1,263 @@
 import { useDeferredValue, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Search, Sparkles } from 'lucide-react-native';
-import { ProfessionalList } from '@/components/client/search/ProfessionalList';
+import { useRouter } from 'expo-router';
+import {
+  Brush,
+  Droplets,
+  HardHat,
+  Heart,
+  Search,
+  Sparkles,
+  Wrench,
+  Zap,
+} from 'lucide-react-native';
 import { SearchBar } from '@/components/client/search/SearchBar';
 import { Screen } from '@/components/layout/Screen';
 import { Text } from '@/components/ui';
-import { colors, layout, radius, shadows, spacing } from '@/theme';
+import { colors, radius, spacing } from '@/theme';
 
-const CATEGORY_CHIPS = [
-  'Todos',
-  'Limpeza',
-  'Elétrica',
-  'Cuidados',
-  'Manutenção',
-];
+interface ServiceArea {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+  color: string;
+  bgColor: string;
+  categories: ServiceCategory[];
+}
 
-const PROFESSIONALS = [
+interface ServiceCategory {
+  id: string;
+  name: string;
+}
+
+const SERVICE_AREAS: ServiceArea[] = [
   {
-    id: 'pro-1',
-    name: 'Ana Beatriz',
-    profession: 'Faxina e organização',
-    specialties: ['Apartamento', 'Pós-obra leve'],
-    rating: '4,9',
-    reviewCount: '128',
-    neighborhood: 'Aldeota',
-    availability: 'Disponível amanhã',
-    badge: 'Mais contratada',
-    accentColor: '#E98936',
+    id: 'area-1',
+    name: 'Elétrica',
+    icon: <Zap size={24} />,
+    color: '#F59E0B',
+    bgColor: '#FEF3C7',
+    categories: [
+      { id: 'cat-1', name: 'Eletricista' },
+      { id: 'cat-2', name: 'Instalação de tomada' },
+      { id: 'cat-3', name: 'Troca de disjuntor' },
+    ],
   },
   {
-    id: 'pro-2',
-    name: 'Caio Lima',
-    profession: 'Elétrica residencial',
-    specialties: ['Instalação', 'Pequenos reparos'],
-    rating: '4,8',
-    reviewCount: '94',
-    neighborhood: 'Meireles',
-    availability: 'Atende hoje',
-    badge: 'Resposta rápida',
-    accentColor: '#C46F28',
+    id: 'area-2',
+    name: 'Limpeza',
+    icon: <Sparkles size={24} />,
+    color: '#3B82F6',
+    bgColor: '#DBEAFE',
+    categories: [
+      { id: 'cat-4', name: 'Faxina residencial' },
+      { id: 'cat-5', name: 'Limpeza pós-obra' },
+      { id: 'cat-6', name: 'Limpeza comercial' },
+    ],
   },
   {
-    id: 'pro-3',
-    name: 'Juliana Rocha',
-    profession: 'Cuidados e bem-estar',
-    specialties: ['Acompanhamento', 'Rotina domiciliar'],
-    rating: '5,0',
-    reviewCount: '63',
-    neighborhood: 'Cocó',
-    availability: 'Agenda noturna',
-    badge: 'Novo destaque',
-    accentColor: '#D77219',
+    id: 'area-3',
+    name: 'Hidráulica',
+    icon: <Droplets size={24} />,
+    color: '#06B6D4',
+    bgColor: '#CFFAFE',
+    categories: [
+      { id: 'cat-7', name: 'Encanador' },
+      { id: 'cat-8', name: 'Desentupimento' },
+      { id: 'cat-9', name: 'Instalação de torneira' },
+    ],
+  },
+  {
+    id: 'area-4',
+    name: 'Pintura',
+    icon: <Brush size={24} />,
+    color: '#8B5CF6',
+    bgColor: '#EDE9FE',
+    categories: [
+      { id: 'cat-10', name: 'Pintura interna' },
+      { id: 'cat-11', name: 'Pintura externa' },
+      { id: 'cat-12', name: 'Textura e efeitos' },
+    ],
+  },
+  {
+    id: 'area-5',
+    name: 'Manutenção',
+    icon: <Wrench size={24} />,
+    color: '#EF4444',
+    bgColor: '#FEE2E2',
+    categories: [
+      { id: 'cat-13', name: 'Manutenção geral' },
+      { id: 'cat-14', name: 'Montagem de móveis' },
+      { id: 'cat-15', name: 'Reparos domésticos' },
+    ],
+  },
+  {
+    id: 'area-6',
+    name: 'Reforma',
+    icon: <HardHat size={24} />,
+    color: '#E98936',
+    bgColor: '#FFF1E5',
+    categories: [
+      { id: 'cat-16', name: 'Pedreiro' },
+      { id: 'cat-17', name: 'Gesseiro' },
+      { id: 'cat-18', name: 'Azulejista' },
+    ],
+  },
+  {
+    id: 'area-7',
+    name: 'Cuidados',
+    icon: <Heart size={24} />,
+    color: '#EC4899',
+    bgColor: '#FCE7F3',
+    categories: [
+      { id: 'cat-19', name: 'Cuidador de idosos' },
+      { id: 'cat-20', name: 'Babá' },
+      { id: 'cat-21', name: 'Pet sitter' },
+    ],
   },
 ];
 
 export default function SearchScreen() {
+  const router = useRouter();
   const [query, setQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('Todos');
-  const deferredQuery = useDeferredValue(query);
+  const [selectedArea, setSelectedArea] = useState<string | null>(null);
+  const dq = useDeferredValue(query).trim().toLowerCase();
 
-  const normalizedQuery = deferredQuery.trim().toLowerCase();
-  const filteredProfessionals = PROFESSIONALS.filter((professional) => {
-    const matchesCategory =
-      selectedCategory === 'Todos' ||
-      professional.profession.toLowerCase().includes(selectedCategory.toLowerCase()) ||
-      professional.specialties.some((item) =>
-        item.toLowerCase().includes(selectedCategory.toLowerCase()),
+  const filteredAreas = dq.length === 0
+    ? SERVICE_AREAS
+    : SERVICE_AREAS.filter(
+        (a) =>
+          a.name.toLowerCase().includes(dq) ||
+          a.categories.some((c) => c.name.toLowerCase().includes(dq)),
       );
 
-    const matchesQuery =
-      normalizedQuery.length === 0 ||
-      professional.name.toLowerCase().includes(normalizedQuery) ||
-      professional.profession.toLowerCase().includes(normalizedQuery) ||
-      professional.specialties.some((item) => item.toLowerCase().includes(normalizedQuery)) ||
-      professional.neighborhood.toLowerCase().includes(normalizedQuery);
+  const currentArea = selectedArea
+    ? SERVICE_AREAS.find((a) => a.id === selectedArea)
+    : null;
 
-    return matchesCategory && matchesQuery;
-  });
+  const filteredCategories = currentArea
+    ? dq.length === 0
+      ? currentArea.categories
+      : currentArea.categories.filter((c) => c.name.toLowerCase().includes(dq))
+    : [];
+
+  function handleCategoryPress(areaId: string, categoryId: string) {
+    const area = SERVICE_AREAS.find((a) => a.id === areaId);
+    const category = area?.categories.find((c) => c.id === categoryId);
+    if (area && category) {
+      router.push({
+        pathname: '/(client)/(orders)/express',
+        params: { areaId, categoryId, areaName: area.name, categoryName: category.name },
+      } as any);
+    }
+  }
 
   return (
-    <Screen edges={['top']} style={styles.screenContent}>
-      <View style={styles.backdrop} />
+    <Screen edges={['top']} style={styles.screen}>
+      <Text variant="displaySm">O que você precisa?</Text>
 
-      <View style={styles.hero}>
-        <View style={styles.heroBadge}>
-          <Search color={colors.neutral[50]} size={14} />
-          <Text variant="labelLg" color={colors.neutral[50]}>
-            BUSCAR
-          </Text>
-        </View>
-        <Text variant="displaySm" color={colors.neutral[50]}>
-          Encontre o profissional certo sem esforço.
-        </Text>
-        <Text color="#FFF1E5">
-          Comece por uma área, refine a intenção e compare os perfis com calma.
-        </Text>
-      </View>
+      <SearchBar
+        value={query}
+        onChangeText={setQuery}
+        onClear={() => setQuery('')}
+      />
 
-      <View style={styles.searchShell}>
-        <SearchBar
-          value={query}
-          onChangeText={setQuery}
-          onClear={() => setQuery('')}
-        />
-      </View>
+      {selectedArea && currentArea ? (
+        /* Category list within selected area */
+        <>
+          <Pressable onPress={() => setSelectedArea(null)}>
+            <Text variant="labelLg" color={colors.primary.default}>
+              ← Voltar para áreas
+            </Text>
+          </Pressable>
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text variant="titleLg">Categorias</Text>
-          <Text variant="labelLg" color={colors.primary.default}>
-            {selectedCategory}
-          </Text>
-        </View>
+          <Text variant="titleMd">{currentArea.name}</Text>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipsRow}
-        >
-          {CATEGORY_CHIPS.map((chip) => {
-            const isActive = chip === selectedCategory;
-
-            return (
+          <View style={styles.categoryList}>
+            {filteredCategories.map((cat) => (
               <Pressable
-                key={chip}
-                onPress={() => setSelectedCategory(chip)}
-                style={[styles.chip, isActive && styles.chipActive]}
+                key={cat.id}
+                onPress={() => handleCategoryPress(currentArea.id, cat.id)}
+                style={({ pressed }) => [styles.categoryItem, pressed && styles.pressed]}
               >
-                <Text
-                  variant="labelLg"
-                  color={isActive ? colors.neutral[50] : colors.secondary.default}
-                >
-                  {chip}
+                <View style={[styles.categoryDot, { backgroundColor: currentArea.color }]} />
+                <Text variant="bodySm" style={styles.categoryName}>{cat.name}</Text>
+                <Text variant="labelLg" color={colors.primary.default}>Solicitar</Text>
+              </Pressable>
+            ))}
+          </View>
+        </>
+      ) : (
+        /* Areas grid */
+        <>
+          <Text variant="titleMd">Áreas de serviço</Text>
+          <View style={styles.grid}>
+            {filteredAreas.map((area) => (
+              <Pressable
+                key={area.id}
+                onPress={() => setSelectedArea(area.id)}
+                style={({ pressed }) => [styles.areaCard, pressed && styles.pressed]}
+              >
+                <View style={[styles.areaIcon, { backgroundColor: area.bgColor }]}>
+                  {React.cloneElement(area.icon as React.ReactElement, { color: area.color })}
+                </View>
+                <Text variant="titleSm">{area.name}</Text>
+                <Text variant="labelSm" color={colors.neutral[500]}>
+                  {area.categories.length} serviços
                 </Text>
               </Pressable>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text variant="titleLg">Resultados</Text>
-          <View style={styles.resultsMeta}>
-            <Sparkles color={colors.primary.default} size={15} />
-            <Text variant="labelLg" color={colors.primary.default}>
-              {filteredProfessionals.length} perfis
-            </Text>
+            ))}
           </View>
-        </View>
-
-        {filteredProfessionals.length > 0 ? (
-          <ProfessionalList professionals={filteredProfessionals} />
-        ) : (
-          <View style={styles.emptyState}>
-            <Text variant="titleSm">Nada apareceu com esse filtro.</Text>
-            <Text color={colors.neutral[500]}>
-              Tente outro termo ou volte para “Todos”.
-            </Text>
-          </View>
-        )}
-      </View>
+        </>
+      )}
     </Screen>
   );
 }
 
+import React from 'react';
+
 const styles = StyleSheet.create({
-  screenContent: {
-    gap: layout.sectionGap,
-    paddingBottom: spacing[8],
-    backgroundColor: '#FFF8F2',
+  screen: { gap: spacing[4] },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[3],
   },
-  backdrop: {
-    position: 'absolute',
-    top: -80,
-    right: -36,
-    width: 190,
-    height: 190,
-    borderRadius: radius.full,
-    backgroundColor: 'rgba(233, 137, 54, 0.08)',
-  },
-  hero: {
+  areaCard: {
+    width: '47%',
+    alignItems: 'center',
     gap: spacing[2],
     borderRadius: radius.xl,
-    backgroundColor: colors.primary.default,
-    padding: spacing[5],
-    ...shadows.lg,
-  },
-  heroBadge: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-    borderRadius: radius.full,
-    backgroundColor: 'rgba(92, 47, 18, 0.16)',
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[50],
+    paddingVertical: spacing[5],
     paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
   },
-  searchShell: {
-    gap: spacing[3],
+  areaIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  section: {
-    gap: spacing[3],
-  },
-  sectionHeader: {
+  pressed: { opacity: 0.7 },
+  categoryList: { gap: spacing[1] },
+  categoryItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: spacing[3],
-  },
-  chipsRow: {
-    gap: spacing[2],
-    paddingRight: spacing[4],
-  },
-  chip: {
-    borderRadius: radius.full,
-    backgroundColor: '#FFF1E5',
-    borderWidth: 1,
-    borderColor: '#F6D8BF',
+    paddingVertical: spacing[3.5],
     paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-  },
-  chipActive: {
-    backgroundColor: colors.primary.default,
-    borderColor: colors.primary.default,
-  },
-  resultsMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-  },
-  emptyState: {
-    gap: spacing[2],
-    borderRadius: radius.xl,
-    backgroundColor: '#FFF1E5',
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: '#F6D8BF',
-    padding: layout.cardPadding,
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[50],
   },
+  categoryDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  categoryName: { flex: 1 },
 });
