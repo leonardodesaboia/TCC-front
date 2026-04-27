@@ -12,13 +12,13 @@ interface FormFieldProps {
 export function FormField({ label, error, children }: FormFieldProps) {
   return (
     <View style={styles.container}>
-      <Text variant="labelLg" color={colors.secondary.default}>{label}</Text>
+      <Text variant="labelLg" color={colors.neutral[700]}>{label}</Text>
       {children}
-      {error && <Text variant="labelLg" color={colors.error}>{error}</Text>}
+      {error ? <Text variant="labelSm" color={colors.error}>{error}</Text> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { gap: spacing[1] },
+  container: { gap: spacing[1.5] },
 });

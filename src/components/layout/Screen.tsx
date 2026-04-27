@@ -35,5 +35,9 @@ export function Screen({
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
-  padded: { paddingHorizontal: layout.screenPaddingHorizontal, paddingVertical: layout.screenPaddingVertical },
+  padded: {
+    paddingHorizontal: layout.screenPaddingHorizontal,
+    paddingTop: 16,
+    paddingBottom: 32,
+  },
 });

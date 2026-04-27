@@ -17,7 +17,7 @@ export function Input({ error, leftIcon, rightIcon, style, ...props }: InputProp
       {leftIcon}
       <TextInput
         style={[styles.input, style]}
-        placeholderTextColor={colors.neutral[500]}
+        placeholderTextColor={colors.neutral[400]}
         onFocus={(e) => { setFocused(true); props.onFocus?.(e); }}
         onBlur={(e) => { setFocused(false); props.onBlur?.(e); }}
         {...props}
@@ -28,8 +28,27 @@ export function Input({ error, leftIcon, rightIcon, style, ...props }: InputProp
 }
 
 const styles = StyleSheet.create({
-  container: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.neutral[400], borderRadius: radius.md, paddingHorizontal: spacing[4], height: 52, backgroundColor: colors.neutral[50], gap: spacing[2] },
-  focused: { borderColor: colors.primary.default },
-  error: { borderColor: colors.error },
-  input: { flex: 1, ...typography.bodySm, color: colors.secondary.default },
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.neutral[300],
+    borderRadius: radius.md,
+    paddingHorizontal: spacing[4],
+    height: 52,
+    backgroundColor: colors.neutral[50],
+    gap: spacing[3],
+  },
+  focused: {
+    borderColor: colors.primary.default,
+    backgroundColor: colors.neutral[50],
+  },
+  error: {
+    borderColor: colors.error,
+  },
+  input: {
+    flex: 1,
+    ...typography.bodySm,
+    color: colors.neutral[900],
+  },
 });

@@ -15,6 +15,7 @@ interface ButtonProps {
   rightIcon?: ReactNode;
   onPress?: PressableProps['onPress'];
   children: string;
+  fullWidth?: boolean;
 }
 
 export function Button({
@@ -26,6 +27,7 @@ export function Button({
   rightIcon,
   onPress,
   children,
+  fullWidth = true,
 }: ButtonProps) {
   const isDisabled = disabled || loading;
   const textColor = variant === 'primary' || variant === 'danger' ? '#FFFFFF' : colors.primary.default;
@@ -38,6 +40,7 @@ export function Button({
         styles.base,
         variantStyles[variant],
         sizeStyles[size],
+        fullWidth && styles.fullWidth,
         pressed && styles.pressed,
         isDisabled && styles.disabled,
       ]}
@@ -47,7 +50,7 @@ export function Button({
       ) : (
         <>
           {leftIcon}
-          <Text variant={size === 'sm' ? 'labelLg' : 'bodySm'} color={textColor} style={styles.label}>
+          <Text variant="titleSm" color={textColor}>
             {children}
           </Text>
           {rightIcon}
@@ -58,21 +61,31 @@ export function Button({
 }
 
 const styles = StyleSheet.create({
-  base: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: radius.sm, gap: spacing[2] },
-  pressed: { opacity: 0.8 },
-  disabled: { opacity: 0.5 },
-  label: { fontWeight: '600' },
+  base: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+    gap: spacing[2],
+  },
+  pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
+  disabled: { opacity: 0.45 },
+  fullWidth: { alignSelf: 'stretch' },
 });
 
 const variantStyles: Record<ButtonVariant, ViewStyle> = {
   primary: { backgroundColor: colors.primary.default },
-  secondary: { backgroundColor: 'transparent', borderWidth: 2, borderColor: colors.primary.default },
+  secondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: colors.neutral[300],
+  },
   danger: { backgroundColor: colors.error },
   ghost: { backgroundColor: 'transparent' },
 };
 
 const sizeStyles: Record<ButtonSize, ViewStyle> = {
-  sm: { height: 36, paddingHorizontal: spacing[3] },
-  md: { height: 48, paddingHorizontal: spacing[4] },
+  sm: { height: 40, paddingHorizontal: spacing[4] },
+  md: { height: 50, paddingHorizontal: spacing[5] },
   lg: { height: 56, paddingHorizontal: spacing[6] },
 };

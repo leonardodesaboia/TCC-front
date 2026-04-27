@@ -8,7 +8,7 @@ interface TextProps extends RNTextProps {
 
 export function Text({
   variant = 'bodySm',
-  color = colors.secondary.default,
+  color = colors.neutral[900],
   style,
   ...props
 }: TextProps) {

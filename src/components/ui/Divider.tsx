@@ -1,14 +1,14 @@
 import { View, StyleSheet } from 'react-native';
-import { colors, spacing } from '@/theme';
+import { colors } from '@/theme';
 
 interface DividerProps {
-  vertical?: number;
+  spacing?: number;
 }
 
-export function Divider({ vertical = spacing[3] }: DividerProps) {
-  return <View style={[styles.line, { marginVertical: vertical }]} />;
+export function Divider({ spacing: gap = 0 }: DividerProps) {
+  return <View style={[styles.line, gap > 0 && { marginVertical: gap }]} />;
 }
 
 const styles = StyleSheet.create({
-  line: { height: 1, backgroundColor: colors.neutral[300] },
+  line: { height: StyleSheet.hairlineWidth, backgroundColor: colors.neutral[200] },
 });
