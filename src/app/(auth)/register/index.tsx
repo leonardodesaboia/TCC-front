@@ -3,10 +3,10 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowRight, BriefcaseBusiness, UserRound } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
-import { Text } from '@/components/ui';
-import { colors, layout, radius, shadows, spacing } from '@/theme';
+import { Badge, Text } from '@/components/ui';
+import { colors, radius, spacing } from '@/theme';
 
-function RegisterOptionCard({
+function OptionCard({
   title,
   description,
   icon,
@@ -26,28 +26,28 @@ function RegisterOptionCard({
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
-        styles.optionCard,
-        disabled && styles.optionCardDisabled,
-        pressed && !disabled && styles.optionCardPressed,
+        styles.card,
+        disabled && styles.cardDisabled,
+        pressed && !disabled && styles.cardPressed,
       ]}
     >
-      <View style={styles.optionHeader}>
-        <View style={styles.optionIcon}>{icon}</View>
-        {badge ? (
-          <View style={[styles.badge, disabled && styles.badgeMuted]}>
-            <Text variant="labelSm" color={disabled ? colors.neutral[500] : colors.primary.default}>
-              {badge}
-            </Text>
-          </View>
-        ) : null}
+      <View style={styles.cardTop}>
+        <View style={[styles.iconCircle, disabled && styles.iconCircleDisabled]}>
+          {icon}
+        </View>
+        {badge ? <Badge label={badge} variant={disabled ? 'muted' : 'default'} /> : null}
       </View>
-      <View style={styles.optionContent}>
-        <Text variant="titleSm" color={disabled ? colors.neutral[500] : colors.secondary.default}>
+      <View style={styles.cardBody}>
+        <Text variant="titleSm" color={disabled ? colors.neutral[400] : colors.neutral[900]}>
           {title}
         </Text>
-        <Text color={colors.neutral[500]}>{description}</Text>
+        <Text variant="bodySm" color={colors.neutral[500]}>
+          {description}
+        </Text>
       </View>
-      {!disabled ? <ArrowRight color={colors.primary.default} size={20} /> : null}
+      {!disabled ? (
+        <ArrowRight color={colors.neutral[400]} size={20} />
+      ) : null}
     </Pressable>
   );
 }
@@ -55,99 +55,97 @@ function RegisterOptionCard({
 export default function RegisterChoiceScreen() {
   return (
     <Screen edges={['top', 'bottom']}>
-      <View style={styles.shell}>
-        <View style={styles.hero}>
-          <Text variant="labelLg" color={colors.primary.default}>
-            CADASTRO
-          </Text>
-          <Text variant="displayMd" style={styles.title}>
-            Escolha o perfil que faz sentido para sua jornada.
-          </Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text variant="displayLg">Criar conta</Text>
           <Text variant="bodyLg" color={colors.neutral[500]}>
-            O fluxo inicial do rewrite cobre a experiência de cliente. O profissional fica preparado para a próxima etapa.
+            Escolha como deseja usar o AllSet.
           </Text>
         </View>
 
         <View style={styles.options}>
-          <RegisterOptionCard
-            title="Cliente"
-            description="Encontre serviços, acompanhe pedidos e gerencie seus agendamentos."
+          <OptionCard
+            title="Sou cliente"
+            description="Encontre profissionais e contrate serviços para sua casa."
             icon={<UserRound color={colors.primary.default} size={24} />}
             onPress={() => router.push('/(auth)/register/client')}
           />
-          <RegisterOptionCard
-            title="Profissional"
-            description="Cadastre seus serviços, receba pedidos e administre sua agenda."
-            icon={<BriefcaseBusiness color={colors.neutral[500]} size={24} />}
+          <OptionCard
+            title="Sou profissional"
+            description="Cadastre seus serviços e receba pedidos de clientes."
+            icon={<BriefcaseBusiness color={colors.neutral[400]} size={24} />}
             disabled
             badge="Em breve"
           />
         </View>
 
-        <Pressable onPress={() => router.replace('/(auth)/login')} style={styles.backLink}>
-          <Text variant="labelLg" color={colors.primary.default}>
-            Voltar para login
+        <View style={styles.footer}>
+          <Text variant="bodySm" color={colors.neutral[500]}>
+            Já tem conta?
           </Text>
-        </Pressable>
+          <Pressable onPress={() => router.replace('/(auth)/login')}>
+            <Text variant="titleSm" color={colors.primary.default}>
+              Entrar
+            </Text>
+          </Pressable>
+        </View>
       </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  shell: {
+  container: {
     flex: 1,
     justifyContent: 'center',
-    gap: layout.sectionGap,
+    gap: spacing[8],
   },
-  hero: {
-    gap: spacing[3],
-  },
-  title: {
-    color: colors.secondary.default,
+  header: {
+    gap: spacing[2],
   },
   options: {
-    gap: spacing[4],
+    gap: spacing[3],
   },
-  optionCard: {
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing[4],
     borderRadius: radius.xl,
-    backgroundColor: colors.surface,
-    padding: layout.cardPadding,
-    ...shadows.md,
+    backgroundColor: colors.neutral[50],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    padding: spacing[4],
   },
-  optionCardPressed: {
-    opacity: 0.88,
+  cardDisabled: {
+    backgroundColor: colors.neutral[100],
+    borderColor: colors.neutral[200],
   },
-  optionCardDisabled: {
+  cardPressed: {
     backgroundColor: colors.neutral[100],
   },
-  optionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  cardTop: {
+    gap: spacing[2],
     alignItems: 'center',
   },
-  optionIcon: {
-    width: 48,
-    height: 48,
+  iconCircle: {
+    width: 52,
+    height: 52,
     borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.neutral[50],
+    backgroundColor: colors.primary.light,
   },
-  badge: {
-    borderRadius: radius.full,
-    backgroundColor: colors.neutral[50],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-  },
-  badgeMuted: {
+  iconCircleDisabled: {
     backgroundColor: colors.neutral[200],
   },
-  optionContent: {
-    gap: spacing[2],
+  cardBody: {
+    flex: 1,
+    gap: spacing[1],
   },
-  backLink: {
-    alignSelf: 'center',
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing[2],
   },
 });

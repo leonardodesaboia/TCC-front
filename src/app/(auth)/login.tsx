@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react-native';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { useForm } from 'react-hook-form';
 import { Screen } from '@/components/layout/Screen';
 import { FormInput } from '@/components/forms/FormInput';
@@ -10,89 +10,84 @@ import { Button, Text } from '@/components/ui';
 import { AUTH_BYPASS_ENABLED } from '@/lib/constants/config';
 import { useLogin } from '@/lib/hooks/useAuth';
 import { loginSchema, type LoginFormData } from '@/lib/validations/auth';
-import { colors, layout, radius, shadows, spacing } from '@/theme';
+import { colors, spacing } from '@/theme';
 
 export default function LoginScreen() {
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const login = useLogin();
-  const isBypassMode = AUTH_BYPASS_ENABLED;
+  const bypass = AUTH_BYPASS_ENABLED;
+
   const { control, handleSubmit } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
+    defaultValues: { email: '', password: '' },
   });
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <View style={styles.shell}>
-        <View style={styles.hero}>
-          <Text variant="labelLg" color={colors.primary.default}>
-            ALLSET
-          </Text>
-          <Text variant="displayLg" style={styles.title}>
-            Entre para contratar profissionais com rapidez.
-          </Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text variant="displayLg">Entrar</Text>
           <Text variant="bodyLg" color={colors.neutral[500]}>
-            Acesse sua conta para acompanhar pedidos, pagamentos e agendamentos.
+            Acesse sua conta para gerenciar seus serviços.
           </Text>
         </View>
 
-        <View style={styles.card}>
-          {isBypassMode ? (
+        <View style={styles.form}>
+          {bypass ? (
             <View style={styles.devBanner}>
-              <Text variant="labelLg" color={colors.primary.default}>
-                MODO DEV ATIVO
+              <Text variant="labelLg" color={colors.primary.dark}>
+                Modo desenvolvimento ativo
               </Text>
-              <Text color={colors.neutral[500]}>
-                Por enquanto, basta tocar em Entrar para acessar a Home.
+              <Text variant="labelSm" color={colors.neutral[500]}>
+                Toque em Entrar para acessar sem credenciais.
               </Text>
             </View>
           ) : null}
 
           <FormInput
+            control={control}
+            name="email"
+            label="E-mail"
+            placeholder="seu@email.com"
+            keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
-            control={control}
-            keyboardType="email-address"
-            label="E-mail"
-            leftIcon={<Mail color={colors.neutral[500]} size={18} />}
-            name="email"
-            placeholder="voce@exemplo.com"
           />
+
           <FormInput
+            control={control}
+            name="password"
+            label="Senha"
+            placeholder="Sua senha"
+            secureTextEntry={!showPassword}
             autoCapitalize="none"
             autoComplete="password"
-            control={control}
-            label="Senha"
-            leftIcon={<Lock color={colors.neutral[500]} size={18} />}
-            name="password"
-            placeholder="Sua senha"
             rightIcon={
-              <Pressable hitSlop={10} onPress={() => setIsPasswordVisible((current) => !current)}>
-                {isPasswordVisible ? (
-                  <EyeOff color={colors.neutral[500]} size={18} />
+              <Pressable hitSlop={10} onPress={() => setShowPassword((v) => !v)}>
+                {showPassword ? (
+                  <EyeOff color={colors.neutral[400]} size={20} />
                 ) : (
-                  <Eye color={colors.neutral[500]} size={18} />
+                  <Eye color={colors.neutral[400]} size={20} />
                 )}
               </Pressable>
             }
-            secureTextEntry={!isPasswordVisible}
           />
 
-          <Pressable onPress={() => router.push('/(auth)/forgot-password')} style={styles.inlineLink}>
+          <Pressable
+            onPress={() => router.push('/(auth)/forgot-password')}
+            style={styles.forgotLink}
+          >
             <Text variant="labelLg" color={colors.primary.default}>
-              Esqueci minha senha
+              Esqueceu a senha?
             </Text>
           </Pressable>
 
           <Button
             loading={login.isPending}
             onPress={
-              isBypassMode
+              bypass
                 ? () => login.mutate({ email: '', password: '' })
-                : handleSubmit((values) => login.mutate(values))
+                : handleSubmit((v) => login.mutate(v))
             }
           >
             Entrar
@@ -100,9 +95,11 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.footer}>
-          <Text color={colors.neutral[500]}>Ainda não tem conta?</Text>
+          <Text variant="bodySm" color={colors.neutral[500]}>
+            Não tem conta?
+          </Text>
           <Pressable onPress={() => router.push('/(auth)/register/')}>
-            <Text variant="labelLg" color={colors.primary.default}>
+            <Text variant="titleSm" color={colors.primary.default}>
               Criar conta
             </Text>
           </Pressable>
@@ -113,33 +110,24 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  shell: {
+  container: {
     flex: 1,
     justifyContent: 'center',
-    gap: layout.sectionGap,
+    gap: spacing[8],
   },
-  hero: {
-    gap: spacing[3],
+  header: {
+    gap: spacing[2],
   },
-  title: {
-    color: colors.secondary.default,
-  },
-  card: {
-    gap: layout.formGap,
-    borderRadius: radius.xl,
-    backgroundColor: colors.surface,
-    padding: layout.cardPadding,
-    ...shadows.md,
+  form: {
+    gap: spacing[4],
   },
   devBanner: {
     gap: spacing[1],
-    borderRadius: radius.lg,
-    backgroundColor: '#FFF8F2',
-    borderWidth: 1,
-    borderColor: '#F6D8BF',
-    padding: spacing[3],
+    borderRadius: 12,
+    backgroundColor: colors.primary.light,
+    padding: spacing[4],
   },
-  inlineLink: {
+  forgotLink: {
     alignSelf: 'flex-end',
   },
   footer: {

@@ -2,19 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  ArrowLeft,
-  CalendarDays,
-  CheckCircle2,
-  Circle,
-  Eye,
-  EyeOff,
-  IdCard,
-  Lock,
-  Mail,
-  Phone,
-  UserRound,
-} from 'lucide-react-native';
+import { ArrowLeft, Check, Eye, EyeOff } from 'lucide-react-native';
 import { useForm } from 'react-hook-form';
 import { Screen } from '@/components/layout/Screen';
 import { FormInput } from '@/components/forms/FormInput';
@@ -28,310 +16,215 @@ import {
   type ClientRegisterStep2Data,
 } from '@/lib/validations/auth';
 import type { RegisterClientRequest } from '@/types/user';
-import { colors, layout, radius, shadows, spacing } from '@/theme';
+import { colors, radius, spacing } from '@/theme';
 
-function StepIndicator({ currentStep }: { currentStep: 1 | 2 }) {
+function StepDots({ current, total }: { current: number; total: number }) {
   return (
-    <View style={styles.stepIndicator}>
-      {[1, 2].map((step) => {
-        const isActive = currentStep === step;
-        const isComplete = currentStep > step;
-
-        return (
-          <View key={step} style={styles.stepItem}>
-            {isComplete ? (
-              <CheckCircle2 color={colors.primary.default} size={18} />
-            ) : (
-              <Circle
-                color={isActive ? colors.primary.default : colors.neutral[400]}
-                fill={isActive ? colors.primary.default : colors.transparent}
-                size={18}
-              />
-            )}
-            <Text
-              variant="labelLg"
-              color={isActive || isComplete ? colors.secondary.default : colors.neutral[500]}
-            >
-              Etapa {step}
-            </Text>
-          </View>
-        );
-      })}
+    <View style={styles.stepDots}>
+      {Array.from({ length: total }, (_, i) => (
+        <View
+          key={i}
+          style={[
+            styles.dot,
+            i + 1 <= current && styles.dotActive,
+          ]}
+        />
+      ))}
     </View>
   );
 }
 
-function PasswordRequirement({ label, isMet }: { label: string; isMet: boolean }) {
+function PasswordRule({ label, met }: { label: string; met: boolean }) {
   return (
-    <View style={styles.requirementRow}>
-      <CheckCircle2
-        color={isMet ? colors.success : colors.neutral[400]}
-        fill={isMet ? colors.success : colors.transparent}
-        size={16}
-      />
-      <Text color={isMet ? colors.secondary.default : colors.neutral[500]}>{label}</Text>
+    <View style={styles.ruleRow}>
+      <View style={[styles.ruleIcon, met && styles.ruleIconMet]}>
+        <Check color={met ? '#FFFFFF' : colors.neutral[400]} size={10} />
+      </View>
+      <Text variant="labelLg" color={met ? colors.neutral[800] : colors.neutral[400]}>
+        {label}
+      </Text>
     </View>
   );
 }
 
 export default function RegisterClientScreen() {
   const [step, setStep] = useState<1 | 2>(1);
-  const [step1Values, setStep1Values] = useState<ClientRegisterStep1Data>({
-    cpf: '',
-    name: '',
-    email: '',
-    phone: '',
-    birthDate: '',
-  });
-  const [step2Values, setStep2Values] = useState<ClientRegisterStep2Data>({
-    password: '',
-    confirmPassword: '',
-  });
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
+  const [step1Saved, setStep1Saved] = useState<ClientRegisterStep1Data>({ cpf: '', name: '', email: '', phone: '', birthDate: '' });
+  const [showPw, setShowPw] = useState(false);
+  const [showCpw, setShowCpw] = useState(false);
   const register = useRegister();
 
-  const step1Form = useForm<ClientRegisterStep1Data>({
+  const step1 = useForm<ClientRegisterStep1Data>({
     resolver: zodResolver(clientRegisterStep1Schema),
-    defaultValues: step1Values,
+    defaultValues: step1Saved,
   });
-  const step2Form = useForm<ClientRegisterStep2Data>({
+
+  const step2 = useForm<ClientRegisterStep2Data>({
     resolver: zodResolver(clientRegisterStep2Schema),
-    defaultValues: step2Values,
+    defaultValues: { password: '', confirmPassword: '' },
   });
 
-  const password = step2Form.watch('password') ?? '';
-  const passwordChecks = useMemo(
-    () => [
-      { label: 'Mínimo de 8 caracteres', isMet: password.length >= 8 },
-      { label: 'Pelo menos 1 letra maiúscula', isMet: /[A-Z]/.test(password) },
-      { label: 'Pelo menos 1 letra minúscula', isMet: /[a-z]/.test(password) },
-      { label: 'Pelo menos 1 número', isMet: /[0-9]/.test(password) },
-    ],
-    [password],
-  );
+  const pw = step2.watch('password') ?? '';
+  const rules = useMemo(() => [
+    { label: 'Mínimo 8 caracteres', met: pw.length >= 8 },
+    { label: '1 letra maiúscula', met: /[A-Z]/.test(pw) },
+    { label: '1 letra minúscula', met: /[a-z]/.test(pw) },
+    { label: '1 número', met: /[0-9]/.test(pw) },
+  ], [pw]);
 
-  const submitStep1 = step1Form.handleSubmit((values) => {
-    setStep1Values(values);
-    setStep(2);
-  });
+  const goNext = step1.handleSubmit((v) => { setStep1Saved(v); setStep(2); });
+  const goBack = () => { setStep(1); };
 
-  const submitStep2 = step2Form.handleSubmit((values) => {
-    setStep2Values(values);
+  const submit = step2.handleSubmit((v) => {
     const payload: RegisterClientRequest = {
-      cpf: unmask(step1Values.cpf),
-      name: step1Values.name.trim(),
-      email: step1Values.email.trim(),
-      phone: unmask(step1Values.phone),
-      birthDate: step1Values.birthDate,
-      password: values.password,
+      cpf: unmask(step1Saved.cpf),
+      name: step1Saved.name.trim(),
+      email: step1Saved.email.trim(),
+      phone: unmask(step1Saved.phone),
+      birthDate: step1Saved.birthDate,
+      password: v.password,
     };
-
     register.mutate(payload);
   });
 
-  const goBackFromStep2 = () => {
-    setStep2Values(step2Form.getValues());
-    setStep(1);
-  };
-
   return (
     <Screen edges={['top', 'bottom']}>
-      <View style={styles.shell}>
+      <View style={styles.topRow}>
         <Pressable
-          onPress={() => (step === 1 ? router.replace('/(auth)/register/') : goBackFromStep2())}
-          style={styles.backAction}
+          onPress={() => (step === 1 ? router.replace('/(auth)/register/') : goBack())}
+          hitSlop={8}
+          style={styles.backBtn}
         >
-          <ArrowLeft color={colors.primary.default} size={18} />
-          <Text variant="labelLg" color={colors.primary.default}>
-            {step === 1 ? 'Voltar para perfis' : 'Voltar para dados pessoais'}
-          </Text>
+          <ArrowLeft color={colors.neutral[900]} size={22} />
         </Pressable>
-
-        <View style={styles.hero}>
-          <Text variant="labelLg" color={colors.primary.default}>
-            CADASTRO DE CLIENTE
-          </Text>
-          <Text variant="displayMd" style={styles.title}>
-            {step === 1 ? 'Conte quem você é.' : 'Agora defina a segurança da conta.'}
-          </Text>
-          <Text variant="bodyLg" color={colors.neutral[500]}>
-            {step === 1
-              ? 'Precisamos dos seus dados principais para personalizar a experiência desde o primeiro acesso.'
-              : 'A senha segue os critérios definidos na fundação do cliente e valida em tempo real.'}
-          </Text>
-        </View>
-
-        <StepIndicator currentStep={step} />
-
-        {step === 1 ? (
-          <View style={styles.card}>
-            <FormInput
-              control={step1Form.control}
-              keyboardType="numeric"
-              label="CPF"
-              leftIcon={<IdCard color={colors.neutral[500]} size={18} />}
-              mask={maskCPF}
-              maxLength={14}
-              name="cpf"
-              placeholder="000.000.000-00"
-            />
-            <FormInput
-              autoCapitalize="words"
-              control={step1Form.control}
-              label="Nome completo"
-              leftIcon={<UserRound color={colors.neutral[500]} size={18} />}
-              name="name"
-              placeholder="Seu nome completo"
-            />
-            <FormInput
-              autoCapitalize="none"
-              autoComplete="email"
-              control={step1Form.control}
-              keyboardType="email-address"
-              label="E-mail"
-              leftIcon={<Mail color={colors.neutral[500]} size={18} />}
-              name="email"
-              placeholder="voce@exemplo.com"
-            />
-            <FormInput
-              control={step1Form.control}
-              keyboardType="phone-pad"
-              label="Telefone"
-              leftIcon={<Phone color={colors.neutral[500]} size={18} />}
-              mask={maskPhone}
-              maxLength={15}
-              name="phone"
-              placeholder="(00) 00000-0000"
-            />
-            <FormInput
-              control={step1Form.control}
-              keyboardType="numeric"
-              label="Data de nascimento"
-              leftIcon={<CalendarDays color={colors.neutral[500]} size={18} />}
-              mask={maskDate}
-              maxLength={10}
-              name="birthDate"
-              placeholder="dd/mm/aaaa"
-            />
-
-            <Button onPress={submitStep1}>Próximo</Button>
-          </View>
-        ) : (
-          <View style={styles.card}>
-            <FormInput
-              autoCapitalize="none"
-              autoComplete="new-password"
-              control={step2Form.control}
-              label="Senha"
-              leftIcon={<Lock color={colors.neutral[500]} size={18} />}
-              name="password"
-              placeholder="Crie uma senha forte"
-              rightIcon={
-                <Pressable hitSlop={10} onPress={() => setIsPasswordVisible((current) => !current)}>
-                  {isPasswordVisible ? (
-                    <EyeOff color={colors.neutral[500]} size={18} />
-                  ) : (
-                    <Eye color={colors.neutral[500]} size={18} />
-                  )}
-                </Pressable>
-              }
-              secureTextEntry={!isPasswordVisible}
-            />
-            <View style={styles.requirementsCard}>
-              {passwordChecks.map((rule) => (
-                <PasswordRequirement key={rule.label} {...rule} />
-              ))}
-            </View>
-            <FormInput
-              autoCapitalize="none"
-              autoComplete="new-password"
-              control={step2Form.control}
-              label="Confirmar senha"
-              leftIcon={<Lock color={colors.neutral[500]} size={18} />}
-              name="confirmPassword"
-              placeholder="Repita sua senha"
-              rightIcon={
-                <Pressable
-                  hitSlop={10}
-                  onPress={() => setIsConfirmPasswordVisible((current) => !current)}
-                >
-                  {isConfirmPasswordVisible ? (
-                    <EyeOff color={colors.neutral[500]} size={18} />
-                  ) : (
-                    <Eye color={colors.neutral[500]} size={18} />
-                  )}
-                </Pressable>
-              }
-              secureTextEntry={!isConfirmPasswordVisible}
-            />
-
-            <View style={styles.buttonRow}>
-              <View style={styles.buttonHalf}>
-                <Button variant="secondary" onPress={goBackFromStep2}>
-                  Voltar
-                </Button>
-              </View>
-              <View style={styles.buttonHalf}>
-                <Button loading={register.isPending} onPress={submitStep2}>
-                  Criar conta
-                </Button>
-              </View>
-            </View>
-          </View>
-        )}
+        <StepDots current={step} total={2} />
+        <View style={styles.backBtn} />
       </View>
+
+      <View style={styles.header}>
+        <Text variant="displayMd">
+          {step === 1 ? 'Seus dados' : 'Crie uma senha'}
+        </Text>
+        <Text variant="bodySm" color={colors.neutral[500]}>
+          {step === 1
+            ? 'Informe seus dados pessoais para começar.'
+            : 'Defina uma senha segura para sua conta.'}
+        </Text>
+      </View>
+
+      {step === 1 ? (
+        <View style={styles.form}>
+          <FormInput control={step1.control} name="cpf" label="CPF" placeholder="000.000.000-00" keyboardType="numeric" mask={maskCPF} maxLength={14} />
+          <FormInput control={step1.control} name="name" label="Nome completo" placeholder="Seu nome" autoCapitalize="words" />
+          <FormInput control={step1.control} name="email" label="E-mail" placeholder="seu@email.com" keyboardType="email-address" autoCapitalize="none" autoComplete="email" />
+          <FormInput control={step1.control} name="phone" label="Telefone" placeholder="(00) 00000-0000" keyboardType="phone-pad" mask={maskPhone} maxLength={15} />
+          <FormInput control={step1.control} name="birthDate" label="Data de nascimento" placeholder="dd/mm/aaaa" keyboardType="numeric" mask={maskDate} maxLength={10} />
+          <Button onPress={goNext}>Continuar</Button>
+        </View>
+      ) : (
+        <View style={styles.form}>
+          <FormInput
+            control={step2.control}
+            name="password"
+            label="Senha"
+            placeholder="Crie uma senha"
+            secureTextEntry={!showPw}
+            autoCapitalize="none"
+            autoComplete="new-password"
+            rightIcon={
+              <Pressable hitSlop={10} onPress={() => setShowPw((v) => !v)}>
+                {showPw ? <EyeOff color={colors.neutral[400]} size={20} /> : <Eye color={colors.neutral[400]} size={20} />}
+              </Pressable>
+            }
+          />
+
+          <View style={styles.rulesBox}>
+            {rules.map((r) => <PasswordRule key={r.label} {...r} />)}
+          </View>
+
+          <FormInput
+            control={step2.control}
+            name="confirmPassword"
+            label="Confirmar senha"
+            placeholder="Repita a senha"
+            secureTextEntry={!showCpw}
+            autoCapitalize="none"
+            autoComplete="new-password"
+            rightIcon={
+              <Pressable hitSlop={10} onPress={() => setShowCpw((v) => !v)}>
+                {showCpw ? <EyeOff color={colors.neutral[400]} size={20} /> : <Eye color={colors.neutral[400]} size={20} />}
+              </Pressable>
+            }
+          />
+
+          <View style={styles.buttonRow}>
+            <Button variant="secondary" onPress={goBack}>Voltar</Button>
+            <Button loading={register.isPending} onPress={submit}>Criar conta</Button>
+          </View>
+        </View>
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  shell: {
-    gap: layout.sectionGap,
-  },
-  backAction: {
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: spacing[6],
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepDots: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
     gap: spacing[2],
   },
-  hero: {
-    gap: spacing[3],
+  dot: {
+    width: 32,
+    height: 4,
+    borderRadius: radius.full,
+    backgroundColor: colors.neutral[200],
   },
-  title: {
-    color: colors.secondary.default,
+  dotActive: {
+    backgroundColor: colors.primary.default,
   },
-  stepIndicator: {
-    flexDirection: 'row',
+  header: {
+    gap: spacing[2],
+    marginBottom: spacing[6],
+  },
+  form: {
     gap: spacing[4],
   },
-  stepItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  rulesBox: {
     gap: spacing[2],
-  },
-  card: {
-    gap: layout.formGap,
-    borderRadius: radius.xl,
-    backgroundColor: colors.surface,
-    padding: layout.cardPadding,
-    ...shadows.md,
-  },
-  requirementsCard: {
-    gap: spacing[2],
-    borderRadius: radius.lg,
     backgroundColor: colors.neutral[100],
+    borderRadius: radius.md,
     padding: spacing[4],
   },
-  requirementRow: {
+  ruleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[2],
+  },
+  ruleIcon: {
+    width: 18,
+    height: 18,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.neutral[300],
+  },
+  ruleIconMet: {
+    backgroundColor: colors.success,
   },
   buttonRow: {
     flexDirection: 'row',
     gap: spacing[3],
-  },
-  buttonHalf: {
-    flex: 1,
   },
 });
