@@ -131,3 +131,14 @@ export interface ExpressProposalDto {
 }
 
 export type OrderDetailsDto = OrderSummaryDto;
+
+export type ProResponse = 'accepted' | 'rejected' | 'timeout';
+
+export interface ProRespondRequest {
+  response: ProResponse;
+  proposedAmount?: number;
+}
+
+export interface CompleteOrderRequest {
+  file: FormData;
+}

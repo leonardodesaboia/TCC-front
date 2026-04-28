@@ -10,6 +10,7 @@ export const queryKeys = {
     all: ['professionals'] as const,
     detail: (id: string) => ['professionals', id] as const,
     search: (params: object) => ['professionals', 'search', params] as const,
+    myProfile: ['professionals', 'my-profile'] as const,
   },
   services: {
     all: ['services'] as const,
@@ -30,5 +31,10 @@ export const queryKeys = {
   },
   addresses: {
     all: ['addresses'] as const,
+  },
+  professionalOrders: {
+    all: ['professional-orders'] as const,
+    list: (params?: object) => ['professional-orders', 'list', params] as const,
+    detail: (id: string) => ['professional-orders', id] as const,
   },
 } as const;
