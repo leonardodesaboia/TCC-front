@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Bell, ChevronRight, Globe, Lock, Trash2 } from 'lucide-react-native';
 import { ErrorState } from '@/components/feedback/ErrorState';
@@ -116,7 +116,16 @@ export default function SettingsScreen() {
         <NavItem
           icon={<Trash2 color={colors.error} size={20} />}
           label="Excluir minha conta"
-          onPress={() => deleteAccount.mutate()}
+          onPress={() => {
+            Alert.alert(
+              'Excluir conta',
+              'Sua conta será agendada para exclusão. Você terá um período para reativá-la antes que seja permanentemente removida. Deseja continuar?',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Excluir', style: 'destructive', onPress: () => deleteAccount.mutate() },
+              ],
+            );
+          }}
           danger
         />
       </View>
