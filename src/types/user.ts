@@ -65,6 +65,17 @@ export interface CreateUserRequest {
   role: UserRole;
 }
 
+export interface RegisterProfessionalRequest {
+  cpf: string;
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  bio: string;
+  yearsOfExperience: number;
+  baseHourlyRate: number;
+}
+
 export interface UpdateUserRequest {
   name?: string;
   email?: string;

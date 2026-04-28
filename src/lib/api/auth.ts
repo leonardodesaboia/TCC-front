@@ -1,9 +1,11 @@
 import { apiClient } from './client';
 import { usersApi } from './users';
+import { professionalManagementApi } from './professional-management';
 import type {
   AuthTokens,
   LoginRequest,
   RegisterClientRequest,
+  RegisterProfessionalRequest,
   ForgotPasswordRequest,
   ResetPasswordRequest,
 } from '@/types/user';
@@ -26,6 +28,17 @@ export const authApi = {
 
   async register(data: RegisterClientRequest): Promise<AuthTokens> {
     await usersApi.createClient(data);
+    return this.login({ email: data.email, password: data.password });
+  },
+
+  async registerProfessional(data: RegisterProfessionalRequest): Promise<AuthTokens> {
+    const user = await usersApi.createProfessional(data);
+    await professionalManagementApi.createProfile({
+      userId: user.id,
+      bio: data.bio,
+      yearsOfExperience: data.yearsOfExperience,
+      baseHourlyRate: data.baseHourlyRate,
+    });
     return this.login({ email: data.email, password: data.password });
   },
 

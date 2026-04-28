@@ -73,9 +73,8 @@ export default function RegisterChoiceScreen() {
           <OptionCard
             title="Sou profissional"
             description="Cadastre seus serviços e receba pedidos de clientes."
-            icon={<BriefcaseBusiness color={colors.neutral[400]} size={24} />}
-            disabled
-            badge="Em breve"
+            icon={<BriefcaseBusiness color={colors.primary.default} size={24} />}
+            onPress={() => router.push('/(auth)/register/professional')}
           />
         </View>
 

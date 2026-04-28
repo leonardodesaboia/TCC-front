@@ -4,7 +4,7 @@ import type { ApiResponse } from '@/types/api';
 import { USE_MOCKS_ENABLED } from '@/lib/constants/config';
 import { deleteMockAvatar, deleteMockUser, getMockUser, updateMockUser, uploadMockAvatar } from '@/lib/mocks/runtime';
 import { getAuthenticatedUserId } from '@/lib/utils/auth-session';
-import { UserRole, type CreateUserRequest, type RegisterClientRequest, type UpdateUserRequest, type User, type UserResponseDto } from '@/types/user';
+import { UserRole, type CreateUserRequest, type RegisterClientRequest, type RegisterProfessionalRequest, type UpdateUserRequest, type User, type UserResponseDto } from '@/types/user';
 
 function mapUser(dto: UserResponseDto): User {
   return {
@@ -40,6 +40,28 @@ function toCreateUserPayload(data: RegisterClientRequest): CreateUserRequest {
 
 export const usersApi = {
   mapUser,
+
+  async createProfessional(data: RegisterProfessionalRequest): Promise<User> {
+    if (USE_MOCKS_ENABLED) {
+      return getMockUser();
+    }
+
+    const payload: CreateUserRequest = {
+      cpf: data.cpf,
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      password: data.password,
+      role: UserRole.PROFESSIONAL,
+    };
+
+    const response = await apiClient.post<ApiResponse<UserResponseDto> | UserResponseDto>(
+      '/api/users',
+      payload,
+    );
+
+    return mapUser(unwrapItem(response.data));
+  },
 
   async createClient(data: RegisterClientRequest): Promise<User> {
     if (USE_MOCKS_ENABLED) {

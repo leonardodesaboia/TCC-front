@@ -6,7 +6,14 @@ import { createBypassUser, useAuthStore } from '@/lib/stores/auth-store';
 import { toast } from '@/lib/utils/toast';
 import { getApiErrorMessage } from '@/lib/utils/errors';
 import { queryKeys } from '@/lib/constants/query-keys';
-import type { LoginRequest, RegisterClientRequest, User } from '@/types/user';
+import { UserRole } from '@/types/user';
+import type { LoginRequest, RegisterClientRequest, RegisterProfessionalRequest, User } from '@/types/user';
+
+function getPostAuthRoute(user: User): '/(client)/(home)' | '/(professional)/(dashboard)' {
+  return user.role === UserRole.PROFESSIONAL
+    ? '/(professional)/(dashboard)'
+    : '/(client)/(home)';
+}
 
 export function useLogin() {
   const router = useRouter();
@@ -26,7 +33,7 @@ export function useLogin() {
       setUser(user);
       queryClient.invalidateQueries({ queryKey: queryKeys.user });
       toast.success('Bem-vindo!', `Olá, ${user.name ?? ''}`);
-      router.replace('/(client)/(home)');
+      router.replace(getPostAuthRoute(user));
     },
     onError: (error: unknown) => {
       toast.error('Erro ao fazer login', getApiErrorMessage(error));
@@ -56,6 +63,38 @@ export function useRegister() {
     },
     onError: (error: unknown) => {
       toast.error('Erro ao criar conta', getApiErrorMessage(error));
+    },
+  });
+}
+
+export function useRegisterProfessional() {
+  const router = useRouter();
+  const setUser = useAuthStore((s) => s.setUser);
+  const queryClient = useQueryClient();
+
+  return useMutation<User, unknown, RegisterProfessionalRequest>({
+    mutationFn: async (data) => {
+      if (AUTH_BYPASS_ENABLED) {
+        return {
+          ...createBypassUser(),
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          role: UserRole.PROFESSIONAL,
+        };
+      }
+
+      await authApi.registerProfessional(data);
+      return authApi.getProfile();
+    },
+    onSuccess: async (user) => {
+      setUser(user);
+      queryClient.invalidateQueries({ queryKey: queryKeys.user });
+      toast.success('Conta profissional criada!', `Bem-vindo, ${user.name ?? ''}`);
+      router.replace(getPostAuthRoute(user));
+    },
+    onError: (error: unknown) => {
+      toast.error('Erro ao criar conta profissional', getApiErrorMessage(error));
     },
   });
 }
