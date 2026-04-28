@@ -13,14 +13,14 @@ Status atual por módulo:
 - `[x]` autenticação e sessão
 - `[x]` usuários
 - `[x]` endereços
-- `[/]` perfis profissionais
+- `[x]` perfis profissionais
 - `[/]` documentos/KYC
 - `[x]` catálogo de áreas e categorias
 - `[/]` serviços ofertados por profissionais
 - `[/]` assinatura de profissionais
 - `[/]` agenda/bloqueios
 - `[x]` pedidos Express
-- `[/]` chat
+- `[x]` chat
 - `[x]` notificações
 - `[x]` avaliações
 - `[x]` disputas
@@ -30,7 +30,13 @@ Observações do status atual:
 - `[x]` existe toggle por `.env` para usar `mock` ou API real
 - `[x]` o fluxo principal do cliente para pedido Express está conectado
 - `[x]` `typecheck` está passando no estado atual
-- `[/]` chat REST foi implementado, mas STOMP/WebSocket ainda não
+- `[x]` chat REST implementado com tela de conversas e detalhe de mensagens
+- `[/]` chat STOMP/WebSocket ainda não implementado
+- `[x]` upload de avatar do usuário conectado via expo-image-picker
+- `[x]` fotos de conclusão de pedido exibidas no detalhe
+- `[x]` propostas no detalhe do pedido exibem nome e avaliação do profissional
+- `[x]` card do profissional aceito com link para conversa e perfil
+- `[x]` confirmação antes de cancelar pedido e excluir conta
 - `[/]` uploads e arquivos privados têm base de API/hook em andamento, mas a UI ainda não cobre tudo
 - `[ ]` fluxos de admin ainda não têm superfície real no app
 - `[ ]` o fluxo `on_demand` continua limitado porque o backend documentado não expõe controller completo

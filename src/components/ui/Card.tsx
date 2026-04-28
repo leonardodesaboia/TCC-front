@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View, ViewStyle } from 'react-native';
 import { colors, radius, spacing } from '@/theme';
+import { shadows } from '@/theme/shadows';
 
 interface CardProps {
   children: ReactNode;
@@ -36,11 +37,7 @@ const styles = StyleSheet.create({
   },
   elevated: {
     backgroundColor: colors.neutral[50],
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    ...shadows.md,
   },
   pressed: {
     opacity: 0.9,
