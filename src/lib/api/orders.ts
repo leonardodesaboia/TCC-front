@@ -1,58 +1,26 @@
 import { apiClient } from './client';
+import { unwrapItem, unwrapList, toNumber } from './utils';
+import type { ApiResponse, SpringPage } from '@/types/api';
 import type {
   CreateOrderRequestDto,
-  OrderAddressDto,
+  ExpressProposal,
+  ExpressProposalDto,
   OrderDetails,
   OrderDetailsDto,
   OrderFiltersDto,
-  OrderProfessionalDto,
-  OrderServiceDto,
+  OrderPhoto,
+  OrderPhotoDto,
   OrderSummary,
   OrderSummaryDto,
 } from '@/types/order';
-import type { Address } from '@/types/address';
-import type { ProfessionalSummary } from '@/types/professional';
-import type { ServiceSummary } from '@/types/service';
-import type { ApiResponse, PaginatedResponse } from '@/types/api';
 
-function toNumber(value: number | string): number {
-  return typeof value === 'number' ? value : Number(value) || 0;
-}
-
-function mapService(dto: OrderServiceDto): ServiceSummary {
+function mapOrderPhoto(dto: OrderPhotoDto): OrderPhoto {
   return {
     id: dto.id,
-    name: dto.name,
-    description: dto.description ?? '',
-    price: toNumber(dto.price),
-  };
-}
-
-function mapProfessional(dto: OrderProfessionalDto): ProfessionalSummary {
-  return {
-    id: dto.id,
-    name: dto.name,
-    avatarUrl: dto.avatarUrl ?? undefined,
-    profession: dto.profession ?? 'Profissional',
-    professions: dto.profession ? [{ id: dto.id, name: dto.profession }] : [],
-    areas: [],
-    specialties: [],
-    rating: toNumber(dto.rating ?? 0),
-    reviewCount: toNumber(dto.reviewCount ?? 0),
-  };
-}
-
-function mapAddress(dto: OrderAddressDto): Address {
-  return {
-    id: dto.id,
-    street: dto.street,
-    number: dto.number,
-    complement: dto.complement ?? undefined,
-    neighborhood: dto.neighborhood,
-    city: dto.city,
-    state: dto.state,
-    zipCode: dto.zipCode,
-    isDefault: dto.isDefault ?? false,
+    type: dto.type,
+    uploaderId: dto.uploaderId,
+    downloadUrl: dto.file?.downloadUrl ?? undefined,
+    uploadedAt: dto.uploadedAt,
   };
 }
 
@@ -60,41 +28,53 @@ function mapOrderSummary(dto: OrderSummaryDto): OrderSummary {
   return {
     id: dto.id,
     status: dto.status,
-    scheduledAt: dto.scheduledAt,
-    totalPrice: toNumber(dto.totalPrice),
-    service: mapService(dto.service),
-    professional: mapProfessional(dto.professional),
-    address: mapAddress(dto.address),
+    categoryId: dto.categoryId,
+    areaId: dto.areaId,
+    description: dto.description,
+    professionalId: dto.professionalId ?? undefined,
+    addressId: dto.addressId,
+    addressSnapshot: dto.addressSnapshot ?? undefined,
+    scheduledAt: dto.scheduledAt ?? undefined,
+    urgencyFee: toNumber(dto.urgencyFee),
+    baseAmount: toNumber(dto.baseAmount),
+    platformFee: toNumber(dto.platformFee),
+    totalAmount: toNumber(dto.totalAmount),
+    createdAt: dto.createdAt,
+    updatedAt: dto.updatedAt,
   };
 }
 
 function mapOrderDetails(dto: OrderDetailsDto): OrderDetails {
   return {
     ...mapOrderSummary(dto),
-    notes: dto.notes ?? undefined,
-    createdAt: dto.createdAt,
-    updatedAt: dto.updatedAt ?? undefined,
+    clientId: dto.clientId,
+    serviceId: dto.serviceId ?? undefined,
+    expiresAt: dto.expiresAt ?? undefined,
+    searchRadiusKm: dto.searchRadiusKm != null ? toNumber(dto.searchRadiusKm) : undefined,
+    searchAttempts: dto.searchAttempts != null ? toNumber(dto.searchAttempts) : undefined,
+    proCompletedAt: dto.proCompletedAt ?? undefined,
+    disputeDeadline: dto.disputeDeadline ?? undefined,
+    completedAt: dto.completedAt ?? undefined,
+    cancelledAt: dto.cancelledAt ?? undefined,
+    cancelReason: dto.cancelReason ?? undefined,
+    version: dto.version ?? undefined,
+    photos: (dto.photos ?? []).map(mapOrderPhoto),
   };
 }
 
-function unwrapList<T>(payload: PaginatedResponse<T> | ApiResponse<T[]> | T[]): T[] {
-  if (Array.isArray(payload)) return payload;
-  if ('data' in payload && Array.isArray(payload.data)) return payload.data;
-  return [];
-}
-
-function unwrapItem<T>(payload: ApiResponse<T> | T): T {
-  if (payload && typeof payload === 'object' && 'data' in payload) {
-    return (payload as ApiResponse<T>).data;
-  }
-
-  return payload as T;
+function mapProposal(dto: ExpressProposalDto): ExpressProposal {
+  return {
+    professionalId: dto.professionalId,
+    proposedAmount: toNumber(dto.proposedAmount),
+    respondedAt: dto.respondedAt ?? undefined,
+    queuePosition: dto.queuePosition ?? undefined,
+  };
 }
 
 export const ordersApi = {
   async getMyOrders(params: OrderFiltersDto = {}): Promise<OrderSummary[]> {
-    const response = await apiClient.get<PaginatedResponse<OrderSummaryDto> | ApiResponse<OrderSummaryDto[]> | OrderSummaryDto[]>(
-      '/orders/my-orders',
+    const response = await apiClient.get<SpringPage<OrderSummaryDto> | ApiResponse<OrderSummaryDto[]> | OrderSummaryDto[]>(
+      '/api/v1/orders',
       { params },
     );
 
@@ -102,12 +82,66 @@ export const ordersApi = {
   },
 
   async getById(id: string): Promise<OrderDetails> {
-    const response = await apiClient.get<ApiResponse<OrderDetailsDto> | OrderDetailsDto>(`/orders/${id}`);
+    const response = await apiClient.get<ApiResponse<OrderDetailsDto> | OrderDetailsDto>(`/api/v1/orders/${id}`);
     return mapOrderDetails(unwrapItem(response.data));
   },
 
+  async getExpressProposals(id: string): Promise<ExpressProposal[]> {
+    const response = await apiClient.get<ApiResponse<ExpressProposalDto[]> | ExpressProposalDto[]>(
+      `/api/v1/orders/${id}/express/proposals`,
+    );
+
+    return unwrapList(response.data).map(mapProposal);
+  },
+
   async create(payload: CreateOrderRequestDto): Promise<OrderDetails> {
-    const response = await apiClient.post<ApiResponse<OrderDetailsDto> | OrderDetailsDto>('/orders', payload);
+    const response = await apiClient.post<ApiResponse<OrderDetailsDto> | OrderDetailsDto>(
+      '/api/v1/orders/express',
+      payload,
+    );
+
     return mapOrderDetails(unwrapItem(response.data));
+  },
+
+  async chooseProposal(orderId: string, professionalId: string): Promise<OrderDetails> {
+    const response = await apiClient.post<ApiResponse<OrderDetailsDto> | OrderDetailsDto>(
+      `/api/v1/orders/${orderId}/express/client-respond`,
+      { selectedProfessionalId: professionalId },
+    );
+
+    return mapOrderDetails(unwrapItem(response.data));
+  },
+
+  async cancel(orderId: string, reason: string): Promise<OrderDetails> {
+    const response = await apiClient.post<ApiResponse<OrderDetailsDto> | OrderDetailsDto>(
+      `/api/v1/orders/${orderId}/cancel`,
+      { reason },
+    );
+
+    return mapOrderDetails(unwrapItem(response.data));
+  },
+
+  async confirm(orderId: string): Promise<OrderDetails> {
+    const response = await apiClient.post<ApiResponse<OrderDetailsDto> | OrderDetailsDto>(
+      `/api/v1/orders/${orderId}/confirm`,
+    );
+
+    return mapOrderDetails(unwrapItem(response.data));
+  },
+
+  async complete(orderId: string, formData: FormData): Promise<OrderDetails> {
+    const response = await apiClient.post<ApiResponse<OrderDetailsDto> | OrderDetailsDto>(
+      `/api/v1/orders/${orderId}/complete`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
+
+    return mapOrderDetails(unwrapItem(response.data));
+  },
+
+  async uploadPhoto(orderId: string, formData: FormData): Promise<void> {
+    await apiClient.post(`/api/v1/orders/${orderId}/photos`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
   },
 };

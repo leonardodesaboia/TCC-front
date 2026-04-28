@@ -2,81 +2,78 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ClipboardList } from 'lucide-react-native';
+import { ErrorState } from '@/components/feedback/ErrorState';
+import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Screen } from '@/components/layout/Screen';
 import { Text } from '@/components/ui';
-import { OrderCard, type MockOrder } from '@/components/client/orders/OrderCard';
+import { OrderCard, type OrderCardItem } from '@/components/client/orders/OrderCard';
 import { EmptyState } from '@/components/feedback/EmptyState';
-import type { OrderStatus } from '@/components/client/orders/OrderStatusBadge';
+import { useServiceCategories } from '@/lib/hooks/useCatalog';
+import { useMyOrders } from '@/lib/hooks/useOrders';
+import { OrderStatus } from '@/types/order';
 import { colors, radius, spacing } from '@/theme';
 
 const FILTERS = ['Todos', 'Buscando', 'Aceito', 'Aguardando', 'Concluído', 'Cancelado'];
 
 const STATUS_MAP: Record<string, OrderStatus | undefined> = {
   Todos: undefined,
-  Buscando: 'pending',
-  Aceito: 'accepted',
-  Aguardando: 'completed_by_pro',
-  Concluído: 'completed',
-  Cancelado: 'cancelled',
+  Buscando: OrderStatus.PENDING,
+  Aceito: OrderStatus.ACCEPTED,
+  Aguardando: OrderStatus.COMPLETED_BY_PRO,
+  Concluído: OrderStatus.COMPLETED,
+  Cancelado: OrderStatus.CANCELLED,
 };
 
-const ORDERS: MockOrder[] = [
-  {
-    id: '1',
-    categoryName: 'Eletricista',
-    description: 'Trocar duas tomadas na sala e instalar uma nova na cozinha',
-    professionalName: 'Carlos Mendes',
-    status: 'accepted',
-    createdAt: 'Hoje, 10:30',
-    address: 'Rua das Flores, 123 - Centro',
-    totalAmount: 'R$ 150,00',
-  },
-  {
-    id: '2',
-    categoryName: 'Faxina residencial',
-    description: 'Limpeza geral de apartamento 3 quartos',
-    status: 'pending',
-    createdAt: 'Hoje, 09:15',
-    address: 'Av. Santos Dumont, 1500 - Aldeota',
-    proposalCount: 3,
-  },
-  {
-    id: '3',
-    categoryName: 'Encanador',
-    description: 'Torneira da cozinha vazando, preciso de reparo urgente',
-    professionalName: 'Pedro Henrique',
-    status: 'completed_by_pro',
-    createdAt: 'Ontem, 14:00',
-    address: 'Rua Canuto de Aguiar, 88 - Meireles',
-    totalAmount: 'R$ 120,00',
-  },
-  {
-    id: '4',
-    categoryName: 'Pintura interna',
-    description: 'Pintar sala e dois quartos, cor branca',
-    professionalName: 'Roberto Souza',
-    status: 'completed',
-    createdAt: '22/04, 08:00',
-    address: 'Rua Tibúrcio Cavalcante, 45 - Dionísio Torres',
-    totalAmount: 'R$ 800,00',
-  },
-  {
-    id: '5',
-    categoryName: 'Montagem de móveis',
-    description: 'Montar guarda-roupa e cômoda do quarto',
-    status: 'cancelled',
-    createdAt: '20/04, 14:00',
-    address: 'Rua Joaquim Nabuco, 302 - Aldeota',
-  },
-];
+function formatMoney(value: number) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
 
 export default function OrdersScreen() {
   const router = useRouter();
   const [filter, setFilter] = useState('Todos');
+  const ordersQuery = useMyOrders({ status: STATUS_MAP[filter] });
+  const categoriesQuery = useServiceCategories();
 
-  const filtered = ORDERS.filter((o) => {
-    const target = STATUS_MAP[filter];
-    return !target || o.status === target;
+  if (ordersQuery.isLoading || categoriesQuery.isLoading) {
+    return <LoadingScreen message="Carregando pedidos..." />;
+  }
+
+  if (ordersQuery.isError || categoriesQuery.isError) {
+    return (
+      <ErrorState
+        message="Não foi possível carregar seus pedidos."
+        onRetry={() => {
+          void ordersQuery.refetch();
+          void categoriesQuery.refetch();
+        }}
+      />
+    );
+  }
+
+  const categories = categoriesQuery.data ?? [];
+  const filtered: OrderCardItem[] = (ordersQuery.data ?? []).map((order) => {
+    const categoryName = categories.find((category) => category.id === order.categoryId)?.name ?? 'Serviço';
+    const snapshot = order.addressSnapshot;
+    return {
+      id: order.id,
+      categoryName,
+      description: order.description,
+      status: order.status,
+      createdAt: formatDate(order.createdAt),
+      address: snapshot
+        ? `${snapshot.street}, ${snapshot.number} - ${snapshot.district}`
+        : 'Endereço indisponível',
+      totalAmount: order.totalAmount > 0 ? formatMoney(order.totalAmount) : undefined,
+    };
   });
 
   return (

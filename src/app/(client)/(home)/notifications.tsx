@@ -1,65 +1,122 @@
-import { StyleSheet, View } from 'react-native';
-import { Bell, CalendarClock, ReceiptText } from 'lucide-react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Bell, CalendarClock, CheckCheck, MessageCircle, ReceiptText, ShieldAlert, Star } from 'lucide-react-native';
+import { EmptyState } from '@/components/feedback/EmptyState';
+import { ErrorState } from '@/components/feedback/ErrorState';
+import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
-import { Text } from '@/components/ui';
-import { EmptyState } from '@/components/feedback/EmptyState';
+import { Button, Text } from '@/components/ui';
+import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from '@/lib/hooks/useNotifications';
+import type { NotificationType } from '@/types/notification';
 import { colors, radius, spacing } from '@/theme';
 
-const NOTIFICATIONS = [
-  {
-    id: 'n-1',
-    title: 'Visita confirmada',
-    body: 'Mariana Costa confirmou presença para o atendimento das 14:00.',
-    time: '2h atrás',
-    icon: CalendarClock,
-    unread: true,
-  },
-  {
-    id: 'n-2',
-    title: 'Pedido atualizado',
-    body: 'Seu agendamento de manutenção foi ajustado para 09:30.',
-    time: '5h atrás',
-    icon: ReceiptText,
-    unread: false,
-  },
-];
+const ICON_BY_TYPE: Record<NotificationType, typeof Bell> = {
+  new_request: ReceiptText,
+  request_accepted: CalendarClock,
+  request_rejected: ShieldAlert,
+  request_status_update: ReceiptText,
+  new_message: MessageCircle,
+  payment_released: ReceiptText,
+  dispute_opened: ShieldAlert,
+  dispute_resolved: ShieldAlert,
+  verification_result: Star,
+};
+
+function formatDate(value?: string) {
+  if (!value) return '';
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
 
 export default function NotificationsScreen() {
+  const notificationsQuery = useNotifications();
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
+
+  if (notificationsQuery.isLoading) {
+    return <LoadingScreen message="Carregando notificações..." />;
+  }
+
+  if (notificationsQuery.isError) {
+    return <ErrorState message="Não foi possível carregar notificações." onRetry={() => notificationsQuery.refetch()} />;
+  }
+
+  const notifications = notificationsQuery.data ?? [];
+  const unreadCount = notifications.filter((item) => !item.readAt).length;
+
   return (
     <Screen edges={['top']}>
       <Header title="Notificações" showBack />
 
-      <View style={styles.list}>
-        {NOTIFICATIONS.map((item) => {
-          const Icon = item.icon;
-          return (
-            <View key={item.id} style={[styles.card, item.unread && styles.cardUnread]}>
-              <View style={styles.iconWrap}>
-                <Icon color={colors.primary.default} size={18} />
-              </View>
-              <View style={styles.cardText}>
-                <View style={styles.cardTitleRow}>
-                  <Text variant="titleSm" style={styles.cardTitle}>{item.title}</Text>
-                  <Text variant="labelSm" color={colors.neutral[400]}>{item.time}</Text>
-                </View>
-                <Text variant="bodySm" color={colors.neutral[500]}>{item.body}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </View>
+      {unreadCount > 0 ? (
+        <View style={styles.actions}>
+          <Button
+            variant="secondary"
+            size="sm"
+            fullWidth={false}
+            leftIcon={<CheckCheck color={colors.primary.default} size={16} />}
+            onPress={() => markAllRead.mutate()}
+            loading={markAllRead.isPending}
+          >
+            Marcar todas como lidas
+          </Button>
+        </View>
+      ) : null}
 
-      <EmptyState
-        icon={Bell}
-        title="Tudo em dia"
-        description="Novas notificações aparecerão conforme seus pedidos avançarem."
-      />
+      {notifications.length > 0 ? (
+        <View style={styles.list}>
+          {notifications.map((item) => {
+            const Icon = ICON_BY_TYPE[item.type] ?? Bell;
+            return (
+              <Pressable
+                key={item.id}
+                onPress={() => {
+                  if (!item.readAt) {
+                    markRead.mutate(item.id);
+                  }
+                }}
+                style={({ pressed }) => [
+                  styles.card,
+                  !item.readAt && styles.cardUnread,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <View style={styles.iconWrap}>
+                  <Icon color={colors.primary.default} size={18} />
+                </View>
+                <View style={styles.cardText}>
+                  <View style={styles.cardTitleRow}>
+                    <Text variant="titleSm" style={styles.cardTitle}>{item.title}</Text>
+                    <Text variant="labelSm" color={colors.neutral[400]}>
+                      {formatDate(item.sentAt ?? item.createdAt)}
+                    </Text>
+                  </View>
+                  <Text variant="bodySm" color={colors.neutral[500]}>{item.body}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : (
+        <EmptyState
+          icon={Bell}
+          title="Tudo em dia"
+          description="Novas notificações aparecerão conforme seus pedidos avançarem."
+        />
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  actions: {
+    alignItems: 'flex-end',
+    marginTop: spacing[2],
+  },
   list: {
     gap: spacing[2],
     marginTop: spacing[4],
@@ -77,6 +134,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary.light,
     borderColor: colors.primary.light,
   },
+  pressed: { opacity: 0.7 },
   iconWrap: {
     width: 40,
     height: 40,
@@ -93,6 +151,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing[2],
   },
   cardTitle: {
     flex: 1,

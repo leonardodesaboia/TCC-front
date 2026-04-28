@@ -21,6 +21,14 @@ export function useOrder(id: string) {
   });
 }
 
+export function useOrderProposals(id: string) {
+  return useQuery({
+    queryKey: queryKeys.orders.proposals(id),
+    queryFn: () => clientIntegration.orders.getExpressProposals(id),
+    enabled: !!id,
+  });
+}
+
 export function useCreateOrder() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -34,6 +42,70 @@ export function useCreateOrder() {
     },
     onError: (error: unknown) => {
       toast.error('Erro ao criar pedido', getApiErrorMessage(error));
+    },
+  });
+}
+
+export function useChooseOrderProposal(orderId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (professionalId: string) =>
+      clientIntegration.orders.chooseProposal(orderId, professionalId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.detail(orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.proposals(orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
+      toast.success('Proposta aceita!', 'O chat será liberado quando o backend concluir a transição.');
+    },
+    onError: (error: unknown) => {
+      toast.error('Erro ao aceitar proposta', getApiErrorMessage(error));
+    },
+  });
+}
+
+export function useCancelOrder(orderId: string) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (reason: string) => clientIntegration.orders.cancel(orderId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.detail(orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
+      toast.success('Pedido cancelado.');
+      router.replace('/(client)/(orders)');
+    },
+    onError: (error: unknown) => {
+      toast.error('Erro ao cancelar pedido', getApiErrorMessage(error));
+    },
+  });
+}
+
+export function useConfirmOrder(orderId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => clientIntegration.orders.confirm(orderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.detail(orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
+      toast.success('Pedido confirmado.');
+    },
+    onError: (error: unknown) => {
+      toast.error('Erro ao confirmar pedido', getApiErrorMessage(error));
+    },
+  });
+}
+
+export function useUploadOrderPhoto(orderId: string) {
+  return useMutation({
+    mutationFn: (formData: FormData) => clientIntegration.orders.uploadPhoto(orderId, formData),
+    onSuccess: () => {
+      toast.success('Foto enviada.');
+    },
+    onError: (error: unknown) => {
+      toast.error('Erro ao enviar foto', getApiErrorMessage(error));
     },
   });
 }

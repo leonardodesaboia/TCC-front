@@ -1,6 +1,6 @@
 import { apiClient } from './client';
+import { usersApi } from './users';
 import type {
-  User,
   AuthTokens,
   LoginRequest,
   RegisterClientRequest,
@@ -38,12 +38,21 @@ function decodeBase64(text: string): string {
   return result;
 }
 
-function readTokenPayload(token: string): { sub: string; role: string; email?: string } {
+export function readTokenPayload(token: string): { sub: string; role: string; email?: string } {
   const parts = token.split('.');
   if (parts.length < 2) throw new Error('Token inválido');
   const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
   const padded = base64.length % 4 === 0 ? base64 : base64 + '='.repeat(4 - (base64.length % 4));
   return JSON.parse(decodeBase64(padded));
+}
+
+export async function getAuthenticatedUserId(): Promise<string> {
+  const token = await getStoredValue(ACCESS_TOKEN_KEY);
+  if (!token) {
+    throw new Error('Sem token de acesso');
+  }
+
+  return readTokenPayload(token).sub;
 }
 
 export const authApi = {
@@ -56,22 +65,13 @@ export const authApi = {
   },
 
   async register(data: RegisterClientRequest): Promise<AuthTokens> {
-    const response = await apiClient.post('/api/auth/register', {
-      ...data,
-      role: 'client',
-    });
-    const tokens: AuthTokens = response.data;
-    await setStoredValue(ACCESS_TOKEN_KEY, tokens.accessToken);
-    await setStoredValue(REFRESH_TOKEN_KEY, tokens.refreshToken);
-    return tokens;
+    await usersApi.createClient(data);
+    return this.login({ email: data.email, password: data.password });
   },
 
-  async getProfile(): Promise<User> {
-    const token = await getStoredValue(ACCESS_TOKEN_KEY);
-    if (!token) throw new Error('Sem token de acesso');
-    const payload = readTokenPayload(token);
-    const response = await apiClient.get(`/api/users/${payload.sub}`);
-    return response.data;
+  async getProfile() {
+    const userId = await getAuthenticatedUserId();
+    return usersApi.getById(userId);
   },
 
   async logout(): Promise<void> {

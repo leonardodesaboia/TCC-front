@@ -4,21 +4,29 @@ export interface ApiResponse<T> {
   success?: boolean;
 }
 
-export interface PaginatedMeta {
-  page: number;
-  limit: number;
-  total: number;
+export interface SpringPage<T> {
+  content: T[];
+  totalElements: number;
   totalPages: number;
+  size: number;
+  number: number;
+  numberOfElements: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  meta: PaginatedMeta;
+export interface StorageRef {
+  key: string;
+  downloadUrl: string;
+  urlExpiresAt?: string | null;
 }
 
 export interface ApiErrorResponse {
+  status: number;
   message: string | string[];
-  statusCode: number;
   error?: string;
   fields?: Record<string, string>;
+  timestamp?: string;
+  scheduledDeletionAt?: string;
 }

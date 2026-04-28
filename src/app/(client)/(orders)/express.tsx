@@ -1,19 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Check, DollarSign, MapPin, Shield } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
+import { EmptyState } from '@/components/feedback/EmptyState';
+import { ErrorState } from '@/components/feedback/ErrorState';
+import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Badge, Button, Divider, Text } from '@/components/ui';
+import { useAddresses } from '@/lib/hooks/useAddresses';
+import { useCreateOrder } from '@/lib/hooks/useOrders';
 import { colors, radius, spacing } from '@/theme';
 
-const MOCK_ADDRESSES = [
-  { id: 'a1', label: 'Casa', address: 'Rua das Flores, 123, Apt 401 - Centro, Fortaleza' },
-  { id: 'a2', label: 'Trabalho', address: 'Av. Santos Dumont, 1500 - Aldeota, Fortaleza' },
-];
-
 export default function ExpressOrderScreen() {
-  const { areaName, categoryName } = useLocalSearchParams<{
+  const { areaId, categoryId, areaName, categoryName } = useLocalSearchParams<{
     areaId: string;
     categoryId: string;
     areaName: string;
@@ -21,17 +21,58 @@ export default function ExpressOrderScreen() {
   }>();
   const router = useRouter();
 
+  const addressesQuery = useAddresses();
+  const createOrder = useCreateOrder();
+
   const [description, setDescription] = useState('');
-  const [selectedAddress, setSelectedAddress] = useState('a1');
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [addUrgency, setAddUrgency] = useState(false);
 
-  const canSubmit = description.trim().length >= 10 && selectedAddress;
+  const addresses = addressesQuery.data ?? [];
+
+  useEffect(() => {
+    if (!selectedAddressId && addresses.length > 0) {
+      setSelectedAddressId(addresses.find((item) => item.isDefault)?.id ?? addresses[0]?.id ?? null);
+    }
+  }, [addresses, selectedAddressId]);
+
+  const selectedAddress = useMemo(
+    () => addresses.find((item) => item.id === selectedAddressId) ?? null,
+    [addresses, selectedAddressId],
+  );
+
+  const canSubmit =
+    description.trim().length >= 10 &&
+    !!selectedAddress &&
+    !!areaId &&
+    !!categoryId &&
+    Number.isFinite(selectedAddress.lat) &&
+    Number.isFinite(selectedAddress.lng);
+
+  async function handleSubmit() {
+    if (!canSubmit || !selectedAddressId || !areaId || !categoryId) return;
+
+    await createOrder.mutateAsync({
+      areaId,
+      categoryId,
+      description: description.trim(),
+      addressId: selectedAddressId,
+      urgencyFee: addUrgency ? 15 : 0,
+    });
+  }
+
+  if (addressesQuery.isLoading) {
+    return <LoadingScreen message="Carregando endereços..." />;
+  }
+
+  if (addressesQuery.isError) {
+    return <ErrorState message="Não foi possível carregar seus endereços." onRetry={() => addressesQuery.refetch()} />;
+  }
 
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
       <Header title="Novo pedido Express" showBack />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Category info */}
         <View style={styles.categoryCard}>
           <View style={styles.categoryInfo}>
             <Text variant="labelLg" color={colors.neutral[500]}>{areaName}</Text>
@@ -40,7 +81,6 @@ export default function ExpressOrderScreen() {
           <Badge label="Express" variant="warning" />
         </View>
 
-        {/* Description */}
         <View style={styles.section}>
           <Text variant="titleSm">Descreva o que você precisa</Text>
           <Text variant="labelLg" color={colors.neutral[500]}>
@@ -63,43 +103,60 @@ export default function ExpressOrderScreen() {
 
         <Divider />
 
-        {/* Address */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <MapPin color={colors.neutral[700]} size={18} />
             <Text variant="titleSm">Endereço do serviço</Text>
           </View>
-          {MOCK_ADDRESSES.map((a) => (
-            <Pressable
-              key={a.id}
-              onPress={() => setSelectedAddress(a.id)}
-              style={[styles.addressCard, selectedAddress === a.id && styles.addressCardSelected]}
-            >
-              <View style={styles.addressInfo}>
-                <Text variant="titleSm">{a.label}</Text>
-                <Text variant="labelLg" color={colors.neutral[500]} numberOfLines={2}>{a.address}</Text>
-              </View>
-              {selectedAddress === a.id ? (
-                <View style={styles.checkCircle}>
-                  <Check color="#FFFFFF" size={14} />
+
+          {addresses.length > 0 ? (
+            addresses.map((address) => (
+              <Pressable
+                key={address.id}
+                onPress={() => setSelectedAddressId(address.id)}
+                style={[styles.addressCard, selectedAddressId === address.id && styles.addressCardSelected]}
+              >
+                <View style={styles.addressInfo}>
+                  <Text variant="titleSm">{address.label}</Text>
+                  <Text variant="labelLg" color={colors.neutral[500]} numberOfLines={2}>
+                    {address.street}, {address.number}
+                    {address.complement ? `, ${address.complement}` : ''} - {address.district}, {address.city}
+                  </Text>
+                  {!Number.isFinite(address.lat) || !Number.isFinite(address.lng) ? (
+                    <Text variant="labelSm" color={colors.error}>
+                      Este endereço não possui coordenadas e não serve para Express.
+                    </Text>
+                  ) : null}
                 </View>
-              ) : (
-                <View style={styles.emptyCircle} />
-              )}
-            </Pressable>
-          ))}
+                {selectedAddressId === address.id ? (
+                  <View style={styles.checkCircle}>
+                    <Check color="#FFFFFF" size={14} />
+                  </View>
+                ) : (
+                  <View style={styles.emptyCircle} />
+                )}
+              </Pressable>
+            ))
+          ) : (
+            <EmptyState
+              icon={MapPin}
+              title="Nenhum endereço disponível"
+              description="Cadastre um endereço com latitude e longitude antes de abrir um pedido Express."
+              actionLabel="Cadastrar endereço"
+              onAction={() => router.push('/(client)/(profile)/addresses/new')}
+            />
+          )}
         </View>
 
         <Divider />
 
-        {/* Urgency fee */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <DollarSign color={colors.neutral[700]} size={18} />
             <Text variant="titleSm">Taxa de urgência</Text>
           </View>
           <Pressable
-            onPress={() => setAddUrgency(!addUrgency)}
+            onPress={() => setAddUrgency((value) => !value)}
             style={[styles.urgencyCard, addUrgency && styles.urgencyCardSelected]}
           >
             <View style={styles.addressInfo}>
@@ -123,7 +180,6 @@ export default function ExpressOrderScreen() {
           ) : null}
         </View>
 
-        {/* How it works */}
         <View style={styles.howItWorks}>
           <Text variant="titleSm">Como funciona?</Text>
           <View style={styles.step}>
@@ -144,7 +200,6 @@ export default function ExpressOrderScreen() {
           </View>
         </View>
 
-        {/* Guarantee */}
         <View style={styles.guaranteeCard}>
           <Shield color={colors.primary.default} size={20} />
           <Text variant="labelLg" color={colors.neutral[600]} style={styles.guaranteeFlex}>
@@ -155,13 +210,13 @@ export default function ExpressOrderScreen() {
         <View style={{ height: spacing[4] }} />
       </ScrollView>
 
-      {/* Bottom */}
       <View style={styles.bottomBar}>
         <Button
           variant="primary"
           size="lg"
           disabled={!canSubmit}
-          onPress={() => router.replace('/(client)/(orders)')}
+          loading={createOrder.isPending}
+          onPress={handleSubmit}
         >
           Enviar pedido
         </Button>

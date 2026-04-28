@@ -1,55 +1,51 @@
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import type { ReactNode } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { DollarSign, MapPin, MessageCircle, Phone, Star } from 'lucide-react-native';
+import { DollarSign, MapPin } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
-import { Avatar, Badge, Button, Divider, Text } from '@/components/ui';
+import { Badge, Button, Divider, Text } from '@/components/ui';
+import { ErrorState } from '@/components/feedback/ErrorState';
+import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { OrderStatusBadge } from '@/components/client/orders/OrderStatusBadge';
+import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
+import { useOrderDispute } from '@/lib/hooks/useDisputes';
+import { useCancelOrder, useChooseOrderProposal, useConfirmOrder, useOrder, useOrderProposals } from '@/lib/hooks/useOrders';
+import { useOrderReviews } from '@/lib/hooks/useReviews';
 import { colors, radius, spacing } from '@/theme';
+import { OrderStatus } from '@/types/order';
 
 interface TimelineStep {
   label: string;
-  date: string;
   completed: boolean;
   active: boolean;
 }
 
-interface Proposal {
-  id: string;
-  professionalName: string;
-  rating: string;
-  reviewCount: string;
-  proposedAmount: string;
-  respondedAt: string;
+function formatMoney(value: number) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
 
-const MOCK_ORDER = {
-  id: 'ORD-001',
-  categoryName: 'Eletricista',
-  areaName: 'Elétrica',
-  description: 'Preciso trocar duas tomadas na sala e instalar uma nova na cozinha. A fiação já está pronta.',
-  status: 'pending' as const,
-  address: 'Rua das Flores, 123, Apt 401 - Centro, Fortaleza - CE',
-  createdAt: '27 de Abril, 2026 às 10:30',
-  professional: null as { name: string; profession: string } | null,
-  totalAmount: null as string | null,
-};
+function formatDateTime(value?: string | null) {
+  if (!value) return 'Ainda não definido';
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
 
-const MOCK_PROPOSALS: Proposal[] = [
-  { id: 'p1', professionalName: 'Carlos Mendes', rating: '4.9', reviewCount: '127', proposedAmount: 'R$ 150,00', respondedAt: 'Há 5 min' },
-  { id: 'p2', professionalName: 'João Silva', rating: '4.7', reviewCount: '85', proposedAmount: 'R$ 130,00', respondedAt: 'Há 12 min' },
-  { id: 'p3', professionalName: 'André Costa', rating: '4.5', reviewCount: '42', proposedAmount: 'R$ 170,00', respondedAt: 'Há 18 min' },
-];
+function buildTimeline(status: OrderStatus): TimelineStep[] {
+  return [
+    { label: 'Pedido criado', completed: true, active: false },
+    { label: 'Buscando profissionais', completed: status !== OrderStatus.PENDING, active: status === OrderStatus.PENDING },
+    { label: 'Proposta aceita', completed: status !== OrderStatus.PENDING, active: status === OrderStatus.ACCEPTED },
+    { label: 'Serviço realizado', completed: status === OrderStatus.COMPLETED_BY_PRO || status === OrderStatus.COMPLETED, active: status === OrderStatus.COMPLETED_BY_PRO },
+    { label: 'Confirmado pelo cliente', completed: status === OrderStatus.COMPLETED, active: status === OrderStatus.DISPUTED },
+  ];
+}
 
-const MOCK_TIMELINE: TimelineStep[] = [
-  { label: 'Pedido criado', date: '27/04 às 10:30', completed: true, active: false },
-  { label: 'Buscando profissionais', date: '', completed: false, active: true },
-  { label: 'Proposta aceita', date: '', completed: false, active: false },
-  { label: 'Serviço realizado', date: '', completed: false, active: false },
-  { label: 'Confirmado pelo cliente', date: '', completed: false, active: false },
-];
-
-function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function InfoRow({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
     <View style={styles.infoRow}>
       {icon}
@@ -62,38 +58,73 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 }
 
 export default function OrderDetailScreen() {
-  const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const router = useRouter();
-  const o = MOCK_ORDER;
+  const { orderId } = useLocalSearchParams<{ orderId: string }>();
+  const orderQuery = useOrder(orderId);
+  const proposalsQuery = useOrderProposals(orderId);
+  const chooseProposal = useChooseOrderProposal(orderId);
+  const cancelOrder = useCancelOrder(orderId);
+  const confirmOrder = useConfirmOrder(orderId);
+  const areasQuery = useServiceAreas();
+  const categoriesQuery = useServiceCategories();
+  const reviewsQuery = useOrderReviews(orderId);
+  const disputeQuery = useOrderDispute(orderId);
+
+  if (orderQuery.isLoading || areasQuery.isLoading || categoriesQuery.isLoading || reviewsQuery.isLoading) {
+    return <LoadingScreen message="Carregando pedido..." />;
+  }
+
+  if (orderQuery.isError || areasQuery.isError || categoriesQuery.isError || reviewsQuery.isError) {
+    return (
+      <ErrorState
+        message="Não foi possível carregar esse pedido."
+        onRetry={() => {
+          void orderQuery.refetch();
+          void proposalsQuery.refetch();
+          void areasQuery.refetch();
+          void categoriesQuery.refetch();
+          void reviewsQuery.refetch();
+        }}
+      />
+    );
+  }
+
+  const order = orderQuery.data;
+  if (!order) {
+    return <ErrorState message="Pedido não encontrado." />;
+  }
+
+  const areaName = areasQuery.data?.find((area) => area.id === order.areaId)?.name ?? 'Área';
+  const categoryName = categoriesQuery.data?.find((category) => category.id === order.categoryId)?.name ?? 'Serviço';
+  const timeline = buildTimeline(order.status);
+  const proposals = proposalsQuery.data ?? [];
+  const hasReview = (reviewsQuery.data ?? []).some((review) => !!review.comment);
+  const hasDispute = !!disputeQuery.data;
 
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
       <Header title="Detalhes do pedido" showBack />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Status */}
         <View style={styles.statusSection}>
-          <OrderStatusBadge status={o.status} />
-          <Text variant="titleLg">{o.categoryName}</Text>
-          <Text variant="bodySm" color={colors.neutral[500]}>{o.description}</Text>
+          <OrderStatusBadge status={order.status} />
+          <Text variant="titleLg">{categoryName}</Text>
+          <Text variant="labelLg" color={colors.neutral[500]}>{areaName}</Text>
+          <Text variant="bodySm" color={colors.neutral[500]}>{order.description}</Text>
         </View>
 
-        {/* Timeline */}
         <View style={styles.section}>
           <Text variant="titleSm">Acompanhamento</Text>
           <View style={styles.timeline}>
-            {MOCK_TIMELINE.map((step, i) => (
-              <View key={i} style={styles.timelineStep}>
+            {timeline.map((step, index) => (
+              <View key={step.label} style={styles.timelineStep}>
                 <View style={styles.timelineDotCol}>
                   <View style={[
                     styles.timelineDot,
                     step.completed && styles.timelineDotCompleted,
                     step.active && styles.timelineDotActive,
                   ]} />
-                  {i < MOCK_TIMELINE.length - 1 ? (
-                    <View style={[
-                      styles.timelineLine,
-                      step.completed && styles.timelineLineCompleted,
-                    ]} />
+                  {index < timeline.length - 1 ? (
+                    <View style={[styles.timelineLine, step.completed && styles.timelineLineCompleted]} />
                   ) : null}
                 </View>
                 <View style={styles.timelineContent}>
@@ -103,9 +134,6 @@ export default function OrderDetailScreen() {
                   >
                     {step.label}
                   </Text>
-                  {step.date ? (
-                    <Text variant="labelSm" color={colors.neutral[400]}>{step.date}</Text>
-                  ) : null}
                 </View>
               </View>
             ))}
@@ -114,122 +142,153 @@ export default function OrderDetailScreen() {
 
         <Divider />
 
-        {/* Proposals (shown when status is pending) */}
-        {o.status === 'pending' ? (
+        {order.status === OrderStatus.PENDING ? (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text variant="titleSm">Propostas recebidas</Text>
-              <Badge label={`${MOCK_PROPOSALS.length}`} variant="default" />
+              <Badge label={`${proposals.length}`} variant="default" />
             </View>
-            {MOCK_PROPOSALS.length === 0 ? (
-              <View style={styles.waitingCard}>
-                <Text variant="bodySm" color={colors.neutral[500]} style={styles.centered}>
-                  Aguardando propostas de profissionais próximos...
-                </Text>
-              </View>
-            ) : (
+            {proposals.length > 0 ? (
               <View style={styles.proposalList}>
-                {MOCK_PROPOSALS.map((p) => (
-                  <View key={p.id} style={styles.proposalCard}>
+                {proposals.map((proposal) => (
+                  <View key={proposal.professionalId} style={styles.proposalCard}>
                     <View style={styles.proposalTop}>
-                      <Avatar name={p.professionalName} size="md" backgroundColor={colors.primary.default} />
                       <View style={styles.proposalInfo}>
-                        <Text variant="titleSm">{p.professionalName}</Text>
-                        <View style={styles.ratingRow}>
-                          <Star color={colors.warning} fill={colors.warning} size={12} />
-                          <Text variant="labelLg">{p.rating}</Text>
-                          <Text variant="labelSm" color={colors.neutral[500]}>({p.reviewCount})</Text>
-                        </View>
+                        <Text variant="titleSm">Profissional {proposal.queuePosition ?? ''}</Text>
+                        <Text variant="labelLg" color={colors.neutral[500]}>
+                          ID: {proposal.professionalId}
+                        </Text>
                       </View>
                       <View style={styles.proposalPrice}>
-                        <Text variant="titleSm" color={colors.primary.default}>{p.proposedAmount}</Text>
-                        <Text variant="labelSm" color={colors.neutral[400]}>{p.respondedAt}</Text>
+                        <Text variant="titleSm" color={colors.primary.default}>{formatMoney(proposal.proposedAmount)}</Text>
+                        <Text variant="labelSm" color={colors.neutral[400]}>{formatDateTime(proposal.respondedAt)}</Text>
                       </View>
                     </View>
                     <Button
                       variant="primary"
                       size="sm"
-                      onPress={() => {}}
+                      onPress={() => chooseProposal.mutate(proposal.professionalId)}
+                      loading={chooseProposal.isPending}
                     >
                       Aceitar proposta
                     </Button>
                   </View>
                 ))}
               </View>
+            ) : (
+              <View style={styles.waitingCard}>
+                <Text variant="bodySm" color={colors.neutral[500]} style={styles.centered}>
+                  Aguardando propostas de profissionais próximos...
+                </Text>
+              </View>
             )}
           </View>
         ) : null}
 
-        {/* Professional (shown when accepted) */}
-        {o.professional ? (
-          <>
-            <View style={styles.section}>
-              <Text variant="titleSm">Profissional</Text>
-              <View style={styles.professionalCard}>
-                <Avatar name={o.professional.name} size="lg" backgroundColor={colors.primary.default} />
-                <View style={styles.professionalInfo}>
-                  <Text variant="titleSm">{o.professional.name}</Text>
-                  <Text variant="bodySm" color={colors.neutral[500]}>{o.professional.profession}</Text>
-                </View>
-                <View style={styles.contactBtns}>
-                  <Pressable style={styles.iconBtn}>
-                    <Phone color={colors.primary.default} size={18} />
-                  </Pressable>
-                  <Pressable style={styles.iconBtn}>
-                    <MessageCircle color={colors.primary.default} size={18} />
-                  </Pressable>
-                </View>
-              </View>
-            </View>
-            <Divider />
-          </>
-        ) : null}
-
-        {/* Details */}
         <View style={styles.section}>
           <Text variant="titleSm">Detalhes</Text>
           <InfoRow
             icon={<MapPin color={colors.neutral[400]} size={18} />}
             label="Endereço"
-            value={o.address}
+            value={order.addressSnapshot
+              ? `${order.addressSnapshot.street}, ${order.addressSnapshot.number}${order.addressSnapshot.complement ? `, ${order.addressSnapshot.complement}` : ''} - ${order.addressSnapshot.district}, ${order.addressSnapshot.city} - ${order.addressSnapshot.state}`
+              : 'Endereço indisponível'}
+          />
+          <InfoRow
+            icon={<DollarSign color={colors.neutral[400]} size={18} />}
+            label="Criado em"
+            value={formatDateTime(order.createdAt)}
           />
         </View>
 
-        {/* Payment (when total is known) */}
-        {o.totalAmount ? (
+        {(order.totalAmount > 0 || order.platformFee > 0 || order.baseAmount > 0) ? (
           <>
             <Divider />
             <View style={styles.section}>
               <Text variant="titleSm">Pagamento</Text>
               <View style={styles.paymentCard}>
                 <View style={styles.paymentRow}>
-                  <Text variant="bodySm" color={colors.neutral[600]}>Valor proposto</Text>
-                  <Text variant="bodySm">{o.totalAmount}</Text>
+                  <Text variant="bodySm" color={colors.neutral[600]}>Valor base</Text>
+                  <Text variant="bodySm">{formatMoney(order.baseAmount)}</Text>
                 </View>
                 <View style={styles.paymentRow}>
                   <Text variant="bodySm" color={colors.neutral[600]}>Taxa da plataforma</Text>
-                  <Text variant="bodySm" color={colors.neutral[500]}>Inclusa</Text>
+                  <Text variant="bodySm">{formatMoney(order.platformFee)}</Text>
+                </View>
+                <View style={styles.paymentRow}>
+                  <Text variant="bodySm" color={colors.neutral[600]}>Urgência</Text>
+                  <Text variant="bodySm">{formatMoney(order.urgencyFee)}</Text>
                 </View>
                 <Divider />
                 <View style={styles.paymentRow}>
                   <Text variant="titleSm">Total</Text>
-                  <Text variant="titleSm" color={colors.primary.default}>{o.totalAmount}</Text>
-                </View>
-                <View style={styles.paymentMethod}>
-                  <DollarSign color={colors.neutral[400]} size={16} />
-                  <Text variant="labelLg" color={colors.neutral[500]}>Pix</Text>
+                  <Text variant="titleSm" color={colors.primary.default}>{formatMoney(order.totalAmount)}</Text>
                 </View>
               </View>
             </View>
           </>
         ) : null}
 
+        <Divider />
+
+        <View style={styles.section}>
+          <Text variant="titleSm">Ações</Text>
+          <View style={styles.actions}>
+            {order.status === OrderStatus.ACCEPTED ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                fullWidth={false}
+                onPress={() => router.push({ pathname: '/(client)/conversations', params: { orderId } } as never)}
+              >
+                Abrir conversa
+              </Button>
+            ) : null}
+            {order.status === OrderStatus.COMPLETED_BY_PRO ? (
+              <>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  fullWidth={false}
+                  onPress={() => confirmOrder.mutate()}
+                  loading={confirmOrder.isPending}
+                >
+                  Confirmar serviço
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  fullWidth={false}
+                  onPress={() => router.push(`/(client)/(orders)/dispute/${orderId}` as never)}
+                >
+                  {hasDispute ? 'Ver disputa' : 'Abrir disputa'}
+                </Button>
+              </>
+            ) : null}
+            {order.status === OrderStatus.COMPLETED ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                fullWidth={false}
+                onPress={() => router.push(`/(client)/(orders)/review/${orderId}` as never)}
+              >
+                {hasReview ? 'Ver avaliação' : 'Avaliar pedido'}
+              </Button>
+            ) : null}
+          </View>
+        </View>
+
         <View style={{ height: spacing[4] }} />
       </ScrollView>
 
-      {/* Bottom actions */}
       <View style={styles.bottomBar}>
-        <Button variant="secondary" size="lg" onPress={() => {}}>
+        <Button
+          variant="secondary"
+          size="lg"
+          onPress={() => cancelOrder.mutate('Cancelado pelo cliente no app')}
+          loading={cancelOrder.isPending}
+          disabled={order.status === OrderStatus.CANCELLED || order.status === OrderStatus.COMPLETED}
+        >
           Cancelar pedido
         </Button>
       </View>
@@ -290,28 +349,6 @@ const styles = StyleSheet.create({
   proposalTop: { flexDirection: 'row', alignItems: 'center', gap: spacing[3] },
   proposalInfo: { flex: 1, gap: 2 },
   proposalPrice: { alignItems: 'flex-end', gap: 2 },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[1] },
-  professionalCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-    backgroundColor: colors.neutral[50],
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    padding: spacing[3],
-  },
-  professionalInfo: { flex: 1, gap: 2 },
-  contactBtns: { flexDirection: 'row', gap: spacing[2] },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   infoRow: { flexDirection: 'row', gap: spacing[3], alignItems: 'flex-start' },
   infoText: { flex: 1, gap: 2 },
   paymentCard: {
@@ -323,7 +360,7 @@ const styles = StyleSheet.create({
     gap: spacing[3],
   },
   paymentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  paymentMethod: { flexDirection: 'row', alignItems: 'center', gap: spacing[1] },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
   bottomBar: {
     paddingTop: spacing[3],
     borderTopWidth: 1,

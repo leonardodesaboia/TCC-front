@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { unwrapItem, unwrapList } from './utils';
 import type {
   AreaDto,
   AreaRef,
@@ -11,7 +12,7 @@ import type {
   ProfessionalSummaryDto,
   SearchProfessionalsParamsDto,
 } from '@/types/professional';
-import type { ApiResponse, PaginatedResponse } from '@/types/api';
+import type { ApiResponse, SpringPage } from '@/types/api';
 import type { ServiceDetails, ServiceDetailsDto, ServiceSummary } from '@/types/service';
 
 function toNumber(value: number | string | null | undefined): number {
@@ -76,28 +77,16 @@ function mapProfessionalProfile(dto: ProfessionalProfileDto): ProfessionalProfil
   };
 }
 
-function unwrapList<T>(payload: PaginatedResponse<T> | ApiResponse<T[]> | T[]): T[] {
-  if (Array.isArray(payload)) return payload;
-  if ('data' in payload && Array.isArray(payload.data)) return payload.data;
-  return [];
-}
-
-function unwrapItem<T>(payload: ApiResponse<T> | T): T {
-  if (payload && typeof payload === 'object' && 'data' in payload) {
-    return (payload as ApiResponse<T>).data;
-  }
-
-  return payload as T;
-}
-
 export const professionalsApi = {
+  mapProfessionalProfile,
+
   async search(params: SearchProfessionalsParamsDto = {}): Promise<ProfessionalSummary[]> {
-    const response = await apiClient.get<PaginatedResponse<ProfessionalSummaryDto> | ApiResponse<ProfessionalSummaryDto[]> | ProfessionalSummaryDto[]>(
+    const response = await apiClient.get<SpringPage<ProfessionalSummaryDto> | ApiResponse<ProfessionalSummaryDto[]> | ProfessionalSummaryDto[]>(
       '/professionals',
       { params },
     );
 
-    return unwrapList(response.data).map(mapProfessionalSummary);
+    return unwrapList<ProfessionalSummaryDto>(response.data).map(mapProfessionalSummary);
   },
 
   async getById(id: string): Promise<ProfessionalProfile> {
@@ -112,23 +101,23 @@ export const professionalsApi = {
     professionId: string,
     params: GetProfessionalsByCategoryParamsDto = {},
   ): Promise<ProfessionalSummary[]> {
-    const response = await apiClient.get<PaginatedResponse<ProfessionalSummaryDto> | ApiResponse<ProfessionalSummaryDto[]> | ProfessionalSummaryDto[]>(
+    const response = await apiClient.get<SpringPage<ProfessionalSummaryDto> | ApiResponse<ProfessionalSummaryDto[]> | ProfessionalSummaryDto[]>(
       `/professions/${professionId}`,
       { params },
     );
 
-    return unwrapList(response.data).map(mapProfessionalSummary);
+    return unwrapList<ProfessionalSummaryDto>(response.data).map(mapProfessionalSummary);
   },
 
   async getByArea(
     areaId: string,
     params: GetProfessionalsByCategoryParamsDto = {},
   ): Promise<ProfessionalSummary[]> {
-    const response = await apiClient.get<PaginatedResponse<ProfessionalSummaryDto> | ApiResponse<ProfessionalSummaryDto[]> | ProfessionalSummaryDto[]>(
+    const response = await apiClient.get<SpringPage<ProfessionalSummaryDto> | ApiResponse<ProfessionalSummaryDto[]> | ProfessionalSummaryDto[]>(
       `/areas/${areaId}`,
       { params },
     );
 
-    return unwrapList(response.data).map(mapProfessionalSummary);
+    return unwrapList<ProfessionalSummaryDto>(response.data).map(mapProfessionalSummary);
   },
 };

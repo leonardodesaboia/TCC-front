@@ -1,21 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Calendar, Check, Clock, MapPin, Shield } from 'lucide-react-native';
+import { EmptyState } from '@/components/feedback/EmptyState';
+import { ErrorState } from '@/components/feedback/ErrorState';
+import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Avatar, Button, Divider, Text } from '@/components/ui';
+import { USE_MOCKS_ENABLED } from '@/lib/constants/config';
+import { useAddresses } from '@/lib/hooks/useAddresses';
+import { useProfessional } from '@/lib/hooks/useProfessionals';
+import { useProfessionalService } from '@/lib/hooks/useServices';
 import { colors, radius, spacing } from '@/theme';
-
-const MOCK_SERVICE = {
-  title: 'Instalação de tomada',
-  price: 'R$ 80,00',
-  duration: '30 min',
-  professional: {
-    name: 'Carlos Mendes',
-    profession: 'Eletricista',
-  },
-};
 
 const MOCK_DATES = [
   { id: 'd1', label: 'Hoje', sublabel: '27 Abr', available: true },
@@ -35,129 +32,194 @@ const MOCK_TIMES = [
   { id: 't7', label: '16:00', available: true },
 ];
 
-const MOCK_ADDRESSES = [
-  { id: 'a1', label: 'Casa', address: 'Rua das Flores, 123, Apt 401 - Centro, Fortaleza' },
-  { id: 'a2', label: 'Trabalho', address: 'Av. Santos Dumont, 1500 - Aldeota, Fortaleza' },
-];
+function formatMoney(value: number) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+}
+
+function formatDuration(minutes?: number) {
+  if (!minutes) return 'Sob consulta';
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return remainder > 0 ? `${hours}h ${remainder}min` : `${hours}h`;
+}
 
 export default function CheckoutScreen() {
-  const { serviceId } = useLocalSearchParams<{ serviceId: string }>();
+  const { serviceId, professionalId } = useLocalSearchParams<{ serviceId: string; professionalId?: string }>();
   const router = useRouter();
+
+  const serviceQuery = useProfessionalService(professionalId ?? '', serviceId);
+  const professionalQuery = useProfessional(professionalId ?? '');
+  const addressesQuery = useAddresses();
+
   const [selectedDate, setSelectedDate] = useState('d1');
   const [selectedTime, setSelectedTime] = useState('t1');
-  const [selectedAddress, setSelectedAddress] = useState('a1');
-  const [notes, setNotes] = useState('');
+  const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
 
-  const s = MOCK_SERVICE;
+  const addresses = addressesQuery.data ?? [];
+
+  useEffect(() => {
+    if (!selectedAddress && addresses.length > 0) {
+      setSelectedAddress(addresses.find((item) => item.isDefault)?.id ?? addresses[0]?.id ?? null);
+    }
+  }, [addresses, selectedAddress]);
+
+  if (!professionalId) {
+    return <ErrorState message="Abra o checkout a partir da tela do profissional." />;
+  }
+
+  if (serviceQuery.isLoading || professionalQuery.isLoading || addressesQuery.isLoading) {
+    return <LoadingScreen message="Carregando checkout..." />;
+  }
+
+  if (serviceQuery.isError || professionalQuery.isError || addressesQuery.isError) {
+    return (
+      <ErrorState
+        message="Não foi possível carregar esse checkout."
+        onRetry={() => {
+          void serviceQuery.refetch();
+          void professionalQuery.refetch();
+          void addressesQuery.refetch();
+        }}
+      />
+    );
+  }
+
+  const service = serviceQuery.data;
+  const professional = professionalQuery.data;
+
+  if (!service || !professional) {
+    return <ErrorState message="Serviço ou profissional não encontrado." />;
+  }
 
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
       <Header title="Agendar serviço" showBack />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Service summary */}
         <View style={styles.serviceCard}>
-          <Avatar name={s.professional.name} size="md" backgroundColor={colors.primary.default} />
+          <Avatar name={professional.name} size="md" backgroundColor={colors.primary.default} />
           <View style={styles.serviceInfo}>
-            <Text variant="titleSm">{s.title}</Text>
-            <Text variant="bodySm" color={colors.neutral[500]}>{s.professional.name} · {s.duration}</Text>
+            <Text variant="titleSm">{service.name}</Text>
+            <Text variant="bodySm" color={colors.neutral[500]}>
+              {professional.name} · {formatDuration(service.durationInMinutes)}
+            </Text>
           </View>
-          <Text variant="titleSm" color={colors.primary.default}>{s.price}</Text>
+          <Text variant="titleSm" color={colors.primary.default}>{formatMoney(service.price)}</Text>
         </View>
 
-        {/* Date selection */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Calendar color={colors.neutral[700]} size={18} />
-            <Text variant="titleSm">Escolha a data</Text>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-            {MOCK_DATES.map((d) => (
-              <Pressable
-                key={d.id}
-                disabled={!d.available}
-                onPress={() => setSelectedDate(d.id)}
-                style={[
-                  styles.dateChip,
-                  selectedDate === d.id && styles.dateChipSelected,
-                  !d.available && styles.chipDisabled,
-                ]}
-              >
-                <Text
-                  variant="labelLg"
-                  color={selectedDate === d.id ? '#FFFFFF' : d.available ? colors.neutral[700] : colors.neutral[400]}
-                >
-                  {d.label}
-                </Text>
-                <Text
-                  variant="labelSm"
-                  color={selectedDate === d.id ? '#FFFFFF' : d.available ? colors.neutral[500] : colors.neutral[300]}
-                >
-                  {d.sublabel}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
+        {USE_MOCKS_ENABLED ? (
+          <>
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Calendar color={colors.neutral[700]} size={18} />
+                <Text variant="titleSm">Escolha a data</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
+                {MOCK_DATES.map((d) => (
+                  <Pressable
+                    key={d.id}
+                    disabled={!d.available}
+                    onPress={() => setSelectedDate(d.id)}
+                    style={[
+                      styles.dateChip,
+                      selectedDate === d.id && styles.dateChipSelected,
+                      !d.available && styles.chipDisabled,
+                    ]}
+                  >
+                    <Text
+                      variant="labelLg"
+                      color={selectedDate === d.id ? '#FFFFFF' : d.available ? colors.neutral[700] : colors.neutral[400]}
+                    >
+                      {d.label}
+                    </Text>
+                    <Text
+                      variant="labelSm"
+                      color={selectedDate === d.id ? '#FFFFFF' : d.available ? colors.neutral[500] : colors.neutral[300]}
+                    >
+                      {d.sublabel}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
 
-        {/* Time selection */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Clock color={colors.neutral[700]} size={18} />
-            <Text variant="titleSm">Escolha o horário</Text>
-          </View>
-          <View style={styles.timeGrid}>
-            {MOCK_TIMES.map((t) => (
-              <Pressable
-                key={t.id}
-                disabled={!t.available}
-                onPress={() => setSelectedTime(t.id)}
-                style={[
-                  styles.timeChip,
-                  selectedTime === t.id && styles.timeChipSelected,
-                  !t.available && styles.chipDisabled,
-                ]}
-              >
-                <Text
-                  variant="labelLg"
-                  color={selectedTime === t.id ? '#FFFFFF' : t.available ? colors.neutral[700] : colors.neutral[400]}
-                >
-                  {t.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Clock color={colors.neutral[700]} size={18} />
+                <Text variant="titleSm">Escolha o horário</Text>
+              </View>
+              <View style={styles.timeGrid}>
+                {MOCK_TIMES.map((t) => (
+                  <Pressable
+                    key={t.id}
+                    disabled={!t.available}
+                    onPress={() => setSelectedTime(t.id)}
+                    style={[
+                      styles.timeChip,
+                      selectedTime === t.id && styles.timeChipSelected,
+                      !t.available && styles.chipDisabled,
+                    ]}
+                  >
+                    <Text
+                      variant="labelLg"
+                      color={selectedTime === t.id ? '#FFFFFF' : t.available ? colors.neutral[700] : colors.neutral[400]}
+                    >
+                      {t.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </>
+        ) : (
+          <EmptyState
+            icon={Calendar}
+            title="Fluxo on-demand ainda não disponível"
+            description="O backend atual documentado ainda não expõe o checkout/agendamento direto para serviços on-demand."
+          />
+        )}
 
         <Divider />
 
-        {/* Address selection */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <MapPin color={colors.neutral[700]} size={18} />
             <Text variant="titleSm">Endereço</Text>
           </View>
-          {MOCK_ADDRESSES.map((a) => (
-            <Pressable
-              key={a.id}
-              onPress={() => setSelectedAddress(a.id)}
-              style={[styles.addressCard, selectedAddress === a.id && styles.addressCardSelected]}
-            >
-              <View style={styles.addressInfo}>
-                <Text variant="titleSm">{a.label}</Text>
-                <Text variant="labelLg" color={colors.neutral[500]} numberOfLines={2}>{a.address}</Text>
-              </View>
-              {selectedAddress === a.id ? (
-                <View style={styles.checkCircle}>
-                  <Check color="#FFFFFF" size={14} />
+          {addresses.length > 0 ? (
+            addresses.map((address) => (
+              <Pressable
+                key={address.id}
+                onPress={() => setSelectedAddress(address.id)}
+                style={[styles.addressCard, selectedAddress === address.id && styles.addressCardSelected]}
+              >
+                <View style={styles.addressInfo}>
+                  <Text variant="titleSm">{address.label}</Text>
+                  <Text variant="labelLg" color={colors.neutral[500]} numberOfLines={2}>
+                    {address.street}, {address.number}
+                    {address.complement ? `, ${address.complement}` : ''} - {address.district}, {address.city}
+                  </Text>
                 </View>
-              ) : (
-                <View style={styles.emptyCircle} />
-              )}
-            </Pressable>
-          ))}
+                {selectedAddress === address.id ? (
+                  <View style={styles.checkCircle}>
+                    <Check color="#FFFFFF" size={14} />
+                  </View>
+                ) : (
+                  <View style={styles.emptyCircle} />
+                )}
+              </Pressable>
+            ))
+          ) : (
+            <EmptyState
+              icon={MapPin}
+              title="Sem endereço cadastrado"
+              description="Cadastre um endereço antes de continuar."
+              actionLabel="Cadastrar endereço"
+              onAction={() => router.push('/(client)/(profile)/addresses/new')}
+            />
+          )}
         </View>
 
-        {/* Guarantee */}
         <View style={styles.guaranteeCard}>
           <Shield color={colors.primary.default} size={20} />
           <Text variant="labelLg" color={colors.neutral[600]} style={styles.guaranteeText}>
@@ -168,15 +230,19 @@ export default function CheckoutScreen() {
         <View style={{ height: spacing[4] }} />
       </ScrollView>
 
-      {/* Bottom */}
       <View style={styles.bottomBar}>
         <View style={styles.bottomPrice}>
           <Text variant="labelLg" color={colors.neutral[500]}>Total</Text>
-          <Text variant="titleLg" color={colors.primary.default}>{s.price}</Text>
+          <Text variant="titleLg" color={colors.primary.default}>{formatMoney(service.price)}</Text>
         </View>
         <View style={styles.ctaBtn}>
-          <Button variant="primary" size="lg" onPress={() => router.back()}>
-            Confirmar agendamento
+          <Button
+            variant="primary"
+            size="lg"
+            onPress={() => router.back()}
+            disabled={!USE_MOCKS_ENABLED || !selectedAddress}
+          >
+            {USE_MOCKS_ENABLED ? 'Confirmar agendamento' : 'Indisponível no backend atual'}
           </Button>
         </View>
       </View>

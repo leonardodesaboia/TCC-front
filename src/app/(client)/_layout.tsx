@@ -44,6 +44,7 @@ export default function ClientLayout() {
       <Tabs.Screen name="(search)" options={{ title: 'Buscar' }} />
       <Tabs.Screen name="(orders)" options={{ title: 'Pedidos' }} />
       <Tabs.Screen name="(profile)" options={{ title: 'Perfil' }} />
+      <Tabs.Screen name="conversations" options={{ href: null }} />
     </Tabs>
   );
 }

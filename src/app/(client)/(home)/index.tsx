@@ -11,43 +11,56 @@ import {
   Wrench,
   Zap,
 } from 'lucide-react-native';
+import { ErrorState } from '@/components/feedback/ErrorState';
+import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Screen } from '@/components/layout/Screen';
 import { Avatar, Badge, Text } from '@/components/ui';
 import { OrderStatusBadge } from '@/components/client/orders/OrderStatusBadge';
+import { useServiceAreas } from '@/lib/hooks/useCatalog';
+import { useNotifications } from '@/lib/hooks/useNotifications';
+import { useMyOrders } from '@/lib/hooks/useOrders';
 import { useAuth } from '@/providers/AuthProvider';
+import { OrderStatus } from '@/types/order';
 import { colors, radius, spacing } from '@/theme';
 
-const QUICK_CATEGORIES = [
-  { id: 'cat-1', name: 'Elétrica', icon: Zap, color: '#F59E0B', bg: '#FEF3C7' },
-  { id: 'cat-2', name: 'Limpeza', icon: Sparkles, color: '#3B82F6', bg: '#DBEAFE' },
-  { id: 'cat-3', name: 'Hidráulica', icon: Droplets, color: '#06B6D4', bg: '#CFFAFE' },
-  { id: 'cat-4', name: 'Pintura', icon: Brush, color: '#8B5CF6', bg: '#EDE9FE' },
-  { id: 'cat-5', name: 'Manutenção', icon: Wrench, color: '#EF4444', bg: '#FEE2E2' },
-];
-
-const ACTIVE_ORDERS = [
-  {
-    id: '1',
-    categoryName: 'Eletricista',
-    description: 'Trocar duas tomadas na sala',
-    status: 'accepted' as const,
-    professionalName: 'Carlos Mendes',
-    proposalCount: 0,
-  },
-  {
-    id: '2',
-    categoryName: 'Faxina residencial',
-    description: 'Limpeza geral de apartamento',
-    status: 'pending' as const,
-    professionalName: undefined,
-    proposalCount: 3,
-  },
-];
+const AREA_ICON_MAP = {
+  elétrica: { icon: Zap, color: '#F59E0B', bg: '#FEF3C7' },
+  limpeza: { icon: Sparkles, color: '#3B82F6', bg: '#DBEAFE' },
+  hidráulica: { icon: Droplets, color: '#06B6D4', bg: '#CFFAFE' },
+  pintura: { icon: Brush, color: '#8B5CF6', bg: '#EDE9FE' },
+  manutenção: { icon: Wrench, color: '#EF4444', bg: '#FEE2E2' },
+} as const;
 
 export default function ClientHomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const firstName = useMemo(() => user?.name?.split(' ')[0] ?? 'Cliente', [user?.name]);
+  const areasQuery = useServiceAreas();
+  const notificationsQuery = useNotifications();
+  const ordersQuery = useMyOrders();
+
+  if (areasQuery.isLoading || notificationsQuery.isLoading || ordersQuery.isLoading) {
+    return <LoadingScreen message="Carregando início..." />;
+  }
+
+  if (areasQuery.isError || notificationsQuery.isError || ordersQuery.isError) {
+    return (
+      <ErrorState
+        message="Não foi possível carregar a tela inicial."
+        onRetry={() => {
+          void areasQuery.refetch();
+          void notificationsQuery.refetch();
+          void ordersQuery.refetch();
+        }}
+      />
+    );
+  }
+
+  const areas = (areasQuery.data ?? []).slice(0, 5);
+  const unreadNotifications = (notificationsQuery.data ?? []).filter((item) => !item.readAt).length;
+  const activeOrders = (ordersQuery.data ?? [])
+    .filter((order) => [OrderStatus.PENDING, OrderStatus.ACCEPTED, OrderStatus.COMPLETED_BY_PRO].includes(order.status))
+    .slice(0, 3);
 
   return (
     <Screen edges={['top']} style={styles.screen}>
@@ -64,6 +77,11 @@ export default function ClientHomeScreen() {
           style={styles.bellBtn}
         >
           <Bell color={colors.neutral[700]} size={22} />
+          {unreadNotifications > 0 ? (
+            <View style={styles.badgeDot}>
+              <Text variant="labelSm" color="#FFFFFF">{unreadNotifications > 9 ? '9+' : String(unreadNotifications)}</Text>
+            </View>
+          ) : null}
         </Pressable>
       </View>
 
@@ -82,18 +100,19 @@ export default function ClientHomeScreen() {
       <View style={styles.section}>
         <Text variant="titleMd">Categorias</Text>
         <View style={styles.categoriesGrid}>
-          {QUICK_CATEGORIES.map((cat) => {
-            const Icon = cat.icon;
+          {areas.map((area) => {
+            const visual = AREA_ICON_MAP[area.name.toLowerCase() as keyof typeof AREA_ICON_MAP];
+            const Icon = visual?.icon ?? Zap;
             return (
               <Pressable
-                key={cat.id}
+                key={area.id}
                 onPress={() => router.push('/(client)/(search)')}
                 style={({ pressed }) => [styles.categoryChip, pressed && styles.pressed]}
               >
-                <View style={[styles.categoryIcon, { backgroundColor: cat.bg }]}>
-                  <Icon color={cat.color} size={18} />
+                <View style={[styles.categoryIcon, { backgroundColor: visual?.bg ?? colors.primary.light }]}>
+                  <Icon color={visual?.color ?? colors.primary.default} size={18} />
                 </View>
-                <Text variant="labelLg">{cat.name}</Text>
+                <Text variant="labelLg">{area.name}</Text>
               </Pressable>
             );
           })}
@@ -101,7 +120,7 @@ export default function ClientHomeScreen() {
       </View>
 
       {/* Active orders */}
-      {ACTIVE_ORDERS.length > 0 ? (
+      {activeOrders.length > 0 ? (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text variant="titleMd">Pedidos ativos</Text>
@@ -110,32 +129,32 @@ export default function ClientHomeScreen() {
             </Pressable>
           </View>
 
-          {ACTIVE_ORDERS.map((order) => (
+          {activeOrders.map((order) => (
             <Pressable
               key={order.id}
               onPress={() => router.push(`/(client)/(orders)/${order.id}` as any)}
               style={styles.orderCard}
             >
               <View style={styles.orderTop}>
-                {order.professionalName ? (
-                  <Avatar name={order.professionalName} size="md" />
+                {order.professionalId ? (
+                  <Avatar name="Profissional" size="md" />
                 ) : (
                   <View style={styles.orderIconWrap}>
                     <Zap color={colors.primary.default} size={18} />
                   </View>
                 )}
                 <View style={styles.orderInfo}>
-                  <Text variant="titleSm">{order.categoryName}</Text>
+                  <Text variant="titleSm">{order.description.slice(0, 28) || 'Pedido'}</Text>
                   <Text variant="bodySm" color={colors.neutral[500]} numberOfLines={1}>
-                    {order.professionalName ?? order.description}
+                    {order.professionalId ? 'Profissional definido' : order.description}
                   </Text>
                 </View>
                 <OrderStatusBadge status={order.status} />
               </View>
-              {order.status === 'pending' && order.proposalCount > 0 ? (
+              {order.status === OrderStatus.PENDING ? (
                 <View style={styles.orderFooter}>
                   <Text variant="labelLg" color={colors.primary.default}>
-                    {order.proposalCount} {order.proposalCount === 1 ? 'proposta recebida' : 'propostas recebidas'}
+                    Acompanhe propostas no detalhe do pedido
                   </Text>
                   <ArrowRight color={colors.primary.default} size={16} />
                 </View>
@@ -182,6 +201,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.neutral[100],
+    position: 'relative',
+  },
+  badgeDot: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
   },
   searchBar: {
     flexDirection: 'row',

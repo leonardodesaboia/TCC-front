@@ -1,87 +1,133 @@
-import type { Address } from './address';
-import type { ProfessionalSummary } from './professional';
-import type { ServiceSummary } from './service';
-
 export enum OrderStatus {
-  PENDING = 'PENDING',
-  ACCEPTED = 'ACCEPTED',
-  REJECTED = 'REJECTED',
-  IN_PROGRESS = 'IN_PROGRESS',
-  PENDING_COMPLETION = 'PENDING_COMPLETION',
-  COMPLETED = 'COMPLETED',
-  DISPUTED = 'DISPUTED',
-  CANCELED = 'CANCELED',
+  PENDING = 'pending',
+  ACCEPTED = 'accepted',
+  COMPLETED_BY_PRO = 'completed_by_pro',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+  DISPUTED = 'disputed',
+}
+
+export interface OrderAddressSnapshot {
+  label?: string;
+  street: string;
+  number: string;
+  complement?: string | null;
+  district: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  lat?: number | null;
+  lng?: number | null;
+}
+
+export interface OrderPhoto {
+  id: string;
+  type: string;
+  uploaderId: string;
+  downloadUrl?: string;
+  uploadedAt: string;
 }
 
 export interface OrderSummary {
   id: string;
   status: OrderStatus;
-  scheduledAt: string;
-  totalPrice: number;
-  service: ServiceSummary;
-  professional: ProfessionalSummary;
-  address: Address;
+  categoryId: string;
+  areaId: string;
+  description: string;
+  professionalId?: string | null;
+  addressId: string;
+  addressSnapshot?: OrderAddressSnapshot | null;
+  scheduledAt?: string | null;
+  urgencyFee: number;
+  baseAmount: number;
+  platformFee: number;
+  totalAmount: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface OrderDetails extends OrderSummary {
-  notes?: string;
-  createdAt: string;
-  updatedAt?: string;
+  clientId: string;
+  serviceId?: string | null;
+  expiresAt?: string | null;
+  searchRadiusKm?: number | null;
+  searchAttempts?: number | null;
+  proCompletedAt?: string | null;
+  disputeDeadline?: string | null;
+  completedAt?: string | null;
+  cancelledAt?: string | null;
+  cancelReason?: string | null;
+  version?: number | null;
+  photos: OrderPhoto[];
 }
 
 export interface OrderFiltersDto {
   status?: OrderStatus;
   page?: number;
-  limit?: number;
+  size?: number;
 }
 
 export interface CreateOrderRequestDto {
-  serviceId: string;
+  areaId: string;
+  categoryId: string;
+  description: string;
   addressId: string;
-  scheduledAt: string;
-  notes?: string;
+  urgencyFee?: number;
 }
 
-export interface OrderServiceDto {
-  id: string;
-  name: string;
-  description?: string | null;
-  price: number | string;
-}
-
-export interface OrderProfessionalDto {
-  id: string;
-  name: string;
-  avatarUrl?: string | null;
-  profession?: string | null;
-  rating?: number | string | null;
-  reviewCount?: number | string | null;
-}
-
-export interface OrderAddressDto {
-  id: string;
-  street: string;
-  number: string;
-  complement?: string | null;
-  neighborhood: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  isDefault?: boolean | null;
+export interface ExpressProposal {
+  professionalId: string;
+  proposedAmount: number;
+  respondedAt?: string | null;
+  queuePosition?: number | null;
 }
 
 export interface OrderSummaryDto {
   id: string;
+  clientId: string;
+  professionalId?: string | null;
+  serviceId?: string | null;
+  areaId: string;
+  categoryId: string;
+  mode?: string | null;
   status: OrderStatus;
-  scheduledAt: string;
-  totalPrice: number | string;
-  service: OrderServiceDto;
-  professional: OrderProfessionalDto;
-  address: OrderAddressDto;
+  description: string;
+  addressId: string;
+  addressSnapshot?: OrderAddressSnapshot | null;
+  scheduledAt?: string | null;
+  expiresAt?: string | null;
+  urgencyFee?: number | string | null;
+  baseAmount?: number | string | null;
+  platformFee?: number | string | null;
+  totalAmount?: number | string | null;
+  searchRadiusKm?: number | string | null;
+  searchAttempts?: number | string | null;
+  proCompletedAt?: string | null;
+  disputeDeadline?: string | null;
+  completedAt?: string | null;
+  cancelledAt?: string | null;
+  cancelReason?: string | null;
+  version?: number | null;
+  createdAt: string;
+  updatedAt: string;
+  photos?: OrderPhotoDto[] | null;
 }
 
-export interface OrderDetailsDto extends OrderSummaryDto {
-  notes?: string | null;
-  createdAt: string;
-  updatedAt?: string | null;
+export interface OrderPhotoDto {
+  id: string;
+  type: string;
+  uploaderId: string;
+  file?: {
+    downloadUrl?: string | null;
+  } | null;
+  uploadedAt: string;
 }
+
+export interface ExpressProposalDto {
+  professionalId: string;
+  proposedAmount: number | string;
+  respondedAt?: string | null;
+  queuePosition?: number | null;
+}
+
+export type OrderDetailsDto = OrderSummaryDto;

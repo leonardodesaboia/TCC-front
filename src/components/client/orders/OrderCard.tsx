@@ -4,7 +4,7 @@ import { Avatar, Text } from '@/components/ui';
 import { OrderStatusBadge, type OrderStatus } from './OrderStatusBadge';
 import { colors, radius, spacing } from '@/theme';
 
-export interface MockOrder {
+export interface OrderCardItem {
   id: string;
   categoryName: string;
   description: string;
@@ -17,7 +17,7 @@ export interface MockOrder {
 }
 
 interface OrderCardProps {
-  order: MockOrder;
+  order: OrderCardItem;
   onPress?: () => void;
 }
 

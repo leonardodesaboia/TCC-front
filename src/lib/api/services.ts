@@ -1,5 +1,6 @@
 import { apiClient } from './client';
-import type { ApiResponse, PaginatedResponse } from '@/types/api';
+import { unwrapItem, unwrapList } from './utils';
+import type { ApiResponse, SpringPage } from '@/types/api';
 import type {
   GetServicesParamsDto,
   ServiceDetails,
@@ -31,33 +32,36 @@ function mapServiceDetails(dto: ServiceDetailsDto): ServiceDetails {
   };
 }
 
-function unwrapList<T>(payload: PaginatedResponse<T> | ApiResponse<T[]> | T[]): T[] {
-  if (Array.isArray(payload)) return payload;
-  if ('data' in payload && Array.isArray(payload.data)) return payload.data;
-  return [];
-}
-
-function unwrapItem<T>(payload: ApiResponse<T> | T): T {
-  if (payload && typeof payload === 'object' && 'data' in payload) {
-    return (payload as ApiResponse<T>).data;
-  }
-
-  return payload as T;
-}
-
 export const servicesApi = {
   async getAll(params: GetServicesParamsDto = {}): Promise<ServiceSummary[]> {
-    const response = await apiClient.get<PaginatedResponse<ServiceDto> | ApiResponse<ServiceDto[]> | ServiceDto[]>(
+    const response = await apiClient.get<SpringPage<ServiceDto> | ApiResponse<ServiceDto[]> | ServiceDto[]>(
       '/services',
       { params },
     );
 
-    return unwrapList(response.data).map(mapService);
+    return unwrapList<ServiceDto>(response.data).map(mapService);
   },
 
   async getById(id: string): Promise<ServiceDetails> {
     const response = await apiClient.get<ApiResponse<ServiceDetailsDto> | ServiceDetailsDto>(
       `/services/${id}`,
+    );
+
+    return mapServiceDetails(unwrapItem(response.data));
+  },
+
+  async getByProfessional(professionalId: string): Promise<ServiceSummary[]> {
+    const response = await apiClient.get<SpringPage<ServiceDto> | ApiResponse<ServiceDto[]> | ServiceDto[]>(
+      `/api/v1/professionals/${professionalId}/services`,
+      { params: { includeInactive: false, size: 100 } },
+    );
+
+    return unwrapList<ServiceDto>(response.data).map(mapService);
+  },
+
+  async getByProfessionalAndId(professionalId: string, serviceId: string): Promise<ServiceDetails> {
+    const response = await apiClient.get<ApiResponse<ServiceDetailsDto> | ServiceDetailsDto>(
+      `/api/v1/professionals/${professionalId}/services/${serviceId}`,
     );
 
     return mapServiceDetails(unwrapItem(response.data));

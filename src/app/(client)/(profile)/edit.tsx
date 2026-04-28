@@ -1,20 +1,32 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Camera } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Avatar, Button, Text } from '@/components/ui';
 import { FormField } from '@/components/forms/FormField';
 import { Input } from '@/components/ui';
+import { useUpdateProfile } from '@/lib/hooks/useUsers';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function EditProfileScreen() {
+  const router = useRouter();
   const { user } = useAuth();
+  const updateProfile = useUpdateProfile();
   const [name, setName] = useState(user?.name ?? 'Cliente AllSet');
   const [email, setEmail] = useState(user?.email ?? 'email@exemplo.com');
-  const [phone, setPhone] = useState('(85) 99999-0000');
-  const [birthDate, setBirthDate] = useState('01/01/1990');
+  const [phone, setPhone] = useState(user?.phone ?? '');
+
+  async function handleSave() {
+    await updateProfile.mutateAsync({
+      name: name.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+    });
+    router.back();
+  }
 
   return (
     <Screen edges={['top']}>
@@ -28,7 +40,7 @@ export default function EditProfileScreen() {
             <Camera color="#FFFFFF" size={16} />
           </Pressable>
         </View>
-        <Text variant="labelLg" color={colors.primary.default}>Alterar foto</Text>
+        <Text variant="labelLg" color={colors.primary.default}>Upload de avatar em breve</Text>
       </View>
 
       {/* Form */}
@@ -60,18 +72,10 @@ export default function EditProfileScreen() {
           />
         </FormField>
 
-        <FormField label="Data de nascimento">
-          <Input
-            value={birthDate}
-            onChangeText={setBirthDate}
-            placeholder="DD/MM/AAAA"
-            keyboardType="numeric"
-          />
-        </FormField>
       </View>
 
       <View style={styles.footer}>
-        <Button variant="primary" size="lg" onPress={() => {}}>
+        <Button variant="primary" size="lg" onPress={handleSave} loading={updateProfile.isPending}>
           Salvar alterações
         </Button>
       </View>

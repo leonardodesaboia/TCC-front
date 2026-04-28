@@ -1,13 +1,18 @@
-import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Switch, View } from 'react-native';
-import { Bell, ChevronRight, Globe, Lock, Moon, Trash2 } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { Bell, ChevronRight, Globe, Lock, Trash2 } from 'lucide-react-native';
+import { ErrorState } from '@/components/feedback/ErrorState';
+import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Divider, Text } from '@/components/ui';
+import { useNotificationPreferences, useUpdateNotificationPreferences } from '@/lib/hooks/useNotifications';
+import { useDeleteAccount } from '@/lib/hooks/useUsers';
 import { colors, radius, spacing } from '@/theme';
 
 interface ToggleItemProps {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   description?: string;
   value: boolean;
@@ -33,7 +38,7 @@ function ToggleItem({ icon, label, description, value, onValueChange }: ToggleIt
 }
 
 interface NavItemProps {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   onPress: () => void;
   danger?: boolean;
@@ -52,9 +57,20 @@ function NavItem({ icon, label, onPress, danger }: NavItemProps) {
 }
 
 export default function SettingsScreen() {
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+  const router = useRouter();
+  const preferencesQuery = useNotificationPreferences();
+  const updatePreferences = useUpdateNotificationPreferences();
+  const deleteAccount = useDeleteAccount();
+
+  if (preferencesQuery.isLoading) {
+    return <LoadingScreen message="Carregando configurações..." />;
+  }
+
+  if (preferencesQuery.isError) {
+    return <ErrorState message="Não foi possível carregar as configurações." onRetry={() => preferencesQuery.refetch()} />;
+  }
+
+  const notificationsEnabled = preferencesQuery.data?.notificationsEnabled ?? true;
 
   return (
     <Screen edges={['top']}>
@@ -67,32 +83,10 @@ export default function SettingsScreen() {
         </Text>
         <ToggleItem
           icon={<Bell color={colors.neutral[600]} size={20} />}
-          label="Notificações push"
-          description="Receba alertas sobre seus pedidos"
-          value={pushNotifications}
-          onValueChange={setPushNotifications}
-        />
-        <Divider />
-        <ToggleItem
-          icon={<Bell color={colors.neutral[600]} size={20} />}
-          label="Notificações por e-mail"
-          description="Receba atualizações por e-mail"
-          value={emailNotifications}
-          onValueChange={setEmailNotifications}
-        />
-      </View>
-
-      {/* Appearance */}
-      <View style={styles.section}>
-        <Text variant="labelLg" color={colors.neutral[500]} style={styles.sectionTitle}>
-          APARÊNCIA
-        </Text>
-        <ToggleItem
-          icon={<Moon color={colors.neutral[600]} size={20} />}
-          label="Modo escuro"
-          description="Alterar o tema do aplicativo"
-          value={darkMode}
-          onValueChange={setDarkMode}
+          label="Notificações do app"
+          description="Controla notificações relacionadas a pedidos e mensagens"
+          value={notificationsEnabled}
+          onValueChange={(value) => updatePreferences.mutate(value)}
         />
       </View>
 
@@ -103,8 +97,8 @@ export default function SettingsScreen() {
         </Text>
         <NavItem
           icon={<Lock color={colors.neutral[600]} size={20} />}
-          label="Alterar senha"
-          onPress={() => {}}
+          label="Recuperar senha"
+          onPress={() => router.push('/(auth)/forgot-password')}
         />
         <Divider />
         <NavItem
@@ -122,7 +116,7 @@ export default function SettingsScreen() {
         <NavItem
           icon={<Trash2 color={colors.error} size={20} />}
           label="Excluir minha conta"
-          onPress={() => {}}
+          onPress={() => deleteAccount.mutate()}
           danger
         />
       </View>

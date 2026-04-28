@@ -4,6 +4,7 @@ export const queryKeys = {
     all: ['orders'] as const,
     mine: (params?: object) => ['orders', 'my-orders', params] as const,
     detail: (id: string) => ['orders', id] as const,
+    proposals: (id: string) => ['orders', id, 'proposals'] as const,
   },
   professionals: {
     all: ['professionals'] as const,
@@ -22,6 +23,10 @@ export const queryKeys = {
   areas: {
     all: ['areas'] as const,
     detail: (id: string) => ['areas', id] as const,
+  },
+  categories: {
+    all: ['categories'] as const,
+    list: (areaId?: string) => ['categories', areaId ?? 'all'] as const,
   },
   addresses: {
     all: ['addresses'] as const,

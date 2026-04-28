@@ -17,3 +17,19 @@ export function useService(id: string) {
     enabled: !!id,
   });
 }
+
+export function useProfessionalServices(professionalId: string) {
+  return useQuery({
+    queryKey: ['services', 'professional', professionalId],
+    queryFn: () => clientIntegration.services.getByProfessional(professionalId),
+    enabled: !!professionalId,
+  });
+}
+
+export function useProfessionalService(professionalId: string, serviceId: string) {
+  return useQuery({
+    queryKey: ['services', 'professional', professionalId, serviceId],
+    queryFn: () => clientIntegration.services.getByProfessionalAndId(professionalId, serviceId),
+    enabled: !!professionalId && !!serviceId,
+  });
+}

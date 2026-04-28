@@ -42,3 +42,33 @@ export function useUpdateAddress(id: string) {
     },
   });
 }
+
+export function useDeleteAddress() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => clientIntegration.addresses.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.addresses.all });
+      toast.success('Endereço removido!');
+    },
+    onError: (error: unknown) => {
+      toast.error('Erro ao remover endereço', getApiErrorMessage(error));
+    },
+  });
+}
+
+export function useSetDefaultAddress() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => clientIntegration.addresses.setDefault(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.addresses.all });
+      toast.success('Endereço padrão atualizado!');
+    },
+    onError: (error: unknown) => {
+      toast.error('Erro ao atualizar endereço padrão', getApiErrorMessage(error));
+    },
+  });
+}

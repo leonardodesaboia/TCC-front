@@ -1,6 +1,7 @@
 import type { CreateAddressRequestDto, UpdateAddressRequestDto, Address } from '@/types/address';
 import type {
   CreateOrderRequestDto,
+  ExpressProposal,
   OrderDetails,
   OrderFiltersDto,
   OrderSummary,
@@ -29,18 +30,27 @@ export interface ClientProfessionalsIntegration {
 export interface ClientServicesIntegration {
   getAll(params?: GetServicesParamsDto): Promise<ServiceSummary[]>;
   getById(id: string): Promise<ServiceDetails>;
+  getByProfessional(professionalId: string): Promise<ServiceSummary[]>;
+  getByProfessionalAndId(professionalId: string, serviceId: string): Promise<ServiceDetails>;
 }
 
 export interface ClientOrdersIntegration {
   getMyOrders(params?: OrderFiltersDto): Promise<OrderSummary[]>;
   getById(id: string): Promise<OrderDetails>;
+  getExpressProposals(id: string): Promise<ExpressProposal[]>;
   create(payload: CreateOrderRequestDto): Promise<OrderDetails>;
+  chooseProposal: (orderId: string, professionalId: string) => Promise<OrderDetails>;
+  cancel: (orderId: string, reason: string) => Promise<OrderDetails>;
+  confirm: (orderId: string) => Promise<OrderDetails>;
+  uploadPhoto: (orderId: string, formData: FormData) => Promise<void>;
 }
 
 export interface ClientAddressesIntegration {
   getAll(): Promise<Address[]>;
   create(payload: CreateAddressRequestDto): Promise<Address>;
   update(id: string, payload: UpdateAddressRequestDto): Promise<Address>;
+  remove(id: string): Promise<void>;
+  setDefault(id: string): Promise<Address>;
 }
 
 export interface ClientIntegration {

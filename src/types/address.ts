@@ -1,38 +1,50 @@
 export interface Address {
   id: string;
+  userId: string;
+  label: string;
   street: string;
   number: string;
   complement?: string;
-  neighborhood: string;
+  district: string;
   city: string;
   state: string;
   zipCode: string;
+  lat: number;
+  lng: number;
   isDefault: boolean;
-  reference?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AddressDto {
   id: string;
+  userId: string;
+  label: string;
   street: string;
   number: string;
   complement?: string | null;
-  neighborhood: string;
+  district: string;
   city: string;
   state: string;
   zipCode: string;
+  lat: number | string;
+  lng: number | string;
   isDefault?: boolean | null;
-  reference?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface CreateAddressRequestDto {
+  label: string;
   street: string;
   number: string;
   complement?: string;
-  neighborhood: string;
+  district: string;
   city: string;
   state: string;
   zipCode: string;
-  reference?: string;
+  lat: number;
+  lng: number;
   isDefault?: boolean;
 }
 

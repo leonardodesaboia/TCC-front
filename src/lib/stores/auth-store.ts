@@ -16,7 +16,7 @@ function createBypassUser(): User {
     email: 'cliente.demo@allset.local',
     phone: '85999999999',
     role: UserRole.CLIENT,
-    birthDate: '1996-04-24',
+    active: true,
     isActive: true,
     createdAt: '2026-04-24T00:00:00.000Z',
     updatedAt: '2026-04-24T00:00:00.000Z',
@@ -45,6 +45,12 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
   initialize: async () => {
     try {
+      if (AUTH_BYPASS_ENABLED) {
+        const user = createBypassUser();
+        set({ user, isAuthenticated: true, isLoading: false, isInitialized: true });
+        return;
+      }
+
       const token = await getStoredValue(ACCESS_TOKEN_KEY);
       if (!token) {
         set({ user: null, isAuthenticated: false, isLoading: false, isInitialized: true });
