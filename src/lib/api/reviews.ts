@@ -1,6 +1,8 @@
 import { apiClient } from './client';
 import { toNumber, unwrapList } from './utils';
 import type { ApiResponse, SpringPage } from '@/types/api';
+import { USE_MOCKS_ENABLED } from '@/lib/constants/config';
+import { mockReviewsApi } from '@/lib/mocks/runtime';
 import type { CreateReviewRequest, ReviewSummary, ReviewSummaryDto } from '@/types/review';
 
 function mapReview(dto: ReviewSummaryDto): ReviewSummary {
@@ -18,6 +20,10 @@ function mapReview(dto: ReviewSummaryDto): ReviewSummary {
 
 export const reviewsApi = {
   async getOrderReviews(orderId: string): Promise<ReviewSummary[]> {
+    if (USE_MOCKS_ENABLED) {
+      return mockReviewsApi.getOrderReviews(orderId);
+    }
+
     const response = await apiClient.get<ApiResponse<ReviewSummaryDto[]> | ReviewSummaryDto[]>(
       `/api/v1/orders/${orderId}/reviews`,
     );
@@ -26,6 +32,10 @@ export const reviewsApi = {
   },
 
   async getProfessionalReviews(professionalId: string): Promise<ReviewSummary[]> {
+    if (USE_MOCKS_ENABLED) {
+      return mockReviewsApi.getProfessionalReviews(professionalId);
+    }
+
     const response = await apiClient.get<SpringPage<ReviewSummaryDto> | ApiResponse<ReviewSummaryDto[]> | ReviewSummaryDto[]>(
       `/api/v1/professionals/${professionalId}/reviews`,
       { params: { size: 20 } },
@@ -35,6 +45,10 @@ export const reviewsApi = {
   },
 
   async createOrderReview(orderId: string, payload: CreateReviewRequest): Promise<ReviewSummary> {
+    if (USE_MOCKS_ENABLED) {
+      return mockReviewsApi.createOrderReview(orderId, payload);
+    }
+
     const response = await apiClient.post<ApiResponse<ReviewSummaryDto> | ReviewSummaryDto>(
       `/api/v1/orders/${orderId}/reviews`,
       payload,

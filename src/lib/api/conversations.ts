@@ -1,6 +1,8 @@
 import { apiClient } from './client';
 import { unwrapItem, unwrapList, toNumber } from './utils';
 import type { ApiResponse, SpringPage } from '@/types/api';
+import { USE_MOCKS_ENABLED } from '@/lib/constants/config';
+import { mockConversationsApi } from '@/lib/mocks/runtime';
 import type {
   Conversation,
   ConversationDto,
@@ -50,6 +52,10 @@ function mapMessage(dto: MessageDto): Message {
 
 export const conversationsApi = {
   async getAll(): Promise<ConversationSummary[]> {
+    if (USE_MOCKS_ENABLED) {
+      return mockConversationsApi.getAll();
+    }
+
     const response = await apiClient.get<SpringPage<ConversationSummaryDto> | ApiResponse<ConversationSummaryDto[]> | ConversationSummaryDto[]>(
       '/api/v1/conversations',
       { params: { size: 50 } },
@@ -58,6 +64,10 @@ export const conversationsApi = {
   },
 
   async getById(id: string): Promise<Conversation> {
+    if (USE_MOCKS_ENABLED) {
+      return mockConversationsApi.getById(id);
+    }
+
     const response = await apiClient.get<ApiResponse<ConversationDto> | ConversationDto>(
       `/api/v1/conversations/${id}`,
     );
@@ -65,6 +75,10 @@ export const conversationsApi = {
   },
 
   async getMessages(id: string): Promise<Message[]> {
+    if (USE_MOCKS_ENABLED) {
+      return mockConversationsApi.getMessages(id);
+    }
+
     const response = await apiClient.get<SpringPage<MessageDto> | ApiResponse<MessageDto[]> | MessageDto[]>(
       `/api/v1/conversations/${id}/messages`,
       { params: { size: 100 } },
@@ -73,6 +87,10 @@ export const conversationsApi = {
   },
 
   async sendMessage(id: string, payload: SendMessageRequest): Promise<Message> {
+    if (USE_MOCKS_ENABLED) {
+      return mockConversationsApi.sendMessage(id, payload);
+    }
+
     const response = await apiClient.post<ApiResponse<MessageDto> | MessageDto>(
       `/api/v1/conversations/${id}/messages`,
       payload,
@@ -81,6 +99,10 @@ export const conversationsApi = {
   },
 
   async markRead(id: string): Promise<ReadReceiptEvent> {
+    if (USE_MOCKS_ENABLED) {
+      return mockConversationsApi.markRead(id);
+    }
+
     const response = await apiClient.patch<ApiResponse<ReadReceiptEvent> | ReadReceiptEvent>(
       `/api/v1/conversations/${id}/read`,
     );

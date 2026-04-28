@@ -1,6 +1,8 @@
 import { apiClient } from './client';
 import { toNumber, unwrapItem, unwrapList } from './utils';
 import type { ApiResponse } from '@/types/api';
+import { USE_MOCKS_ENABLED } from '@/lib/constants/config';
+import { mockDisputesApi } from '@/lib/mocks/runtime';
 import type {
   AddTextEvidenceRequest,
   Dispute,
@@ -41,6 +43,10 @@ function mapEvidence(dto: DisputeEvidenceDto): DisputeEvidence {
 
 export const disputesApi = {
   async getByOrderId(orderId: string): Promise<Dispute> {
+    if (USE_MOCKS_ENABLED) {
+      return mockDisputesApi.getByOrderId(orderId);
+    }
+
     const response = await apiClient.get<ApiResponse<DisputeDto> | DisputeDto>(
       `/api/v1/orders/${orderId}/disputes`,
     );
@@ -48,6 +54,10 @@ export const disputesApi = {
   },
 
   async open(orderId: string, payload: OpenDisputeRequest): Promise<Dispute> {
+    if (USE_MOCKS_ENABLED) {
+      return mockDisputesApi.open(orderId, payload);
+    }
+
     const response = await apiClient.post<ApiResponse<DisputeDto> | DisputeDto>(
       `/api/v1/orders/${orderId}/disputes`,
       payload,
@@ -56,6 +66,10 @@ export const disputesApi = {
   },
 
   async getEvidences(disputeId: string): Promise<DisputeEvidence[]> {
+    if (USE_MOCKS_ENABLED) {
+      return mockDisputesApi.getEvidences(disputeId);
+    }
+
     const response = await apiClient.get<ApiResponse<DisputeEvidenceDto[]> | DisputeEvidenceDto[]>(
       `/api/v1/disputes/${disputeId}/evidences`,
     );
@@ -63,6 +77,10 @@ export const disputesApi = {
   },
 
   async addTextEvidence(disputeId: string, payload: AddTextEvidenceRequest): Promise<DisputeEvidence> {
+    if (USE_MOCKS_ENABLED) {
+      return mockDisputesApi.addTextEvidence(disputeId, payload);
+    }
+
     const response = await apiClient.post<ApiResponse<DisputeEvidenceDto> | DisputeEvidenceDto>(
       `/api/v1/disputes/${disputeId}/evidences`,
       payload,

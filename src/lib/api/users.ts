@@ -1,7 +1,9 @@
 import { apiClient } from './client';
 import { toNumber, unwrapItem } from './utils';
 import type { ApiResponse } from '@/types/api';
-import { getAuthenticatedUserId } from './auth';
+import { USE_MOCKS_ENABLED } from '@/lib/constants/config';
+import { deleteMockAvatar, deleteMockUser, getMockUser, updateMockUser, uploadMockAvatar } from '@/lib/mocks/runtime';
+import { getAuthenticatedUserId } from '@/lib/utils/auth-session';
 import { UserRole, type CreateUserRequest, type RegisterClientRequest, type UpdateUserRequest, type User, type UserResponseDto } from '@/types/user';
 
 function mapUser(dto: UserResponseDto): User {
@@ -40,6 +42,10 @@ export const usersApi = {
   mapUser,
 
   async createClient(data: RegisterClientRequest): Promise<User> {
+    if (USE_MOCKS_ENABLED) {
+      return getMockUser();
+    }
+
     const response = await apiClient.post<ApiResponse<UserResponseDto> | UserResponseDto>(
       '/api/users',
       toCreateUserPayload(data),
@@ -49,11 +55,19 @@ export const usersApi = {
   },
 
   async getById(id: string): Promise<User> {
+    if (USE_MOCKS_ENABLED) {
+      return getMockUser();
+    }
+
     const response = await apiClient.get<ApiResponse<UserResponseDto> | UserResponseDto>(`/api/users/${id}`);
     return mapUser(unwrapItem(response.data));
   },
 
   async updateMe(payload: UpdateUserRequest): Promise<User> {
+    if (USE_MOCKS_ENABLED) {
+      return updateMockUser(payload);
+    }
+
     const userId = await getAuthenticatedUserId();
     const response = await apiClient.put<ApiResponse<UserResponseDto> | UserResponseDto>(
       `/api/users/${userId}`,
@@ -63,6 +77,10 @@ export const usersApi = {
   },
 
   async deleteMe(): Promise<User> {
+    if (USE_MOCKS_ENABLED) {
+      return deleteMockUser();
+    }
+
     const userId = await getAuthenticatedUserId();
     const response = await apiClient.delete<ApiResponse<UserResponseDto> | UserResponseDto>(
       `/api/users/${userId}`,
@@ -71,6 +89,10 @@ export const usersApi = {
   },
 
   async uploadAvatar(formData: FormData): Promise<User> {
+    if (USE_MOCKS_ENABLED) {
+      return uploadMockAvatar();
+    }
+
     const userId = await getAuthenticatedUserId();
     const response = await apiClient.post<ApiResponse<UserResponseDto> | UserResponseDto>(
       `/api/users/${userId}/avatar`,
@@ -81,6 +103,10 @@ export const usersApi = {
   },
 
   async deleteAvatar(): Promise<User> {
+    if (USE_MOCKS_ENABLED) {
+      return deleteMockAvatar();
+    }
+
     const userId = await getAuthenticatedUserId();
     const response = await apiClient.delete<ApiResponse<UserResponseDto> | UserResponseDto>(
       `/api/users/${userId}/avatar`,

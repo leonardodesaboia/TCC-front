@@ -1,6 +1,8 @@
 import { apiClient } from './client';
 import { unwrapItem, unwrapList, toNumber } from './utils';
 import type { ApiResponse, SpringPage } from '@/types/api';
+import { USE_MOCKS_ENABLED } from '@/lib/constants/config';
+import { mockNotificationsApi } from '@/lib/mocks/runtime';
 import type {
   MarkAllNotificationsReadResponse,
   NotificationItem,
@@ -45,6 +47,10 @@ function mapPushToken(dto: PushTokenDto): PushToken {
 
 export const notificationsApi = {
   async getAll(): Promise<NotificationItem[]> {
+    if (USE_MOCKS_ENABLED) {
+      return mockNotificationsApi.getAll();
+    }
+
     const response = await apiClient.get<SpringPage<NotificationItemDto> | ApiResponse<NotificationItemDto[]> | NotificationItemDto[]>(
       '/api/v1/notifications',
       { params: { size: 50 } },
@@ -54,6 +60,10 @@ export const notificationsApi = {
   },
 
   async markRead(id: string): Promise<NotificationItem> {
+    if (USE_MOCKS_ENABLED) {
+      return mockNotificationsApi.markRead(id);
+    }
+
     const response = await apiClient.patch<ApiResponse<NotificationItemDto> | NotificationItemDto>(
       `/api/v1/notifications/${id}/read`,
     );
@@ -61,6 +71,10 @@ export const notificationsApi = {
   },
 
   async markAllRead(): Promise<MarkAllNotificationsReadResponse> {
+    if (USE_MOCKS_ENABLED) {
+      return mockNotificationsApi.markAllRead();
+    }
+
     const response = await apiClient.patch<ApiResponse<MarkAllNotificationsReadResponse> | MarkAllNotificationsReadResponse>(
       '/api/v1/notifications/read-all',
     );
@@ -68,6 +82,10 @@ export const notificationsApi = {
   },
 
   async getPreferences(): Promise<NotificationPreference> {
+    if (USE_MOCKS_ENABLED) {
+      return mockNotificationsApi.getPreferences();
+    }
+
     const response = await apiClient.get<ApiResponse<NotificationPreferenceDto> | NotificationPreferenceDto>(
       '/api/v1/notifications/preferences',
     );
@@ -75,6 +93,10 @@ export const notificationsApi = {
   },
 
   async updatePreferences(payload: UpdateNotificationPreferenceRequest): Promise<NotificationPreference> {
+    if (USE_MOCKS_ENABLED) {
+      return mockNotificationsApi.updatePreferences(payload);
+    }
+
     const response = await apiClient.patch<ApiResponse<NotificationPreferenceDto> | NotificationPreferenceDto>(
       '/api/v1/notifications/preferences',
       payload,
@@ -83,6 +105,10 @@ export const notificationsApi = {
   },
 
   async getPushTokens(): Promise<PushToken[]> {
+    if (USE_MOCKS_ENABLED) {
+      return mockNotificationsApi.getPushTokens();
+    }
+
     const response = await apiClient.get<ApiResponse<PushTokenDto[]> | PushTokenDto[]>(
       '/api/v1/push-tokens',
     );
@@ -91,6 +117,10 @@ export const notificationsApi = {
   },
 
   async registerPushToken(payload: RegisterPushTokenRequest): Promise<PushToken> {
+    if (USE_MOCKS_ENABLED) {
+      return mockNotificationsApi.registerPushToken(payload);
+    }
+
     const response = await apiClient.post<ApiResponse<PushTokenDto> | PushTokenDto>(
       '/api/v1/push-tokens',
       payload,
@@ -100,6 +130,10 @@ export const notificationsApi = {
   },
 
   async deletePushToken(id: string): Promise<void> {
+    if (USE_MOCKS_ENABLED) {
+      return mockNotificationsApi.deletePushToken(id);
+    }
+
     await apiClient.delete(`/api/v1/push-tokens/${id}`);
   },
 };

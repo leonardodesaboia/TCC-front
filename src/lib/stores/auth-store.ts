@@ -3,6 +3,7 @@ import { AUTH_BYPASS_ENABLED } from '@/lib/constants/config';
 import type { User } from '@/types/user';
 import { UserRole } from '@/types/user';
 import { authApi } from '@/lib/api/auth';
+import { getMockUser } from '@/lib/mocks/runtime';
 import {
   ACCESS_TOKEN_KEY,
   clearStoredTokens,
@@ -10,17 +11,7 @@ import {
 } from '@/lib/utils/token-storage';
 
 function createBypassUser(): User {
-  return {
-    id: 'dev-client',
-    name: 'Cliente Demo',
-    email: 'cliente.demo@allset.local',
-    phone: '85999999999',
-    role: UserRole.CLIENT,
-    active: true,
-    isActive: true,
-    createdAt: '2026-04-24T00:00:00.000Z',
-    updatedAt: '2026-04-24T00:00:00.000Z',
-  };
+  return getMockUser();
 }
 
 interface AuthState {
