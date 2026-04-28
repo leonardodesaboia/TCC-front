@@ -10,6 +10,7 @@ import type {
   UpdateGeoRequest,
   UpdateProfessionalOfferingRequest,
   UpdateProfessionalRequest,
+  UploadProfessionalDocumentRequest,
   VerifyProfessionalRequest,
 } from '@/types/professional-management';
 
@@ -24,7 +25,8 @@ export function useProfessionalDocuments(professionalId: string) {
 export function useUploadProfessionalDocument(professionalId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (formData: FormData) => professionalManagementApi.uploadDocument(professionalId, formData),
+    mutationFn: (payload: UploadProfessionalDocumentRequest) =>
+      professionalManagementApi.uploadDocument(professionalId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['professionals', professionalId, 'documents'] });
       toast.success('Documento enviado.');

@@ -49,22 +49,11 @@ export const proRegisterStep1Schema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').min(3, 'Mínimo 3 caracteres'),
   email: z.string().min(1, 'E-mail é obrigatório').email('E-mail inválido'),
   phone: z.string().min(1, 'Telefone é obrigatório'),
+  birthDate: z.string().min(1, 'Data de nascimento é obrigatória'),
 });
 
 export const proRegisterStep2Schema = z.object({
-  bio: z.string().min(1, 'Bio é obrigatória').min(10, 'Mínimo 10 caracteres'),
-  yearsOfExperience: z.string()
-    .min(1, 'Experiência é obrigatória')
-    .refine((value) => {
-      const years = Number(value.replace(/\D/g, ''));
-      return Number.isFinite(years) && years >= 0 && years <= 99;
-    }, 'Informe um valor entre 0 e 99 anos'),
-  baseHourlyRate: z.string()
-    .min(1, 'Valor/hora é obrigatório')
-    .refine((value) => {
-      const parsed = Number(value.replace(/\./g, '').replace(',', '.'));
-      return Number.isFinite(parsed) && parsed > 0;
-    }, 'Informe um valor/hora válido'),
+  bio: z.string(),
 });
 
 export const proRegisterStep3Schema = z.object({

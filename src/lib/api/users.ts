@@ -12,6 +12,7 @@ function mapUser(dto: UserResponseDto): User {
     name: dto.name,
     email: dto.email,
     phone: dto.phone,
+    birthDate: dto.birthDate ?? undefined,
     role: dto.role,
     avatar: dto.avatar ?? null,
     profileImage: dto.avatar?.downloadUrl ?? undefined,
@@ -27,12 +28,19 @@ function mapUser(dto: UserResponseDto): User {
   };
 }
 
+function toApiBirthDate(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length !== 8) return value;
+  return `${digits.slice(4, 8)}-${digits.slice(2, 4)}-${digits.slice(0, 2)}`;
+}
+
 function toCreateUserPayload(data: RegisterClientRequest): CreateUserRequest {
   return {
     cpf: data.cpf,
     name: data.name,
     email: data.email,
     phone: data.phone,
+    birthDate: toApiBirthDate(data.birthDate),
     password: data.password,
     role: UserRole.CLIENT,
   };
@@ -51,6 +59,7 @@ export const usersApi = {
       name: data.name,
       email: data.email,
       phone: data.phone,
+      birthDate: toApiBirthDate(data.birthDate),
       password: data.password,
       role: UserRole.PROFESSIONAL,
     };

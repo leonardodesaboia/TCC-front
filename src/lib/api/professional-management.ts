@@ -12,6 +12,10 @@ import type {
   ProfessionalDocumentDto,
   ProfessionalOffering,
   ProfessionalOfferingDto,
+  ProfessionalProfileRecord,
+  ProfessionalProfileRecordDto,
+  ProfessionalSpecialty,
+  ProfessionalSpecialtyDto,
   ProfessionalSubscription,
   ProfessionalSubscriptionDto,
   SubscriptionPlan,
@@ -19,18 +23,50 @@ import type {
   UpdateGeoRequest,
   UpdateProfessionalOfferingRequest,
   UpdateProfessionalRequest,
+  UploadProfessionalDocumentRequest,
   VerifyProfessionalRequest,
 } from '@/types/professional-management';
-import type { ProfessionalProfile, ProfessionalProfileDto } from '@/types/professional';
-import { professionalsApi } from './professionals';
+import type { ProfessionalProfile } from '@/types/professional';
 
 function mapDocument(dto: ProfessionalDocumentDto): ProfessionalDocument {
   return {
     id: dto.id,
     professionalId: dto.professionalId,
     docType: dto.docType,
+    docSide: dto.docSide,
     file: dto.file,
     createdAt: dto.createdAt ?? undefined,
+  };
+}
+
+function mapProfessionalSpecialty(dto: ProfessionalSpecialtyDto): ProfessionalSpecialty {
+  return {
+    categoryId: dto.categoryId,
+    categoryName: dto.categoryName ?? undefined,
+    areaId: dto.areaId ?? undefined,
+    areaName: dto.areaName ?? undefined,
+    yearsOfExperience: toNumber(dto.yearsOfExperience),
+    hourlyRate: dto.hourlyRate != null ? toNumber(dto.hourlyRate) : undefined,
+  };
+}
+
+function mapProfessionalProfileRecord(dto: ProfessionalProfileRecordDto): ProfessionalProfileRecord {
+  return {
+    id: dto.id,
+    userId: dto.userId,
+    bio: dto.bio ?? undefined,
+    yearsOfExperience: dto.yearsOfExperience ?? undefined,
+    baseHourlyRate: dto.baseHourlyRate != null ? toNumber(dto.baseHourlyRate) : undefined,
+    specialties: (dto.specialties ?? []).map(mapProfessionalSpecialty),
+    verificationStatus: dto.verificationStatus,
+    rejectionReason: dto.rejectionReason ?? undefined,
+    geoActive: dto.geoActive,
+    subscriptionPlanId: dto.subscriptionPlanId ?? undefined,
+    subscriptionExpiresAt: dto.subscriptionExpiresAt ?? undefined,
+    averageRating: toNumber(dto.averageRating),
+    reviewCount: toNumber(dto.reviewCount),
+    createdAt: dto.createdAt,
+    updatedAt: dto.updatedAt,
   };
 }
 
@@ -92,36 +128,36 @@ function mapBlockedPeriod(dto: BlockedPeriodDto): BlockedPeriod {
 }
 
 export const professionalManagementApi = {
-  async createProfile(payload: CreateProfessionalRequest): Promise<ProfessionalProfile> {
-    const response = await apiClient.post<ApiResponse<ProfessionalProfileDto> | ProfessionalProfileDto>(
+  async createProfile(payload: CreateProfessionalRequest): Promise<ProfessionalProfileRecord> {
+    const response = await apiClient.post<ApiResponse<ProfessionalProfileRecordDto> | ProfessionalProfileRecordDto>(
       '/api/v1/professionals',
       payload,
     );
-    return professionalsApi.mapProfessionalProfile(unwrapItem(response.data));
+    return mapProfessionalProfileRecord(unwrapItem(response.data));
   },
 
-  async updateProfile(professionalId: string, payload: UpdateProfessionalRequest): Promise<ProfessionalProfile> {
-    const response = await apiClient.put<ApiResponse<ProfessionalProfileDto> | ProfessionalProfileDto>(
+  async updateProfile(professionalId: string, payload: UpdateProfessionalRequest): Promise<ProfessionalProfileRecord> {
+    const response = await apiClient.put<ApiResponse<ProfessionalProfileRecordDto> | ProfessionalProfileRecordDto>(
       `/api/v1/professionals/${professionalId}`,
       payload,
     );
-    return professionalsApi.mapProfessionalProfile(unwrapItem(response.data));
+    return mapProfessionalProfileRecord(unwrapItem(response.data));
   },
 
-  async updateGeo(professionalId: string, payload: UpdateGeoRequest): Promise<ProfessionalProfile> {
-    const response = await apiClient.patch<ApiResponse<ProfessionalProfileDto> | ProfessionalProfileDto>(
+  async updateGeo(professionalId: string, payload: UpdateGeoRequest): Promise<ProfessionalProfileRecord> {
+    const response = await apiClient.patch<ApiResponse<ProfessionalProfileRecordDto> | ProfessionalProfileRecordDto>(
       `/api/v1/professionals/${professionalId}/geo`,
       payload,
     );
-    return professionalsApi.mapProfessionalProfile(unwrapItem(response.data));
+    return mapProfessionalProfileRecord(unwrapItem(response.data));
   },
 
-  async verify(professionalId: string, payload: VerifyProfessionalRequest): Promise<ProfessionalProfile> {
-    const response = await apiClient.patch<ApiResponse<ProfessionalProfileDto> | ProfessionalProfileDto>(
+  async verify(professionalId: string, payload: VerifyProfessionalRequest): Promise<ProfessionalProfileRecord> {
+    const response = await apiClient.patch<ApiResponse<ProfessionalProfileRecordDto> | ProfessionalProfileRecordDto>(
       `/api/v1/professionals/${professionalId}/verify`,
       payload,
     );
-    return professionalsApi.mapProfessionalProfile(unwrapItem(response.data));
+    return mapProfessionalProfileRecord(unwrapItem(response.data));
   },
 
   async getDocuments(professionalId: string): Promise<ProfessionalDocument[]> {
@@ -131,11 +167,17 @@ export const professionalManagementApi = {
     return unwrapList<ProfessionalDocumentDto>(response.data).map(mapDocument);
   },
 
-  async uploadDocument(professionalId: string, formData: FormData): Promise<ProfessionalDocument> {
+  async uploadDocument(
+    professionalId: string,
+    payload: UploadProfessionalDocumentRequest,
+  ): Promise<ProfessionalDocument> {
     const response = await apiClient.post<ApiResponse<ProfessionalDocumentDto> | ProfessionalDocumentDto>(
       `/api/v1/professionals/${professionalId}/documents`,
-      formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } },
+      payload.formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        params: { docType: payload.docType, docSide: payload.docSide },
+      },
     );
     return mapDocument(unwrapItem(response.data));
   },

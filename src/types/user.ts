@@ -1,4 +1,5 @@
 import type { StorageRef } from './api';
+import type { DocType, DocumentSide, ProfessionalSpecialty } from './professional-management';
 
 export enum UserRole {
   CLIENT = 'client',
@@ -11,6 +12,7 @@ export interface User {
   name: string;
   email: string;
   phone: string;
+  birthDate?: string;
   role: UserRole;
   avatar?: StorageRef | null;
   profileImage?: string;
@@ -61,6 +63,7 @@ export interface CreateUserRequest {
   name: string;
   email: string;
   phone: string;
+  birthDate: string;
   password: string;
   role: UserRole;
 }
@@ -70,10 +73,17 @@ export interface RegisterProfessionalRequest {
   name: string;
   email: string;
   phone: string;
+  birthDate: string;
   password: string;
-  bio: string;
-  yearsOfExperience: number;
-  baseHourlyRate: number;
+  bio?: string;
+  specialties: ProfessionalSpecialty[];
+  documents: Array<{
+    docType: Extract<DocType, 'rg' | 'cnh'>;
+    docSide: DocumentSide;
+    uri: string;
+    mimeType?: string;
+    fileName?: string;
+  }>;
 }
 
 export interface UpdateUserRequest {
@@ -87,6 +97,7 @@ export interface UserResponseDto {
   name: string;
   email: string;
   phone: string;
+  birthDate?: string | null;
   role: UserRole;
   avatar?: StorageRef | null;
   active: boolean;

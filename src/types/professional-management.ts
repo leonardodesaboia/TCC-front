@@ -3,19 +3,40 @@ import type { PricingType } from './service-meta';
 
 export type VerificationStatus = 'pending' | 'approved' | 'rejected';
 export type DocType = 'rg' | 'cnh' | 'proof_of_address' | 'profile_photo';
+export type DocumentSide = 'front' | 'back';
 export type BlockType = 'recurring' | 'specific_date' | 'order';
+
+export interface ProfessionalSpecialty {
+  categoryId: string;
+  categoryName?: string;
+  areaId?: string;
+  areaName?: string;
+  yearsOfExperience: number;
+  hourlyRate?: number;
+}
+
+export interface ProfessionalSpecialtyDto {
+  categoryId: string;
+  categoryName?: string | null;
+  areaId?: string | null;
+  areaName?: string | null;
+  yearsOfExperience: number;
+  hourlyRate?: number | string | null;
+}
 
 export interface CreateProfessionalRequest {
   userId: string;
-  bio: string;
-  yearsOfExperience: number;
-  baseHourlyRate: number;
+  bio?: string;
+  yearsOfExperience?: number;
+  baseHourlyRate?: number;
+  specialties: ProfessionalSpecialty[];
 }
 
 export interface UpdateProfessionalRequest {
   bio?: string;
   yearsOfExperience?: number;
   baseHourlyRate?: number;
+  specialties?: ProfessionalSpecialty[];
 }
 
 export interface UpdateGeoRequest {
@@ -33,6 +54,7 @@ export interface ProfessionalDocument {
   id: string;
   professionalId: string;
   docType: DocType;
+  docSide: DocumentSide;
   file: StorageRef;
   createdAt?: string;
 }
@@ -41,8 +63,51 @@ export interface ProfessionalDocumentDto {
   id: string;
   professionalId: string;
   docType: DocType;
+  docSide: DocumentSide;
   file: StorageRef;
   createdAt?: string | null;
+}
+
+export interface UploadProfessionalDocumentRequest {
+  docType: DocType;
+  docSide: DocumentSide;
+  formData: FormData;
+}
+
+export interface ProfessionalProfileRecord {
+  id: string;
+  userId: string;
+  bio?: string;
+  yearsOfExperience?: number;
+  baseHourlyRate?: number;
+  specialties: ProfessionalSpecialty[];
+  verificationStatus: VerificationStatus;
+  rejectionReason?: string;
+  geoActive: boolean;
+  subscriptionPlanId?: string;
+  subscriptionExpiresAt?: string;
+  averageRating: number;
+  reviewCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProfessionalProfileRecordDto {
+  id: string;
+  userId: string;
+  bio?: string | null;
+  yearsOfExperience?: number | null;
+  baseHourlyRate?: number | string | null;
+  specialties?: ProfessionalSpecialtyDto[] | null;
+  verificationStatus: VerificationStatus;
+  rejectionReason?: string | null;
+  geoActive: boolean;
+  subscriptionPlanId?: string | null;
+  subscriptionExpiresAt?: string | null;
+  averageRating?: number | string | null;
+  reviewCount?: number | string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateProfessionalOfferingRequest {

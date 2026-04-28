@@ -33,13 +33,29 @@ export const authApi = {
 
   async registerProfessional(data: RegisterProfessionalRequest): Promise<AuthTokens> {
     const user = await usersApi.createProfessional(data);
-    await professionalManagementApi.createProfile({
+    const professional = await professionalManagementApi.createProfile({
       userId: user.id,
       bio: data.bio,
-      yearsOfExperience: data.yearsOfExperience,
-      baseHourlyRate: data.baseHourlyRate,
+      specialties: data.specialties,
     });
-    return this.login({ email: data.email, password: data.password });
+    const tokens = await this.login({ email: data.email, password: data.password });
+
+    for (const document of data.documents) {
+      const formData = new FormData();
+      formData.append('file', {
+        uri: document.uri,
+        type: document.mimeType ?? 'image/jpeg',
+        name: document.fileName ?? `${document.docType}-${document.docSide}.jpg`,
+      } as any);
+
+      await professionalManagementApi.uploadDocument(professional.id, {
+        docType: document.docType,
+        docSide: document.docSide,
+        formData,
+      });
+    }
+
+    return tokens;
   },
 
   async getProfile() {
