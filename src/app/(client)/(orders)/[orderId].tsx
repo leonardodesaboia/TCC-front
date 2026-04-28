@@ -1,16 +1,17 @@
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { DollarSign, MapPin } from 'lucide-react-native';
+import { Camera, DollarSign, MapPin, MessageCircle, Phone, Star } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
-import { Badge, Button, Divider, Text } from '@/components/ui';
+import { Avatar, Badge, Button, Divider, Text } from '@/components/ui';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { OrderStatusBadge } from '@/components/client/orders/OrderStatusBadge';
 import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
 import { useOrderDispute } from '@/lib/hooks/useDisputes';
 import { useCancelOrder, useChooseOrderProposal, useConfirmOrder, useOrder, useOrderProposals } from '@/lib/hooks/useOrders';
+import { useProfessional } from '@/lib/hooks/useProfessionals';
 import { useOrderReviews } from '@/lib/hooks/useReviews';
 import { colors, radius, spacing } from '@/theme';
 import { OrderStatus } from '@/types/order';
@@ -52,6 +53,96 @@ function InfoRow({ icon, label, value }: { icon: ReactNode; label: string; value
       <View style={styles.infoText}>
         <Text variant="labelLg" color={colors.neutral[500]}>{label}</Text>
         <Text variant="bodySm">{value}</Text>
+      </View>
+    </View>
+  );
+}
+
+function ProposalCard({ professionalId, proposedAmount, respondedAt, onAccept, isAccepting }: {
+  professionalId: string;
+  proposedAmount: number;
+  respondedAt?: string | null;
+  onAccept: () => void;
+  isAccepting: boolean;
+}) {
+  const proQuery = useProfessional(professionalId);
+  const pro = proQuery.data;
+
+  return (
+    <View style={styles.proposalCard}>
+      <View style={styles.proposalTop}>
+        <Avatar name={pro?.name ?? 'P'} size="md" backgroundColor={colors.primary.default} />
+        <View style={styles.proposalInfo}>
+          <Text variant="titleSm">{pro?.name ?? 'Carregando...'}</Text>
+          {pro ? (
+            <View style={styles.proposalRating}>
+              <Star color={colors.warning} fill={colors.warning} size={12} />
+              <Text variant="labelLg" color={colors.neutral[500]}>
+                {pro.rating.toFixed(1)} ({pro.reviewCount})
+              </Text>
+            </View>
+          ) : null}
+        </View>
+        <View style={styles.proposalPrice}>
+          <Text variant="titleSm" color={colors.primary.default}>{formatMoney(proposedAmount)}</Text>
+          <Text variant="labelSm" color={colors.neutral[400]}>{formatDateTime(respondedAt)}</Text>
+        </View>
+      </View>
+      <Button
+        variant="primary"
+        size="sm"
+        onPress={onAccept}
+        loading={isAccepting}
+      >
+        Aceitar proposta
+      </Button>
+    </View>
+  );
+}
+
+function AcceptedProfessionalCard({ professionalId, orderId }: { professionalId: string; orderId: string }) {
+  const router = useRouter();
+  const proQuery = useProfessional(professionalId);
+  const pro = proQuery.data;
+
+  if (proQuery.isLoading) return null;
+  if (!pro) return null;
+
+  return (
+    <View style={styles.section}>
+      <Text variant="titleSm">Profissional</Text>
+      <View style={styles.professionalCard}>
+        <Avatar name={pro.name} size="lg" backgroundColor={colors.primary.default} />
+        <View style={styles.professionalInfo}>
+          <Text variant="titleSm">{pro.name}</Text>
+          <Text variant="bodySm" color={colors.neutral[500]}>{pro.profession}</Text>
+          <View style={styles.proposalRating}>
+            <Star color={colors.warning} fill={colors.warning} size={12} />
+            <Text variant="labelLg" color={colors.neutral[500]}>
+              {pro.rating.toFixed(1)} ({pro.reviewCount} avaliações)
+            </Text>
+          </View>
+        </View>
+      </View>
+      <View style={styles.professionalActions}>
+        <Button
+          variant="secondary"
+          size="sm"
+          fullWidth={false}
+          leftIcon={<MessageCircle color={colors.primary.default} size={16} />}
+          onPress={() => router.push({ pathname: '/(client)/conversations', params: { orderId } } as never)}
+        >
+          Conversar
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          fullWidth={false}
+          leftIcon={<Phone color={colors.primary.default} size={16} />}
+          onPress={() => router.push({ pathname: '/(client)/(search)/professionals/[id]', params: { id: professionalId } } as never)}
+        >
+          Ver perfil
+        </Button>
       </View>
     </View>
   );
@@ -100,6 +191,18 @@ export default function OrderDetailScreen() {
   const proposals = proposalsQuery.data ?? [];
   const hasReview = (reviewsQuery.data ?? []).some((review) => !!review.comment);
   const hasDispute = !!disputeQuery.data;
+  const completionPhotos = order.photos.filter((photo) => photo.type === 'completion_proof');
+
+  function handleCancel() {
+    Alert.alert(
+      'Cancelar pedido',
+      'Tem certeza que deseja cancelar este pedido? Essa ação não pode ser desfeita.',
+      [
+        { text: 'Não', style: 'cancel' },
+        { text: 'Sim, cancelar', style: 'destructive', onPress: () => cancelOrder.mutate('Cancelado pelo cliente no app') },
+      ],
+    );
+  }
 
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
@@ -151,28 +254,14 @@ export default function OrderDetailScreen() {
             {proposals.length > 0 ? (
               <View style={styles.proposalList}>
                 {proposals.map((proposal) => (
-                  <View key={proposal.professionalId} style={styles.proposalCard}>
-                    <View style={styles.proposalTop}>
-                      <View style={styles.proposalInfo}>
-                        <Text variant="titleSm">Profissional {proposal.queuePosition ?? ''}</Text>
-                        <Text variant="labelLg" color={colors.neutral[500]}>
-                          ID: {proposal.professionalId}
-                        </Text>
-                      </View>
-                      <View style={styles.proposalPrice}>
-                        <Text variant="titleSm" color={colors.primary.default}>{formatMoney(proposal.proposedAmount)}</Text>
-                        <Text variant="labelSm" color={colors.neutral[400]}>{formatDateTime(proposal.respondedAt)}</Text>
-                      </View>
-                    </View>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onPress={() => chooseProposal.mutate(proposal.professionalId)}
-                      loading={chooseProposal.isPending}
-                    >
-                      Aceitar proposta
-                    </Button>
-                  </View>
+                  <ProposalCard
+                    key={proposal.professionalId}
+                    professionalId={proposal.professionalId}
+                    proposedAmount={proposal.proposedAmount}
+                    respondedAt={proposal.respondedAt}
+                    onAccept={() => chooseProposal.mutate(proposal.professionalId)}
+                    isAccepting={chooseProposal.isPending}
+                  />
                 ))}
               </View>
             ) : (
@@ -182,6 +271,35 @@ export default function OrderDetailScreen() {
                 </Text>
               </View>
             )}
+          </View>
+        ) : null}
+
+        {order.professionalId && order.status !== OrderStatus.PENDING ? (
+          <>
+            <AcceptedProfessionalCard professionalId={order.professionalId} orderId={orderId} />
+            <Divider />
+          </>
+        ) : null}
+
+        {completionPhotos.length > 0 ? (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Camera color={colors.neutral[700]} size={18} />
+              <Text variant="titleSm">Fotos de conclusão</Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photosScroll}>
+              {completionPhotos.map((photo) => (
+                <View key={photo.id} style={styles.photoThumb}>
+                  {photo.downloadUrl ? (
+                    <Image source={{ uri: photo.downloadUrl }} style={styles.photoImage} />
+                  ) : (
+                    <View style={styles.photoPlaceholder}>
+                      <Camera color={colors.neutral[400]} size={24} />
+                    </View>
+                  )}
+                </View>
+              ))}
+            </ScrollView>
           </View>
         ) : null}
 
@@ -234,16 +352,6 @@ export default function OrderDetailScreen() {
         <View style={styles.section}>
           <Text variant="titleSm">Ações</Text>
           <View style={styles.actions}>
-            {order.status === OrderStatus.ACCEPTED ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                fullWidth={false}
-                onPress={() => router.push({ pathname: '/(client)/conversations', params: { orderId } } as never)}
-              >
-                Abrir conversa
-              </Button>
-            ) : null}
             {order.status === OrderStatus.COMPLETED_BY_PRO ? (
               <>
                 <Button
@@ -281,17 +389,18 @@ export default function OrderDetailScreen() {
         <View style={{ height: spacing[4] }} />
       </ScrollView>
 
-      <View style={styles.bottomBar}>
-        <Button
-          variant="secondary"
-          size="lg"
-          onPress={() => cancelOrder.mutate('Cancelado pelo cliente no app')}
-          loading={cancelOrder.isPending}
-          disabled={order.status === OrderStatus.CANCELLED || order.status === OrderStatus.COMPLETED}
-        >
-          Cancelar pedido
-        </Button>
-      </View>
+      {order.status !== OrderStatus.CANCELLED && order.status !== OrderStatus.COMPLETED ? (
+        <View style={styles.bottomBar}>
+          <Button
+            variant="secondary"
+            size="lg"
+            onPress={handleCancel}
+            loading={cancelOrder.isPending}
+          >
+            Cancelar pedido
+          </Button>
+        </View>
+      ) : null}
     </Screen>
   );
 }
@@ -348,7 +457,34 @@ const styles = StyleSheet.create({
   },
   proposalTop: { flexDirection: 'row', alignItems: 'center', gap: spacing[3] },
   proposalInfo: { flex: 1, gap: 2 },
+  proposalRating: { flexDirection: 'row', alignItems: 'center', gap: spacing[1] },
   proposalPrice: { alignItems: 'flex-end', gap: 2 },
+  professionalCard: {
+    flexDirection: 'row',
+    gap: spacing[3],
+    backgroundColor: colors.neutral[50],
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    padding: spacing[4],
+  },
+  professionalInfo: { flex: 1, gap: spacing[1] },
+  professionalActions: { flexDirection: 'row', gap: spacing[2] },
+  photosScroll: { gap: spacing[2] },
+  photoThumb: {
+    width: 120,
+    height: 120,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    backgroundColor: colors.neutral[100],
+  },
+  photoImage: { width: '100%', height: '100%' },
+  photoPlaceholder: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   infoRow: { flexDirection: 'row', gap: spacing[3], alignItems: 'flex-start' },
   infoText: { flex: 1, gap: 2 },
   paymentCard: {

@@ -14,9 +14,9 @@ import {
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Screen } from '@/components/layout/Screen';
-import { Avatar, Badge, Text } from '@/components/ui';
-import { OrderStatusBadge } from '@/components/client/orders/OrderStatusBadge';
-import { useServiceAreas } from '@/lib/hooks/useCatalog';
+import { Text } from '@/components/ui';
+import { OrderCard, type OrderCardItem } from '@/components/client/orders/OrderCard';
+import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { useMyOrders } from '@/lib/hooks/useOrders';
 import { useAuth } from '@/providers/AuthProvider';
@@ -36,19 +36,21 @@ export default function ClientHomeScreen() {
   const { user } = useAuth();
   const firstName = useMemo(() => user?.name?.split(' ')[0] ?? 'Cliente', [user?.name]);
   const areasQuery = useServiceAreas();
+  const categoriesQuery = useServiceCategories();
   const notificationsQuery = useNotifications();
   const ordersQuery = useMyOrders();
 
-  if (areasQuery.isLoading || notificationsQuery.isLoading || ordersQuery.isLoading) {
+  if (areasQuery.isLoading || categoriesQuery.isLoading || notificationsQuery.isLoading || ordersQuery.isLoading) {
     return <LoadingScreen message="Carregando início..." />;
   }
 
-  if (areasQuery.isError || notificationsQuery.isError || ordersQuery.isError) {
+  if (areasQuery.isError || categoriesQuery.isError || notificationsQuery.isError || ordersQuery.isError) {
     return (
       <ErrorState
         message="Não foi possível carregar a tela inicial."
         onRetry={() => {
           void areasQuery.refetch();
+          void categoriesQuery.refetch();
           void notificationsQuery.refetch();
           void ordersQuery.refetch();
         }}
@@ -57,10 +59,23 @@ export default function ClientHomeScreen() {
   }
 
   const areas = (areasQuery.data ?? []).slice(0, 5);
+  const categories = categoriesQuery.data ?? [];
   const unreadNotifications = (notificationsQuery.data ?? []).filter((item) => !item.readAt).length;
-  const activeOrders = (ordersQuery.data ?? [])
+  const activeOrders: OrderCardItem[] = (ordersQuery.data ?? [])
     .filter((order) => [OrderStatus.PENDING, OrderStatus.ACCEPTED, OrderStatus.COMPLETED_BY_PRO].includes(order.status))
-    .slice(0, 3);
+    .slice(0, 3)
+    .map((order) => {
+      const categoryName = categories.find((c) => c.id === order.categoryId)?.name ?? 'Serviço';
+      const snapshot = order.addressSnapshot;
+      return {
+        id: order.id,
+        categoryName,
+        description: order.description,
+        status: order.status,
+        createdAt: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(order.createdAt)),
+        address: snapshot ? `${snapshot.street}, ${snapshot.number} - ${snapshot.district}` : '',
+      };
+    });
 
   return (
     <Screen edges={['top']} style={styles.screen}>
@@ -130,36 +145,11 @@ export default function ClientHomeScreen() {
           </View>
 
           {activeOrders.map((order) => (
-            <Pressable
+            <OrderCard
               key={order.id}
+              order={order}
               onPress={() => router.push(`/(client)/(orders)/${order.id}` as any)}
-              style={styles.orderCard}
-            >
-              <View style={styles.orderTop}>
-                {order.professionalId ? (
-                  <Avatar name="Profissional" size="md" />
-                ) : (
-                  <View style={styles.orderIconWrap}>
-                    <Zap color={colors.primary.default} size={18} />
-                  </View>
-                )}
-                <View style={styles.orderInfo}>
-                  <Text variant="titleSm">{order.description.slice(0, 28) || 'Pedido'}</Text>
-                  <Text variant="bodySm" color={colors.neutral[500]} numberOfLines={1}>
-                    {order.professionalId ? 'Profissional definido' : order.description}
-                  </Text>
-                </View>
-                <OrderStatusBadge status={order.status} />
-              </View>
-              {order.status === OrderStatus.PENDING ? (
-                <View style={styles.orderFooter}>
-                  <Text variant="labelLg" color={colors.primary.default}>
-                    Acompanhe propostas no detalhe do pedido
-                  </Text>
-                  <ArrowRight color={colors.primary.default} size={16} />
-                </View>
-              ) : null}
-            </Pressable>
+            />
           ))}
         </View>
       ) : null}
@@ -256,37 +246,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pressed: { opacity: 0.7 },
-  orderCard: {
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    backgroundColor: colors.neutral[50],
-    padding: spacing[4],
-    gap: spacing[3],
-  },
-  orderTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-  },
-  orderIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primary.light,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  orderInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  orderFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: spacing[1],
-  },
   ctaCard: {
     flexDirection: 'row',
     alignItems: 'center',

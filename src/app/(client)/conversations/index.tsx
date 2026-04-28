@@ -7,8 +7,10 @@ import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
-import { Badge, Text } from '@/components/ui';
+import { Avatar, Badge, Text } from '@/components/ui';
 import { useConversations } from '@/lib/hooks/useConversations';
+import { useProfessional } from '@/lib/hooks/useProfessionals';
+import type { ConversationSummary } from '@/types/conversation';
 import { colors, radius, spacing } from '@/theme';
 
 function formatDate(value?: string) {
@@ -19,6 +21,33 @@ function formatDate(value?: string) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value));
+}
+
+function ConversationCard({ conversation, onPress }: { conversation: ConversationSummary; onPress: () => void }) {
+  const proQuery = useProfessional(conversation.otherParticipantId);
+  const proName = proQuery.data?.name ?? `Pedido ${conversation.orderId.slice(0, 8)}`;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+    >
+      <Avatar
+        name={proName}
+        size="md"
+        backgroundColor={colors.primary.default}
+      />
+      <View style={styles.textWrap}>
+        <View style={styles.titleRow}>
+          <Text variant="titleSm" numberOfLines={1} style={styles.titleFlex}>{proName}</Text>
+          {conversation.unreadCount > 0 ? <Badge label={String(conversation.unreadCount)} /> : null}
+        </View>
+        <Text variant="bodySm" color={colors.neutral[500]} numberOfLines={1}>
+          {conversation.lastMessage ?? 'Conversa iniciada.'}
+        </Text>
+      </View>
+    </Pressable>
+  );
 }
 
 export default function ConversationsScreen() {
@@ -51,27 +80,11 @@ export default function ConversationsScreen() {
       {conversations.length > 0 ? (
         <View style={styles.list}>
           {conversations.map((conversation) => (
-            <Pressable
+            <ConversationCard
               key={conversation.id}
+              conversation={conversation}
               onPress={() => router.push(`/(client)/conversations/${conversation.id}` as never)}
-              style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-            >
-              <View style={styles.iconWrap}>
-                <MessageCircle color={colors.primary.default} size={18} />
-              </View>
-              <View style={styles.textWrap}>
-                <View style={styles.titleRow}>
-                  <Text variant="titleSm">Pedido {conversation.orderId.slice(0, 8)}</Text>
-                  {conversation.unreadCount > 0 ? <Badge label={String(conversation.unreadCount)} /> : null}
-                </View>
-                <Text variant="bodySm" color={colors.neutral[500]}>
-                  {conversation.lastMessage ?? 'Conversa iniciada.'}
-                </Text>
-                <Text variant="labelSm" color={colors.neutral[400]}>
-                  Participante: {conversation.otherParticipantId}
-                </Text>
-              </View>
-            </Pressable>
+            />
           ))}
         </View>
       ) : (
@@ -95,16 +108,9 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral[200],
     backgroundColor: colors.neutral[50],
     padding: spacing[4],
+    alignItems: 'center',
   },
   pressed: { opacity: 0.7 },
-  iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary.light,
-  },
   textWrap: { flex: 1, gap: spacing[1] },
   titleRow: {
     flexDirection: 'row',
@@ -112,4 +118,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[2],
   },
+  titleFlex: { flex: 1 },
 });

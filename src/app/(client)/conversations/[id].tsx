@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Send } from 'lucide-react-native';
@@ -6,7 +6,7 @@ import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Header } from '@/components/layout/Header';
 import { Screen } from '@/components/layout/Screen';
-import { Button, Text } from '@/components/ui';
+import { Text } from '@/components/ui';
 import { useConversation, useConversationMessages, useMarkConversationRead, useSendMessage } from '@/lib/hooks/useConversations';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme';
@@ -28,12 +28,22 @@ export default function ConversationDetailScreen() {
   const markRead = useMarkConversationRead(id);
   const sendMessage = useSendMessage(id);
   const [content, setContent] = useState('');
+  const scrollRef = useRef<ScrollView>(null);
+
+  const messages = messagesQuery.data ?? [];
+  const messageCount = messages.length;
 
   useEffect(() => {
     if (messagesQuery.data?.length) {
       markRead.mutate();
     }
   }, [markRead, messagesQuery.data?.length]);
+
+  useEffect(() => {
+    if (messageCount > 0) {
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+    }
+  }, [messageCount]);
 
   if (conversationQuery.isLoading || messagesQuery.isLoading) {
     return <LoadingScreen message="Carregando conversa..." />;
@@ -47,7 +57,6 @@ export default function ConversationDetailScreen() {
   }
 
   const conversation = conversationQuery.data;
-  const messages = messagesQuery.data ?? [];
 
   if (!conversation) {
     return <ErrorState message="Conversa não encontrada." />;
@@ -57,18 +66,37 @@ export default function ConversationDetailScreen() {
     <Screen edges={['top']} scroll={false} style={styles.screen}>
       <Header title={`Conversa ${conversation.orderId.slice(0, 8)}`} showBack />
 
-      <ScrollView contentContainerStyle={styles.messages} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.messages}
+        showsVerticalScrollIndicator={false}
+      >
+        {messages.length === 0 ? (
+          <View style={styles.emptyChat}>
+            <Text variant="bodySm" color={colors.neutral[400]}>
+              Nenhuma mensagem ainda. Comece a conversa!
+            </Text>
+          </View>
+        ) : null}
         {messages.map((message) => {
           const isMine = message.senderId === user?.id;
           return (
             <View key={message.id} style={[styles.messageWrap, isMine ? styles.mineWrap : styles.otherWrap]}>
               <View style={[styles.messageBubble, isMine ? styles.mineBubble : styles.otherBubble]}>
-                <Text variant="bodySm" color={isMine ? '#FFFFFF' : colors.neutral[900]}>
-                  {message.content ?? '[mensagem sem texto]'}
-                </Text>
-                <Text variant="labelSm" color={isMine ? 'rgba(255,255,255,0.75)' : colors.neutral[400]}>
-                  {formatDate(message.sentAt)}
-                </Text>
+                {message.msgType === 'system' ? (
+                  <Text variant="labelSm" color={colors.neutral[500]} style={styles.systemText}>
+                    {message.content ?? '[sistema]'}
+                  </Text>
+                ) : (
+                  <>
+                    <Text variant="bodySm" color={isMine ? '#FFFFFF' : colors.neutral[900]}>
+                      {message.content ?? '[mensagem sem texto]'}
+                    </Text>
+                    <Text variant="labelSm" color={isMine ? 'rgba(255,255,255,0.75)' : colors.neutral[400]}>
+                      {formatDate(message.sentAt)}
+                    </Text>
+                  </>
+                )}
               </View>
             </View>
           );
@@ -82,15 +110,23 @@ export default function ConversationDetailScreen() {
           placeholder="Digite uma mensagem..."
           placeholderTextColor={colors.neutral[400]}
           style={styles.input}
+          returnKeyType="send"
+          onSubmitEditing={() => {
+            const trimmed = content.trim();
+            if (!trimmed) return;
+            sendMessage.mutate(trimmed);
+            setContent('');
+          }}
         />
         <Pressable
-          style={styles.sendBtn}
+          style={[styles.sendBtn, !content.trim() && styles.sendBtnDisabled]}
           onPress={() => {
             const trimmed = content.trim();
             if (!trimmed) return;
             sendMessage.mutate(trimmed);
             setContent('');
           }}
+          disabled={!content.trim()}
         >
           <Send color="#FFFFFF" size={18} />
         </Pressable>
@@ -101,7 +137,8 @@ export default function ConversationDetailScreen() {
 
 const styles = StyleSheet.create({
   screen: { gap: 0 },
-  messages: { gap: spacing[3], paddingBottom: spacing[4] },
+  messages: { gap: spacing[3], paddingBottom: spacing[4], flexGrow: 1 },
+  emptyChat: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: spacing[10] },
   messageWrap: { flexDirection: 'row' },
   mineWrap: { justifyContent: 'flex-end' },
   otherWrap: { justifyContent: 'flex-start' },
@@ -114,10 +151,13 @@ const styles = StyleSheet.create({
   },
   mineBubble: {
     backgroundColor: colors.primary.default,
+    borderBottomRightRadius: 4,
   },
   otherBubble: {
     backgroundColor: colors.neutral[100],
+    borderBottomLeftRadius: 4,
   },
+  systemText: { textAlign: 'center' },
   composer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -143,5 +183,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.primary.default,
+  },
+  sendBtnDisabled: {
+    opacity: 0.5,
   },
 });
