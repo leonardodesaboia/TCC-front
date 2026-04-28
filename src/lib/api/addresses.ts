@@ -1,8 +1,8 @@
 import { apiClient } from './client';
-import { getAuthenticatedUserId } from './auth';
 import { toNumber, unwrapItem, unwrapList } from './utils';
 import type { Address, AddressDto, CreateAddressRequestDto, UpdateAddressRequestDto } from '@/types/address';
 import type { ApiResponse } from '@/types/api';
+import { getAuthenticatedUserId } from '@/lib/utils/auth-session';
 
 function mapAddress(dto: AddressDto): Address {
   return {
