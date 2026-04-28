@@ -1,5 +1,40 @@
 # Resumo Completo do Backend para o Frontend
 
+## Status de Implementação no Front
+
+Legenda:
+
+- `[x]` implementado no front
+- `[/]` implementado parcialmente no front
+- `[ ]` pendente no front
+
+Status atual por módulo:
+
+- `[x]` autenticação e sessão
+- `[x]` usuários
+- `[x]` endereços
+- `[/]` perfis profissionais
+- `[/]` documentos/KYC
+- `[x]` catálogo de áreas e categorias
+- `[/]` serviços ofertados por profissionais
+- `[/]` assinatura de profissionais
+- `[/]` agenda/bloqueios
+- `[x]` pedidos Express
+- `[/]` chat
+- `[x]` notificações
+- `[x]` avaliações
+- `[x]` disputas
+
+Observações do status atual:
+
+- `[x]` existe toggle por `.env` para usar `mock` ou API real
+- `[x]` o fluxo principal do cliente para pedido Express está conectado
+- `[x]` `typecheck` está passando no estado atual
+- `[/]` chat REST foi implementado, mas STOMP/WebSocket ainda não
+- `[/]` uploads e arquivos privados têm base de API/hook em andamento, mas a UI ainda não cobre tudo
+- `[ ]` fluxos de admin ainda não têm superfície real no app
+- `[ ]` o fluxo `on_demand` continua limitado porque o backend documentado não expõe controller completo
+
 ## 1. Visão geral
 
 Este backend é uma API REST em Spring Boot para a plataforma **All Set**, um marketplace de serviços.  
@@ -292,6 +327,8 @@ O backend valida se o usuário autenticado é participante da conversa antes de 
 
 ### 6.1 Auth
 
+Status no front: `[x]`
+
 - `POST /api/auth/login`
   - body: `LoginRequest`
   - response: `TokenResponse`
@@ -309,6 +346,8 @@ O backend valida se o usuário autenticado é participante da conversa antes de 
   - response: `204`
 
 ### 6.2 Users
+
+Status no front: `[/]`
 
 - `POST /api/users`
   - público
@@ -339,6 +378,8 @@ O backend valida se o usuário autenticado é participante da conversa antes de 
 
 ### 6.3 Saved Addresses
 
+Status no front: `[x]`
+
 - `POST /api/users/{userId}/addresses`
   - body: `CreateSavedAddressRequest`
   - response: `SavedAddressResponse`
@@ -355,6 +396,8 @@ O backend valida se o usuário autenticado é participante da conversa antes de 
   - response: `SavedAddressResponse`
 
 ### 6.4 Professionals
+
+Status no front: `[/]`
 
 - `POST /api/v1/professionals`
   - público
@@ -378,6 +421,8 @@ O backend valida se o usuário autenticado é participante da conversa antes de 
 
 ### 6.5 Professional Documents
 
+Status no front: `[/]`
+
 - `POST /api/v1/professionals/{professionalId}/documents`
   - multipart:
     - `docType`
@@ -389,6 +434,8 @@ O backend valida se o usuário autenticado é participante da conversa antes de 
   - response: `204`
 
 ### 6.6 Professional Services / Offerings
+
+Status no front: `[/]`
 
 - `POST /api/v1/professionals/{professionalId}/services`
   - body: `CreateProfessionalOfferingRequest`
@@ -404,6 +451,8 @@ O backend valida se o usuário autenticado é participante da conversa antes de 
   - response: `204`
 
 ### 6.7 Service Areas
+
+Status no front: `[/]`
 
 - `POST /api/v1/service-areas`
   - body: `CreateServiceAreaRequest`
@@ -425,6 +474,8 @@ O backend valida se o usuário autenticado é participante da conversa antes de 
 
 ### 6.8 Service Categories
 
+Status no front: `[/]`
+
 - `POST /api/v1/service-categories`
   - body: `CreateServiceCategoryRequest`
   - response: `ServiceCategoryResponse`
@@ -445,6 +496,8 @@ O backend valida se o usuário autenticado é participante da conversa antes de 
 
 ### 6.9 Subscription Plans
 
+Status no front: `[/]`
+
 - `POST /api/v1/subscription-plans`
   - body: `CreateSubscriptionPlanRequest`
   - response: `SubscriptionPlanResponse`
@@ -460,6 +513,8 @@ O backend valida se o usuário autenticado é participante da conversa antes de 
 
 ### 6.10 Professional Subscription
 
+Status no front: `[/]`
+
 - `GET /api/v1/professionals/{professionalId}/subscription`
   - response: `ProfessionalSubscriptionResponse`
 - `PUT /api/v1/professionals/{professionalId}/subscription`
@@ -470,6 +525,8 @@ O backend valida se o usuário autenticado é participante da conversa antes de 
 
 ### 6.11 Calendar / Blocked Periods
 
+Status no front: `[/]`
+
 - `POST /api/v1/professionals/{professionalId}/calendar/blocks`
   - body: `CreateBlockedPeriodRequest`
   - response: `BlockedPeriodResponse`
@@ -479,6 +536,8 @@ O backend valida se o usuário autenticado é participante da conversa antes de 
   - response: `204`
 
 ### 6.12 Orders
+
+Status no front: `[/]`
 
 - `POST /api/v1/orders/express`
   - role: `client`
@@ -519,6 +578,8 @@ O backend valida se o usuário autenticado é participante da conversa antes de 
 
 ### 6.13 Conversations / Chat
 
+Status no front: `[/]`
+
 - `GET /api/v1/conversations`
   - response: `Page<ConversationSummaryResponse>`
 - `GET /api/v1/conversations/{id}`
@@ -536,6 +597,8 @@ O backend valida se o usuário autenticado é participante da conversa antes de 
 
 ### 6.14 Notifications
 
+Status no front: `[x]`
+
 - `GET /api/v1/notifications`
   - response: `Page<NotificationResponse>`
 - `PATCH /api/v1/notifications/{id}/read`
@@ -550,6 +613,8 @@ O backend valida se o usuário autenticado é participante da conversa antes de 
 
 ### 6.15 Push Tokens
 
+Status no front: `[/]`
+
 - `GET /api/v1/push-tokens`
   - response: `List<PushTokenResponse>`
 - `POST /api/v1/push-tokens`
@@ -559,6 +624,8 @@ O backend valida se o usuário autenticado é participante da conversa antes de 
   - response: `204`
 
 ### 6.16 Reviews
+
+Status no front: `[x]`
 
 - `POST /api/v1/orders/{orderId}/reviews`
   - roles: `client`, `professional`
@@ -572,6 +639,8 @@ O backend valida se o usuário autenticado é participante da conversa antes de 
   - response: `Page<ReviewResponse>`
 
 ### 6.17 Disputes
+
+Status no front: `[x]`
 
 - `POST /api/v1/orders/{orderId}/disputes`
   - role: `client`
@@ -1251,6 +1320,17 @@ Se o frontend armazenar `downloadUrl`, precisa considerar que ela pode expirar.
 O frontend pode mostrar valores do pedido, mas hoje o backend ainda não executa cobrança/liberação real.
 
 ## 10. Pontos de atenção do estado atual
+
+Check de implementação no front:
+
+- `[x]` sessão com bearer token e refresh
+- `[x]` mapeamento de paginação Spring `Page<T>`
+- `[x]` tratamento básico do erro padrão da API
+- `[x]` validação da regra de endereço com coordenadas no fluxo Express
+- `[x]` conversa só depois do pedido aceito no fluxo funcional do app
+- `[/]` tratamento de expiração de `downloadUrl` ainda não está completo em toda a UI
+- `[ ]` WebSocket/STOMP ainda não implementado
+- `[ ]` pagamento real/escrow continua fora de escopo no front porque o backend também não concluiu
 
 - O modo `on_demand` existe no enum, mas não há fluxo exposto por controller.
 - O módulo de pagamento/escrow ainda está incompleto.
