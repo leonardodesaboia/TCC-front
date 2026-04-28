@@ -19,7 +19,8 @@ export const clientRegisterStep2Schema = z.object({
     .min(8, 'Mínimo 8 caracteres')
     .regex(/[A-Z]/, 'Deve conter pelo menos 1 letra maiúscula')
     .regex(/[a-z]/, 'Deve conter pelo menos 1 letra minúscula')
-    .regex(/[0-9]/, 'Deve conter pelo menos 1 número'),
+    .regex(/[0-9]/, 'Deve conter pelo menos 1 número')
+    .regex(/[^A-Za-z0-9]/, 'Deve conter pelo menos 1 caractere especial'),
   confirmPassword: z.string().min(1, 'Confirmação é obrigatória'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Senhas não conferem',
@@ -39,7 +40,8 @@ export const newPasswordSchema = z.object({
     .min(8, 'Mínimo 8 caracteres')
     .regex(/[A-Z]/, 'Deve conter pelo menos 1 letra maiúscula')
     .regex(/[a-z]/, 'Deve conter pelo menos 1 letra minúscula')
-    .regex(/[0-9]/, 'Deve conter pelo menos 1 número'),
+    .regex(/[0-9]/, 'Deve conter pelo menos 1 número')
+    .regex(/[^A-Za-z0-9]/, 'Deve conter pelo menos 1 caractere especial'),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;

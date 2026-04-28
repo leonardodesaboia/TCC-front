@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, Check, Eye, EyeOff } from 'lucide-react-native';
-import { useForm } from 'react-hook-form';
+import { type Control, useForm, useWatch } from 'react-hook-form';
 import { Screen } from '@/components/layout/Screen';
 import { FormInput } from '@/components/forms/FormInput';
 import { Button, Text } from '@/components/ui';
@@ -47,11 +47,90 @@ function PasswordRule({ label, met }: { label: string; met: boolean }) {
   );
 }
 
+function RegisterPasswordRules({ control }: { control: Control<ClientRegisterStep2Data> }) {
+  const password = useWatch({
+    control,
+    name: 'password',
+    defaultValue: '',
+  });
+
+  const rules = [
+    { label: 'Mínimo 8 caracteres', met: password.length >= 8 },
+    { label: '1 letra maiúscula', met: /[A-Z]/.test(password) },
+    { label: '1 letra minúscula', met: /[a-z]/.test(password) },
+    { label: '1 número', met: /[0-9]/.test(password) },
+    { label: '1 caractere especial', met: /[^A-Za-z0-9]/.test(password) },
+  ];
+
+  return (
+    <View style={styles.rulesBox}>
+      {rules.map((rule) => <PasswordRule key={rule.label} {...rule} />)}
+    </View>
+  );
+}
+
+function RegisterPasswordStep({
+  onBack,
+  onSubmit,
+  loading,
+}: {
+  onBack: () => void;
+  onSubmit: (values: ClientRegisterStep2Data) => void;
+  loading: boolean;
+}) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const { control, handleSubmit } = useForm<ClientRegisterStep2Data>({
+    resolver: zodResolver(clientRegisterStep2Schema),
+    defaultValues: { password: '', confirmPassword: '' },
+  });
+
+  return (
+    <View style={styles.form}>
+      <FormInput
+        control={control}
+        name="password"
+        label="Senha"
+        placeholder="Sua senha"
+        secureTextEntry={!showPassword}
+        autoCapitalize="none"
+        autoComplete="password"
+        rightIcon={
+          <Pressable hitSlop={10} onPress={() => setShowPassword((value) => !value)}>
+            {showPassword ? <EyeOff color={colors.neutral[400]} size={20} /> : <Eye color={colors.neutral[400]} size={20} />}
+          </Pressable>
+        }
+      />
+
+      <RegisterPasswordRules control={control} />
+
+      <FormInput
+        control={control}
+        name="confirmPassword"
+        label="Confirmar senha"
+        placeholder="Sua senha"
+        secureTextEntry={!showConfirmPassword}
+        autoCapitalize="none"
+        autoComplete="password"
+        rightIcon={
+          <Pressable hitSlop={10} onPress={() => setShowConfirmPassword((value) => !value)}>
+            {showConfirmPassword ? <EyeOff color={colors.neutral[400]} size={20} /> : <Eye color={colors.neutral[400]} size={20} />}
+          </Pressable>
+        }
+      />
+
+      <View style={styles.buttonRow}>
+        <Button variant="secondary" onPress={onBack}>Voltar</Button>
+        <Button loading={loading} onPress={handleSubmit(onSubmit)}>Criar conta</Button>
+      </View>
+    </View>
+  );
+}
+
 export default function RegisterClientScreen() {
   const [step, setStep] = useState<1 | 2>(1);
   const [step1Saved, setStep1Saved] = useState<ClientRegisterStep1Data>({ cpf: '', name: '', email: '', phone: '', birthDate: '' });
-  const [showPw, setShowPw] = useState(false);
-  const [showCpw, setShowCpw] = useState(false);
   const register = useRegister();
 
   const step1 = useForm<ClientRegisterStep1Data>({
@@ -59,23 +138,10 @@ export default function RegisterClientScreen() {
     defaultValues: step1Saved,
   });
 
-  const step2 = useForm<ClientRegisterStep2Data>({
-    resolver: zodResolver(clientRegisterStep2Schema),
-    defaultValues: { password: '', confirmPassword: '' },
-  });
-
-  const pw = step2.watch('password') ?? '';
-  const rules = useMemo(() => [
-    { label: 'Mínimo 8 caracteres', met: pw.length >= 8 },
-    { label: '1 letra maiúscula', met: /[A-Z]/.test(pw) },
-    { label: '1 letra minúscula', met: /[a-z]/.test(pw) },
-    { label: '1 número', met: /[0-9]/.test(pw) },
-  ], [pw]);
-
   const goNext = step1.handleSubmit((v) => { setStep1Saved(v); setStep(2); });
   const goBack = () => { setStep(1); };
 
-  const submit = step2.handleSubmit((v) => {
+  const submit = (v: ClientRegisterStep2Data) => {
     const payload: RegisterClientRequest = {
       cpf: unmask(step1Saved.cpf),
       name: step1Saved.name.trim(),
@@ -85,7 +151,7 @@ export default function RegisterClientScreen() {
       password: v.password,
     };
     register.mutate(payload);
-  });
+  };
 
   return (
     <Screen edges={['top', 'bottom']}>
@@ -122,46 +188,7 @@ export default function RegisterClientScreen() {
           <Button onPress={goNext}>Continuar</Button>
         </View>
       ) : (
-        <View style={styles.form}>
-          <FormInput
-            control={step2.control}
-            name="password"
-            label="Senha"
-            placeholder="Crie uma senha"
-            secureTextEntry={!showPw}
-            autoCapitalize="none"
-            autoComplete="new-password"
-            rightIcon={
-              <Pressable hitSlop={10} onPress={() => setShowPw((v) => !v)}>
-                {showPw ? <EyeOff color={colors.neutral[400]} size={20} /> : <Eye color={colors.neutral[400]} size={20} />}
-              </Pressable>
-            }
-          />
-
-          <View style={styles.rulesBox}>
-            {rules.map((r) => <PasswordRule key={r.label} {...r} />)}
-          </View>
-
-          <FormInput
-            control={step2.control}
-            name="confirmPassword"
-            label="Confirmar senha"
-            placeholder="Repita a senha"
-            secureTextEntry={!showCpw}
-            autoCapitalize="none"
-            autoComplete="new-password"
-            rightIcon={
-              <Pressable hitSlop={10} onPress={() => setShowCpw((v) => !v)}>
-                {showCpw ? <EyeOff color={colors.neutral[400]} size={20} /> : <Eye color={colors.neutral[400]} size={20} />}
-              </Pressable>
-            }
-          />
-
-          <View style={styles.buttonRow}>
-            <Button variant="secondary" onPress={goBack}>Voltar</Button>
-            <Button loading={register.isPending} onPress={submit}>Criar conta</Button>
-          </View>
-        </View>
+        <RegisterPasswordStep onBack={goBack} onSubmit={submit} loading={register.isPending} />
       )}
     </Screen>
   );
