@@ -152,7 +152,7 @@ export default function ProfessionalProfileScreen() {
                     </View>
                   </View>
                   <View style={styles.serviceRight}>
-                    <Text variant="titleSm" color={colors.primary.default}>{formatMoney(service.price)}</Text>
+                    <Text variant="titleSm" color={colors.primary.default}>{formatMoney(service.effectivePrice)}</Text>
                     <Button
                       variant="secondary"
                       size="sm"

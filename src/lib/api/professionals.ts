@@ -36,11 +36,14 @@ function mapArea(dto: AreaDto): AreaRef {
 }
 
 function mapServiceSummary(dto: ServiceDetailsDto): ServiceSummary {
+  const price = toNumber(dto.price);
+  const effectivePrice = dto.effectivePrice != null ? toNumber(dto.effectivePrice) : price;
   return {
     id: dto.id,
     name: dto.name,
     description: dto.description ?? '',
-    price: toNumber(dto.price),
+    price,
+    effectivePrice,
     durationInMinutes: dto.durationInMinutes ?? undefined,
     professionId: dto.professionId ?? undefined,
   };

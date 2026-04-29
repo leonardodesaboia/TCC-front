@@ -70,7 +70,7 @@ export default function ServiceDetailScreen() {
               <Text variant="bodySm" color={colors.neutral[500]}>{formatDuration(service.durationInMinutes)}</Text>
             </View>
           </View>
-          <Text variant="displayMd" color={colors.primary.default}>{formatMoney(service.price)}</Text>
+          <Text variant="displayMd" color={colors.primary.default}>{formatMoney(service.effectivePrice)}</Text>
         </View>
 
         <Divider />
@@ -142,7 +142,7 @@ export default function ServiceDetailScreen() {
       <View style={styles.bottomBar}>
         <View style={styles.bottomPrice}>
           <Text variant="labelLg" color={colors.neutral[500]}>A partir de</Text>
-          <Text variant="titleLg" color={colors.primary.default}>{formatMoney(service.price)}</Text>
+          <Text variant="titleLg" color={colors.primary.default}>{formatMoney(service.effectivePrice)}</Text>
         </View>
         <View style={styles.ctaBtn}>
           {professionalId ? (

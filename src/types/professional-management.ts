@@ -115,11 +115,13 @@ export interface CreateProfessionalOfferingRequest {
   title: string;
   description: string;
   pricingType: PricingType;
-  price: number;
+  price?: number | null;
   estimatedDurationMinutes: number;
 }
 
-export interface UpdateProfessionalOfferingRequest extends Partial<CreateProfessionalOfferingRequest> {}
+export interface UpdateProfessionalOfferingRequest extends Partial<CreateProfessionalOfferingRequest> {
+  clearPrice?: boolean;
+}
 
 export interface ProfessionalOffering {
   id: string;
@@ -128,7 +130,8 @@ export interface ProfessionalOffering {
   title: string;
   description: string;
   pricingType: PricingType;
-  price: number;
+  price?: number | null;
+  effectivePrice: number;
   estimatedDurationMinutes: number;
   active: boolean;
   averageRating: number;
@@ -143,7 +146,8 @@ export interface ProfessionalOfferingDto {
   title: string;
   description: string;
   pricingType: PricingType;
-  price: number | string;
+  price?: number | string | null;
+  effectivePrice?: number | string | null;
   estimatedDurationMinutes: number | string;
   active: boolean;
   averageRating?: number | string | null;

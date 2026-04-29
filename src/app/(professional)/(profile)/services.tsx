@@ -58,7 +58,7 @@ export default function ProfessionalServicesScreen() {
               ) : null}
               <View style={styles.cardFooter}>
                 <Text variant="titleSm" color={colors.primary.default}>
-                  {formatMoney(offering.price)}
+                  {formatMoney(offering.effectivePrice)}
                   {offering.pricingType === 'hourly' ? '/h' : ''}
                 </Text>
                 <Badge

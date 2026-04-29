@@ -71,6 +71,8 @@ function mapProfessionalProfileRecord(dto: ProfessionalProfileRecordDto): Profes
 }
 
 function mapOffering(dto: ProfessionalOfferingDto): ProfessionalOffering {
+  const price = dto.price != null ? toNumber(dto.price) : null;
+  const effectivePrice = dto.effectivePrice != null ? toNumber(dto.effectivePrice) : (price ?? 0);
   return {
     id: dto.id,
     professionalId: dto.professionalId,
@@ -78,7 +80,8 @@ function mapOffering(dto: ProfessionalOfferingDto): ProfessionalOffering {
     title: dto.title,
     description: dto.description,
     pricingType: dto.pricingType,
-    price: toNumber(dto.price),
+    price,
+    effectivePrice,
     estimatedDurationMinutes: toNumber(dto.estimatedDurationMinutes),
     active: dto.active,
     averageRating: toNumber(dto.averageRating),
