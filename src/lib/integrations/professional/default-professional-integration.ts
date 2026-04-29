@@ -43,6 +43,7 @@ export const defaultProfessionalIntegration: ProfessionalIntegration = {
       );
       return unwrapItem(response.data);
     },
+    respondOnDemand: (orderId, accepted) => ordersApi.respondOnDemand(orderId, accepted),
     complete: (orderId, formData) => ordersApi.complete(orderId, formData),
     cancel: (orderId, reason) => ordersApi.cancel(orderId, reason),
   },

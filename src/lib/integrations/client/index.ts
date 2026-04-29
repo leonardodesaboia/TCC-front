@@ -63,6 +63,8 @@ export const clientIntegration = {
       orders().getExpressProposals(...args),
     create: (...args: Parameters<ClientOrdersIntegration['create']>) =>
       orders().create(...args),
+    createOnDemand: (...args: Parameters<ClientOrdersIntegration['createOnDemand']>) =>
+      orders().createOnDemand(...args),
     chooseProposal: (...args: Parameters<ClientOrdersIntegration['chooseProposal']>) =>
       orders().chooseProposal(...args),
     cancel: (...args: Parameters<ClientOrdersIntegration['cancel']>) =>

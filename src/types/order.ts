@@ -7,6 +7,11 @@ export enum OrderStatus {
   DISPUTED = 'disputed',
 }
 
+export enum OrderMode {
+  EXPRESS = 'express',
+  ON_DEMAND = 'on_demand',
+}
+
 export interface OrderAddressSnapshot {
   label?: string;
   street: string;
@@ -31,6 +36,7 @@ export interface OrderPhoto {
 export interface OrderSummary {
   id: string;
   status: OrderStatus;
+  mode?: OrderMode;
   categoryId: string;
   areaId: string;
   description: string;
@@ -73,6 +79,13 @@ export interface CreateOrderRequestDto {
   description: string;
   addressId: string;
   urgencyFee?: number;
+}
+
+export interface CreateOnDemandOrderRequestDto {
+  serviceId: string;
+  description: string;
+  addressId: string;
+  scheduledAt: string;
 }
 
 export interface ExpressProposal {

@@ -53,6 +53,28 @@ export function useRespondToOrder(orderId: string) {
   });
 }
 
+export function useRespondOnDemandOrder(orderId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (accepted: boolean) =>
+      professionalIntegration.orders.respondOnDemand(orderId, accepted),
+    onSuccess: (_data, accepted) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.professionalOrders.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.professionalOrders.detail(orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
+      if (accepted) {
+        toast.success('Pedido aceito!');
+      } else {
+        toast.info('Pedido recusado.');
+      }
+    },
+    onError: (error: unknown) => {
+      toast.error('Erro ao responder pedido', getApiErrorMessage(error));
+    },
+  });
+}
+
 export function useProCompleteOrder(orderId: string) {
   const queryClient = useQueryClient();
 

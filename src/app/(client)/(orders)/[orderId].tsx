@@ -14,7 +14,7 @@ import { useCancelOrder, useChooseOrderProposal, useConfirmOrder, useOrder, useO
 import { useProfessional } from '@/lib/hooks/useProfessionals';
 import { useOrderReviews } from '@/lib/hooks/useReviews';
 import { colors, radius, spacing } from '@/theme';
-import { OrderStatus } from '@/types/order';
+import { OrderMode, OrderStatus } from '@/types/order';
 
 interface TimelineStep {
   label: string;
@@ -36,11 +36,20 @@ function formatDateTime(value?: string | null) {
   }).format(new Date(value));
 }
 
-function buildTimeline(status: OrderStatus): TimelineStep[] {
+function buildTimeline(status: OrderStatus, mode?: OrderMode): TimelineStep[] {
+  const isOnDemand = mode === OrderMode.ON_DEMAND;
   return [
     { label: 'Pedido criado', completed: true, active: false },
-    { label: 'Buscando profissionais', completed: status !== OrderStatus.PENDING, active: status === OrderStatus.PENDING },
-    { label: 'Proposta aceita', completed: status !== OrderStatus.PENDING, active: status === OrderStatus.ACCEPTED },
+    {
+      label: isOnDemand ? 'Aguardando profissional' : 'Buscando profissionais',
+      completed: status !== OrderStatus.PENDING,
+      active: status === OrderStatus.PENDING,
+    },
+    {
+      label: isOnDemand ? 'Pedido aceito' : 'Proposta aceita',
+      completed: status !== OrderStatus.PENDING,
+      active: status === OrderStatus.ACCEPTED,
+    },
     { label: 'Serviço realizado', completed: status === OrderStatus.COMPLETED_BY_PRO || status === OrderStatus.COMPLETED, active: status === OrderStatus.COMPLETED_BY_PRO },
     { label: 'Confirmado pelo cliente', completed: status === OrderStatus.COMPLETED, active: status === OrderStatus.DISPUTED },
   ];
@@ -152,7 +161,8 @@ export default function OrderDetailScreen() {
   const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const orderQuery = useOrder(orderId);
-  const proposalsQuery = useOrderProposals(orderId);
+  const isExpress = orderQuery.data?.mode !== OrderMode.ON_DEMAND;
+  const proposalsQuery = useOrderProposals(isExpress ? orderId : '');
   const chooseProposal = useChooseOrderProposal(orderId);
   const cancelOrder = useCancelOrder(orderId);
   const confirmOrder = useConfirmOrder(orderId);
@@ -187,8 +197,9 @@ export default function OrderDetailScreen() {
 
   const areaName = areasQuery.data?.find((area) => area.id === order.areaId)?.name ?? 'Área';
   const categoryName = categoriesQuery.data?.find((category) => category.id === order.categoryId)?.name ?? 'Serviço';
-  const timeline = buildTimeline(order.status);
-  const proposals = proposalsQuery.data ?? [];
+  const isOnDemand = order.mode === OrderMode.ON_DEMAND;
+  const timeline = buildTimeline(order.status, order.mode);
+  const proposals = isOnDemand ? [] : (proposalsQuery.data ?? []);
   const hasReview = (reviewsQuery.data ?? []).some((review) => !!review.comment);
   const hasDispute = !!disputeQuery.data;
   const completionPhotos = order.photos.filter((photo) => photo.type === 'completion_proof');
@@ -209,10 +220,18 @@ export default function OrderDetailScreen() {
       <Header title="Detalhes do pedido" showBack />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.statusSection}>
-          <OrderStatusBadge status={order.status} />
+          <View style={styles.badgesRow}>
+            <OrderStatusBadge status={order.status} />
+            <Badge label={isOnDemand ? 'Sob demanda' : 'Express'} variant={isOnDemand ? 'info' : 'warning'} />
+          </View>
           <Text variant="titleLg">{categoryName}</Text>
           <Text variant="labelLg" color={colors.neutral[500]}>{areaName}</Text>
           <Text variant="bodySm" color={colors.neutral[500]}>{order.description}</Text>
+          {order.scheduledAt ? (
+            <Text variant="labelLg" color={colors.neutral[600]}>
+              Agendado para: {formatDateTime(order.scheduledAt)}
+            </Text>
+          ) : null}
         </View>
 
         <View style={styles.section}>
@@ -245,7 +264,7 @@ export default function OrderDetailScreen() {
 
         <Divider />
 
-        {order.status === OrderStatus.PENDING ? (
+        {order.status === OrderStatus.PENDING && !isOnDemand ? (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text variant="titleSm">Propostas recebidas</Text>
@@ -271,6 +290,16 @@ export default function OrderDetailScreen() {
                 </Text>
               </View>
             )}
+          </View>
+        ) : null}
+
+        {order.status === OrderStatus.PENDING && isOnDemand ? (
+          <View style={styles.section}>
+            <View style={styles.waitingCard}>
+              <Text variant="bodySm" color={colors.neutral[500]} style={styles.centered}>
+                Aguardando resposta do profissional...
+              </Text>
+            </View>
           </View>
         ) : null}
 
@@ -409,6 +438,7 @@ const styles = StyleSheet.create({
   screen: { gap: 0 },
   scrollContent: { gap: spacing[5], paddingBottom: spacing[4] },
   statusSection: { alignItems: 'center', gap: spacing[2], paddingTop: spacing[2] },
+  badgesRow: { flexDirection: 'row', gap: spacing[2] },
   section: { gap: spacing[3] },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   centered: { textAlign: 'center' },

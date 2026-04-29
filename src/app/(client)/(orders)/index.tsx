@@ -68,6 +68,7 @@ export default function OrdersScreen() {
       categoryName,
       description: order.description,
       status: order.status,
+      mode: order.mode,
       createdAt: formatDate(order.createdAt),
       address: snapshot
         ? `${snapshot.street}, ${snapshot.number} - ${snapshot.district}`

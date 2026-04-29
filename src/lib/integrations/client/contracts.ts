@@ -1,5 +1,6 @@
 import type { CreateAddressRequestDto, UpdateAddressRequestDto, Address } from '@/types/address';
 import type {
+  CreateOnDemandOrderRequestDto,
   CreateOrderRequestDto,
   ExpressProposal,
   OrderDetails,
@@ -39,6 +40,7 @@ export interface ClientOrdersIntegration {
   getById(id: string): Promise<OrderDetails>;
   getExpressProposals(id: string): Promise<ExpressProposal[]>;
   create(payload: CreateOrderRequestDto): Promise<OrderDetails>;
+  createOnDemand(payload: CreateOnDemandOrderRequestDto): Promise<OrderDetails>;
   chooseProposal: (orderId: string, professionalId: string) => Promise<OrderDetails>;
   cancel: (orderId: string, reason: string) => Promise<OrderDetails>;
   confirm: (orderId: string) => Promise<OrderDetails>;

@@ -22,6 +22,7 @@ export interface ProfessionalOrdersIntegration {
   getOrders(params?: OrderFiltersDto): Promise<OrderSummary[]>;
   getById(id: string): Promise<OrderDetails>;
   respond(orderId: string, payload: ProRespondRequest): Promise<OrderDetails>;
+  respondOnDemand(orderId: string, accepted: boolean): Promise<OrderDetails>;
   complete(orderId: string, formData: FormData): Promise<OrderDetails>;
   cancel(orderId: string, reason: string): Promise<OrderDetails>;
 }

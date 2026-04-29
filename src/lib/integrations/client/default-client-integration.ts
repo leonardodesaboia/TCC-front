@@ -24,6 +24,7 @@ export const defaultClientIntegration: ClientIntegration = {
     getById: (id) => ordersApi.getById(id),
     getExpressProposals: (id) => ordersApi.getExpressProposals(id),
     create: (payload) => ordersApi.create(payload),
+    createOnDemand: (payload) => ordersApi.createOnDemand(payload),
     chooseProposal: (orderId, professionalId) => ordersApi.chooseProposal(orderId, professionalId),
     cancel: (orderId, reason) => ordersApi.cancel(orderId, reason),
     confirm: (orderId) => ordersApi.confirm(orderId),

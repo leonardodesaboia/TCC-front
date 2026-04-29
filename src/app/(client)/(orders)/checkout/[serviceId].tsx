@@ -2,35 +2,18 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Calendar, Check, Clock, MapPin, Shield } from 'lucide-react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
-import { Avatar, Button, Divider, Text } from '@/components/ui';
-import { USE_MOCKS_ENABLED } from '@/lib/constants/config';
+import { Avatar, Button, Divider, Input, Text } from '@/components/ui';
 import { useAddresses } from '@/lib/hooks/useAddresses';
+import { useCreateOnDemandOrder } from '@/lib/hooks/useOrders';
 import { useProfessional } from '@/lib/hooks/useProfessionals';
 import { useProfessionalService } from '@/lib/hooks/useServices';
 import { colors, radius, spacing } from '@/theme';
-
-const MOCK_DATES = [
-  { id: 'd1', label: 'Hoje', sublabel: '27 Abr', available: true },
-  { id: 'd2', label: 'Amanhã', sublabel: '28 Abr', available: true },
-  { id: 'd3', label: 'Qua', sublabel: '29 Abr', available: true },
-  { id: 'd4', label: 'Qui', sublabel: '30 Abr', available: false },
-  { id: 'd5', label: 'Sex', sublabel: '01 Mai', available: true },
-];
-
-const MOCK_TIMES = [
-  { id: 't1', label: '08:00', available: true },
-  { id: 't2', label: '09:00', available: true },
-  { id: 't3', label: '10:00', available: false },
-  { id: 't4', label: '11:00', available: true },
-  { id: 't5', label: '14:00', available: true },
-  { id: 't6', label: '15:00', available: true },
-  { id: 't7', label: '16:00', available: true },
-];
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -44,6 +27,21 @@ function formatDuration(minutes?: number) {
   return remainder > 0 ? `${hours}h ${remainder}min` : `${hours}h`;
 }
 
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
+}
+
+function formatTime(date: Date) {
+  return new Intl.DateTimeFormat('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
 export default function CheckoutScreen() {
   const { serviceId, professionalId } = useLocalSearchParams<{ serviceId: string; professionalId?: string }>();
   const router = useRouter();
@@ -51,9 +49,16 @@ export default function CheckoutScreen() {
   const serviceQuery = useProfessionalService(professionalId ?? '', serviceId);
   const professionalQuery = useProfessional(professionalId ?? '');
   const addressesQuery = useAddresses();
+  const createOnDemand = useCreateOnDemandOrder();
 
-  const [selectedDate, setSelectedDate] = useState('d1');
-  const [selectedTime, setSelectedTime] = useState('t1');
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(9, 0, 0, 0);
+
+  const [scheduledDate, setScheduledDate] = useState(tomorrow);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [description, setDescription] = useState('');
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
 
   const addresses = addressesQuery.data ?? [];
@@ -92,6 +97,19 @@ export default function CheckoutScreen() {
     return <ErrorState message="Serviço ou profissional não encontrado." />;
   }
 
+  const canSubmit = !!selectedAddress && description.trim().length > 0 && scheduledDate > new Date();
+
+  function handleSubmit() {
+    if (!selectedAddress || !description.trim()) return;
+
+    createOnDemand.mutate({
+      serviceId,
+      description: description.trim(),
+      addressId: selectedAddress,
+      scheduledAt: scheduledDate.toISOString(),
+    });
+  }
+
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
       <Header title="Agendar serviço" showBack />
@@ -104,83 +122,88 @@ export default function CheckoutScreen() {
               {professional.name} · {formatDuration(service.durationInMinutes)}
             </Text>
           </View>
-          <Text variant="titleSm" color={colors.primary.default}>{formatMoney(service.price)}</Text>
+          <Text variant="titleSm" color={colors.primary.default}>{formatMoney(service.effectivePrice)}</Text>
         </View>
 
-        {USE_MOCKS_ENABLED ? (
-          <>
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Calendar color={colors.neutral[700]} size={18} />
-                <Text variant="titleSm">Escolha a data</Text>
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-                {MOCK_DATES.map((d) => (
-                  <Pressable
-                    key={d.id}
-                    disabled={!d.available}
-                    onPress={() => setSelectedDate(d.id)}
-                    style={[
-                      styles.dateChip,
-                      selectedDate === d.id && styles.dateChipSelected,
-                      !d.available && styles.chipDisabled,
-                    ]}
-                  >
-                    <Text
-                      variant="labelLg"
-                      color={selectedDate === d.id ? '#FFFFFF' : d.available ? colors.neutral[700] : colors.neutral[400]}
-                    >
-                      {d.label}
-                    </Text>
-                    <Text
-                      variant="labelSm"
-                      color={selectedDate === d.id ? '#FFFFFF' : d.available ? colors.neutral[500] : colors.neutral[300]}
-                    >
-                      {d.sublabel}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
-
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Clock color={colors.neutral[700]} size={18} />
-                <Text variant="titleSm">Escolha o horário</Text>
-              </View>
-              <View style={styles.timeGrid}>
-                {MOCK_TIMES.map((t) => (
-                  <Pressable
-                    key={t.id}
-                    disabled={!t.available}
-                    onPress={() => setSelectedTime(t.id)}
-                    style={[
-                      styles.timeChip,
-                      selectedTime === t.id && styles.timeChipSelected,
-                      !t.available && styles.chipDisabled,
-                    ]}
-                  >
-                    <Text
-                      variant="labelLg"
-                      color={selectedTime === t.id ? '#FFFFFF' : t.available ? colors.neutral[700] : colors.neutral[400]}
-                    >
-                      {t.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          </>
-        ) : (
-          <EmptyState
-            icon={Calendar}
-            title="Fluxo on-demand ainda não disponível"
-            description="O backend atual documentado ainda não expõe o checkout/agendamento direto para serviços on-demand."
+        {/* Description */}
+        <View style={styles.section}>
+          <Text variant="titleSm">Descreva o que você precisa</Text>
+          <Input
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Ex: Preciso trocar 3 tomadas na sala..."
+            multiline
+            numberOfLines={4}
+            maxLength={2000}
+            style={styles.descriptionInput}
           />
-        )}
+          <Text variant="labelSm" color={colors.neutral[400]}>
+            {description.length}/2000
+          </Text>
+        </View>
 
         <Divider />
 
+        {/* Date & Time */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Calendar color={colors.neutral[700]} size={18} />
+            <Text variant="titleSm">Data e horário</Text>
+          </View>
+
+          <View style={styles.dateTimeRow}>
+            <Pressable style={styles.dateTimeChip} onPress={() => setShowDatePicker(true)}>
+              <Calendar color={colors.primary.default} size={16} />
+              <Text variant="labelLg" color={colors.neutral[700]}>
+                {formatDate(scheduledDate)}
+              </Text>
+            </Pressable>
+
+            <Pressable style={styles.dateTimeChip} onPress={() => setShowTimePicker(true)}>
+              <Clock color={colors.primary.default} size={16} />
+              <Text variant="labelLg" color={colors.neutral[700]}>
+                {formatTime(scheduledDate)}
+              </Text>
+            </Pressable>
+          </View>
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={scheduledDate}
+              mode="date"
+              minimumDate={new Date()}
+              onChange={(_event, date) => {
+                setShowDatePicker(false);
+                if (date) {
+                  const updated = new Date(scheduledDate);
+                  updated.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+                  setScheduledDate(updated);
+                }
+              }}
+            />
+          )}
+
+          {showTimePicker && (
+            <DateTimePicker
+              value={scheduledDate}
+              mode="time"
+              is24Hour
+              minuteInterval={30}
+              onChange={(_event, date) => {
+                setShowTimePicker(false);
+                if (date) {
+                  const updated = new Date(scheduledDate);
+                  updated.setHours(date.getHours(), date.getMinutes());
+                  setScheduledDate(updated);
+                }
+              }}
+            />
+          )}
+        </View>
+
+        <Divider />
+
+        {/* Address */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <MapPin color={colors.neutral[700]} size={18} />
@@ -233,16 +256,17 @@ export default function CheckoutScreen() {
       <View style={styles.bottomBar}>
         <View style={styles.bottomPrice}>
           <Text variant="labelLg" color={colors.neutral[500]}>Total</Text>
-          <Text variant="titleLg" color={colors.primary.default}>{formatMoney(service.price)}</Text>
+          <Text variant="titleLg" color={colors.primary.default}>{formatMoney(service.effectivePrice)}</Text>
         </View>
         <View style={styles.ctaBtn}>
           <Button
             variant="primary"
             size="lg"
-            onPress={() => router.back()}
-            disabled={!USE_MOCKS_ENABLED || !selectedAddress}
+            onPress={handleSubmit}
+            disabled={!canSubmit}
+            loading={createOnDemand.isPending}
           >
-            {USE_MOCKS_ENABLED ? 'Confirmar agendamento' : 'Indisponível no backend atual'}
+            Confirmar agendamento
           </Button>
         </View>
       </View>
@@ -266,26 +290,27 @@ const styles = StyleSheet.create({
   serviceInfo: { flex: 1, gap: 2 },
   section: { gap: spacing[3] },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
-  chipScroll: { gap: spacing[2] },
-  dateChip: {
+  descriptionInput: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    gap: spacing[3],
+  },
+  dateTimeChip: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    justifyContent: 'center',
+    gap: spacing[2],
     paddingVertical: spacing[3],
     paddingHorizontal: spacing[4],
     borderRadius: radius.lg,
     backgroundColor: colors.neutral[100],
-    minWidth: 72,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
   },
-  dateChipSelected: { backgroundColor: colors.neutral[900] },
-  timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
-  timeChip: {
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[4],
-    borderRadius: radius.md,
-    backgroundColor: colors.neutral[100],
-  },
-  timeChipSelected: { backgroundColor: colors.neutral[900] },
-  chipDisabled: { opacity: 0.4 },
   addressCard: {
     flexDirection: 'row',
     alignItems: 'center',

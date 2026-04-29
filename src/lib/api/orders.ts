@@ -2,6 +2,7 @@ import { apiClient } from './client';
 import { unwrapItem, unwrapList, toNumber } from './utils';
 import type { ApiResponse, SpringPage } from '@/types/api';
 import type {
+  CreateOnDemandOrderRequestDto,
   CreateOrderRequestDto,
   ExpressProposal,
   ExpressProposalDto,
@@ -13,6 +14,7 @@ import type {
   OrderSummary,
   OrderSummaryDto,
 } from '@/types/order';
+import { OrderMode } from '@/types/order';
 
 function mapOrderPhoto(dto: OrderPhotoDto): OrderPhoto {
   return {
@@ -28,6 +30,7 @@ function mapOrderSummary(dto: OrderSummaryDto): OrderSummary {
   return {
     id: dto.id,
     status: dto.status,
+    mode: dto.mode === 'on_demand' ? OrderMode.ON_DEMAND : dto.mode === 'express' ? OrderMode.EXPRESS : undefined,
     categoryId: dto.categoryId,
     areaId: dto.areaId,
     description: dto.description,
@@ -98,6 +101,25 @@ export const ordersApi = {
     const response = await apiClient.post<ApiResponse<OrderDetailsDto> | OrderDetailsDto>(
       '/api/v1/orders/express',
       payload,
+    );
+
+    return mapOrderDetails(unwrapItem(response.data));
+  },
+
+  async createOnDemand(payload: CreateOnDemandOrderRequestDto): Promise<OrderDetails> {
+    const response = await apiClient.post<ApiResponse<OrderDetailsDto> | OrderDetailsDto>(
+      '/api/v1/orders/on-demand',
+      payload,
+    );
+
+    return mapOrderDetails(unwrapItem(response.data));
+  },
+
+  async respondOnDemand(orderId: string, accepted: boolean): Promise<OrderDetails> {
+    const response = await apiClient.post<ApiResponse<OrderDetailsDto> | OrderDetailsDto>(
+      `/api/v1/orders/${orderId}/on-demand/respond`,
+      null,
+      { params: { accepted } },
     );
 
     return mapOrderDetails(unwrapItem(response.data));

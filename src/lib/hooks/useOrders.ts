@@ -4,7 +4,7 @@ import { queryKeys } from '@/lib/constants/query-keys';
 import { clientIntegration } from '@/lib/integrations/client';
 import { getApiErrorMessage } from '@/lib/utils/errors';
 import { toast } from '@/lib/utils/toast';
-import type { CreateOrderRequestDto, OrderFiltersDto } from '@/types/order';
+import type { CreateOnDemandOrderRequestDto, CreateOrderRequestDto, OrderFiltersDto } from '@/types/order';
 
 export function useMyOrders(params: OrderFiltersDto = {}) {
   return useQuery({
@@ -35,6 +35,23 @@ export function useCreateOrder() {
 
   return useMutation({
     mutationFn: (payload: CreateOrderRequestDto) => clientIntegration.orders.create(payload),
+    onSuccess: (order) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
+      toast.success('Pedido enviado!', 'O profissional será notificado');
+      router.push(`/(client)/(orders)/${order.id}`);
+    },
+    onError: (error: unknown) => {
+      toast.error('Erro ao criar pedido', getApiErrorMessage(error));
+    },
+  });
+}
+
+export function useCreateOnDemandOrder() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateOnDemandOrderRequestDto) => clientIntegration.orders.createOnDemand(payload),
     onSuccess: (order) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
       toast.success('Pedido enviado!', 'O profissional será notificado');

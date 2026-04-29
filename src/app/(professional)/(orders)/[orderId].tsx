@@ -10,9 +10,9 @@ import { Badge, Button, Divider, Text } from '@/components/ui';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
-import { useProfessionalOrder, useRespondToOrder, useProCompleteOrder, useProCancelOrder } from '@/lib/hooks/useProfessionalArea';
+import { useProfessionalOrder, useRespondToOrder, useRespondOnDemandOrder, useProCompleteOrder, useProCancelOrder } from '@/lib/hooks/useProfessionalArea';
 import { colors, radius, spacing } from '@/theme';
-import { OrderStatus } from '@/types/order';
+import { OrderMode, OrderStatus } from '@/types/order';
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -54,6 +54,7 @@ export default function ProfessionalOrderDetailScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const orderQuery = useProfessionalOrder(orderId);
   const respondToOrder = useRespondToOrder(orderId);
+  const respondOnDemand = useRespondOnDemandOrder(orderId);
   const completeOrder = useProCompleteOrder(orderId);
   const cancelOrder = useProCancelOrder(orderId);
   const areasQuery = useServiceAreas();
@@ -85,6 +86,7 @@ export default function ProfessionalOrderDetailScreen() {
   const categoryName = categoriesQuery.data?.find((c) => c.id === order.categoryId)?.name ?? 'Servico';
   const badge = STATUS_BADGE[order.status] ?? STATUS_BADGE[OrderStatus.PENDING];
   const completionPhotos = order.photos.filter((p) => p.type === 'completion_proof');
+  const isOnDemand = order.mode === OrderMode.ON_DEMAND;
 
   function handleAccept() {
     const amount = parseFloat(proposedAmount.replace(',', '.'));
@@ -102,6 +104,21 @@ export default function ProfessionalOrderDetailScreen() {
       [
         { text: 'Nao', style: 'cancel' },
         { text: 'Sim, recusar', style: 'destructive', onPress: () => respondToOrder.mutate({ response: 'rejected' }) },
+      ],
+    );
+  }
+
+  function handleAcceptOnDemand() {
+    respondOnDemand.mutate(true);
+  }
+
+  function handleRejectOnDemand() {
+    Alert.alert(
+      'Recusar pedido',
+      'Tem certeza que deseja recusar este pedido?',
+      [
+        { text: 'Nao', style: 'cancel' },
+        { text: 'Sim, recusar', style: 'destructive', onPress: () => respondOnDemand.mutate(false) },
       ],
     );
   }
@@ -142,10 +159,18 @@ export default function ProfessionalOrderDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Status */}
         <View style={styles.statusSection}>
-          <Badge label={badge.label} variant={badge.variant} />
+          <View style={styles.badgesRow}>
+            <Badge label={badge.label} variant={badge.variant} />
+            <Badge label={isOnDemand ? 'Sob demanda' : 'Express'} variant={isOnDemand ? 'info' : 'warning'} />
+          </View>
           <Text variant="titleLg">{categoryName}</Text>
           <Text variant="labelLg" color={colors.neutral[500]}>{areaName}</Text>
           <Text variant="bodySm" color={colors.neutral[500]}>{order.description}</Text>
+          {order.scheduledAt ? (
+            <Text variant="labelLg" color={colors.neutral[600]}>
+              Agendado para: {formatDateTime(order.scheduledAt)}
+            </Text>
+          ) : null}
         </View>
 
         <Divider />
@@ -230,7 +255,40 @@ export default function ProfessionalOrderDetailScreen() {
         <View style={styles.section}>
           <Text variant="titleSm">Acoes</Text>
 
-          {order.status === OrderStatus.PENDING ? (
+          {order.status === OrderStatus.PENDING && isOnDemand ? (
+            <View style={styles.actionsColumn}>
+              <Text variant="bodySm" color={colors.neutral[500]}>
+                O cliente deseja agendar este servico. Aceitar ou recusar?
+              </Text>
+              {order.totalAmount > 0 ? (
+                <Text variant="titleSm" color={colors.primary.default}>
+                  Valor: {formatMoney(order.totalAmount)}
+                </Text>
+              ) : null}
+              <View style={styles.actionsRow}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  fullWidth={false}
+                  onPress={handleRejectOnDemand}
+                  loading={respondOnDemand.isPending}
+                >
+                  Recusar
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  fullWidth={false}
+                  onPress={handleAcceptOnDemand}
+                  loading={respondOnDemand.isPending}
+                >
+                  Aceitar pedido
+                </Button>
+              </View>
+            </View>
+          ) : null}
+
+          {order.status === OrderStatus.PENDING && !isOnDemand ? (
             <View style={styles.actionsColumn}>
               <Text variant="bodySm" color={colors.neutral[500]}>
                 Informe seu valor para aceitar o pedido:
@@ -330,6 +388,7 @@ const styles = StyleSheet.create({
   screen: { gap: 0 },
   scrollContent: { gap: spacing[5], paddingBottom: spacing[4] },
   statusSection: { alignItems: 'center', gap: spacing[2], paddingTop: spacing[2] },
+  badgesRow: { flexDirection: 'row', gap: spacing[2] },
   section: { gap: spacing[3] },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
   centered: { textAlign: 'center' },

@@ -1,8 +1,9 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Clock, MapPin } from 'lucide-react-native';
-import { Avatar, Text } from '@/components/ui';
+import { Avatar, Badge, Text } from '@/components/ui';
 import { OrderStatusBadge, type OrderStatus } from './OrderStatusBadge';
 import { colors, radius, spacing } from '@/theme';
+import { OrderMode } from '@/types/order';
 
 export interface OrderCardItem {
   id: string;
@@ -10,6 +11,7 @@ export interface OrderCardItem {
   description: string;
   professionalName?: string;
   status: OrderStatus;
+  mode?: OrderMode;
   createdAt: string;
   address: string;
   totalAmount?: string;
@@ -45,7 +47,14 @@ export function OrderCard({ order, onPress }: OrderCardProps) {
             {showProfessional ? order.professionalName : order.description}
           </Text>
         </View>
-        <OrderStatusBadge status={order.status} />
+        <View style={styles.badgesCol}>
+          <OrderStatusBadge status={order.status} />
+          {order.mode === OrderMode.ON_DEMAND ? (
+            <Badge label="Sob demanda" variant="info" />
+          ) : order.mode === OrderMode.EXPRESS ? (
+            <Badge label="Express" variant="warning" />
+          ) : null}
+        </View>
       </View>
 
       <View style={styles.meta}>
@@ -94,6 +103,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[3],
+  },
+  badgesCol: {
+    alignItems: 'flex-end',
+    gap: spacing[1],
   },
   topText: {
     flex: 1,

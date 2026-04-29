@@ -105,6 +105,15 @@ export const mockProfessionalIntegration: ProfessionalIntegration = {
         photos: [],
       } as OrderDetails;
     },
+    respondOnDemand: async (orderId, accepted) => {
+      mockOrders = mockOrders.map((o) =>
+        o.id === orderId
+          ? { ...o, status: accepted ? ('accepted' as any) : ('cancelled' as any), professionalId: MOCK_PRO_ID, updatedAt: new Date().toISOString() }
+          : o,
+      );
+      const order = mockOrders.find((o) => o.id === orderId)!;
+      return { ...order, clientId: 'client-1', photos: [] } as OrderDetails;
+    },
     respond: async (orderId, payload) => {
       mockOrders = mockOrders.map((o) =>
         o.id === orderId

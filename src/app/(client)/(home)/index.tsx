@@ -72,6 +72,7 @@ export default function ClientHomeScreen() {
         categoryName,
         description: order.description,
         status: order.status,
+        mode: order.mode,
         createdAt: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(order.createdAt)),
         address: snapshot ? `${snapshot.street}, ${snapshot.number} - ${snapshot.district}` : '',
       };

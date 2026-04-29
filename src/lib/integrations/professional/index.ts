@@ -31,6 +31,8 @@ export const professionalIntegration = {
       orders().getById(...args),
     respond: (...args: Parameters<ProfessionalOrdersIntegration['respond']>) =>
       orders().respond(...args),
+    respondOnDemand: (...args: Parameters<ProfessionalOrdersIntegration['respondOnDemand']>) =>
+      orders().respondOnDemand(...args),
     complete: (...args: Parameters<ProfessionalOrdersIntegration['complete']>) =>
       orders().complete(...args),
     cancel: (...args: Parameters<ProfessionalOrdersIntegration['cancel']>) =>

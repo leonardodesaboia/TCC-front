@@ -9,7 +9,7 @@ import { Screen } from '@/components/layout/Screen';
 import { Badge, Text } from '@/components/ui';
 import { useServiceCategories } from '@/lib/hooks/useCatalog';
 import { useProfessionalOrders } from '@/lib/hooks/useProfessionalArea';
-import { OrderStatus } from '@/types/order';
+import { OrderMode, OrderStatus } from '@/types/order';
 import { colors, radius, spacing } from '@/theme';
 
 const FILTERS = ['Todos', 'Pendente', 'Aceito', 'Aguardando', 'Concluido', 'Cancelado'];
@@ -121,7 +121,14 @@ export default function ProfessionalOrdersScreen() {
                       {order.description}
                     </Text>
                   </View>
-                  <Badge label={badge.label} variant={badge.variant} />
+                  <View style={styles.badgesRow}>
+                    <Badge label={badge.label} variant={badge.variant} />
+                    {order.mode === OrderMode.ON_DEMAND ? (
+                      <Badge label="Sob demanda" variant="info" />
+                    ) : order.mode === OrderMode.EXPRESS ? (
+                      <Badge label="Express" variant="warning" />
+                    ) : null}
+                  </View>
                 </View>
 
                 <View style={styles.meta}>
@@ -174,6 +181,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[2],
   },
   chipActive: { backgroundColor: colors.neutral[900] },
+  badgesRow: { flexDirection: 'row', gap: spacing[2], flexWrap: 'wrap' },
   list: { gap: spacing[3] },
   card: {
     borderRadius: radius.xl,

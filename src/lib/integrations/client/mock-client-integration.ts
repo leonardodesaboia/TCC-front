@@ -1,5 +1,5 @@
 import type { ClientIntegration } from './contracts';
-import { OrderStatus, type CreateOrderRequestDto, type ExpressProposal, type OrderDetails, type OrderSummary } from '@/types/order';
+import { OrderMode, OrderStatus, type CreateOnDemandOrderRequestDto, type CreateOrderRequestDto, type ExpressProposal, type OrderDetails, type OrderSummary } from '@/types/order';
 import type { Address, CreateAddressRequestDto, UpdateAddressRequestDto } from '@/types/address';
 import type { ProfessionalProfile, ProfessionalSummary } from '@/types/professional';
 import type { ServiceDetails, ServiceSummary } from '@/types/service';
@@ -40,6 +40,7 @@ const MOCK_SERVICES: ServiceDetails[] = [
     name: 'Instalação de tomada',
     description: 'Instalação com teste de funcionamento e acabamento final.',
     price: 80,
+    effectivePrice: 80,
     durationInMinutes: 30,
     professionId: 'cat-1',
     requirements: ['Tomada disponível'],
@@ -50,6 +51,7 @@ const MOCK_SERVICES: ServiceDetails[] = [
     name: 'Faxina residencial',
     description: 'Limpeza geral de apartamento ou casa.',
     price: 150,
+    effectivePrice: 150,
     durationInMinutes: 180,
     professionId: 'cat-4',
     requirements: [],
@@ -277,6 +279,42 @@ export const mockClientIntegration: ClientIntegration = {
         baseAmount: 0,
         platformFee: 0,
         totalAmount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        photos: [],
+      };
+      mockOrders = [created, ...mockOrders];
+      return created;
+    },
+    async createOnDemand(payload: CreateOnDemandOrderRequestDto) {
+      const address = mockAddresses.find((item) => item.id === payload.addressId) ?? mockAddresses[0];
+      const created: OrderDetails = {
+        id: nextId('ord'),
+        clientId: 'dev-client',
+        serviceId: payload.serviceId,
+        areaId: 'area-1',
+        categoryId: 'cat-1',
+        mode: OrderMode.ON_DEMAND,
+        description: payload.description,
+        addressId: payload.addressId,
+        addressSnapshot: {
+          label: address.label,
+          street: address.street,
+          number: address.number,
+          complement: address.complement,
+          district: address.district,
+          city: address.city,
+          state: address.state,
+          zipCode: address.zipCode,
+          lat: address.lat,
+          lng: address.lng,
+        },
+        scheduledAt: payload.scheduledAt,
+        status: OrderStatus.PENDING,
+        urgencyFee: 0,
+        baseAmount: 80,
+        platformFee: 16,
+        totalAmount: 80,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         photos: [],
