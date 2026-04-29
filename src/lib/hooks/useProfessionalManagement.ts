@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { professionalManagementApi } from '@/lib/api/professional-management';
+import { queryKeys } from '@/lib/constants/query-keys';
 import { getApiErrorMessage } from '@/lib/utils/errors';
 import { toast } from '@/lib/utils/toast';
 import type {
@@ -50,6 +51,7 @@ export function useUpdateProfessionalProfile(professionalId: string) {
       professionalManagementApi.updateProfile(professionalId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['professionals', professionalId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.professionals.myProfile });
       toast.success('Perfil profissional atualizado.');
     },
     onError: (error: unknown) => toast.error('Erro ao atualizar perfil profissional', getApiErrorMessage(error)),
@@ -63,6 +65,7 @@ export function useUpdateProfessionalGeo(professionalId: string) {
       professionalManagementApi.updateGeo(professionalId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['professionals', professionalId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.professionals.myProfile });
       toast.success('Geolocalização atualizada.');
     },
     onError: (error: unknown) => toast.error('Erro ao atualizar geolocalização', getApiErrorMessage(error)),

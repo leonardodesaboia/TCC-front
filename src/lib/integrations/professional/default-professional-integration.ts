@@ -2,6 +2,7 @@ import { ordersApi } from '@/lib/api/orders';
 import { apiClient } from '@/lib/api/client';
 import { unwrapItem, unwrapList, toNumber } from '@/lib/api/utils';
 import type { ApiResponse, SpringPage } from '@/types/api';
+import { OrderStatus } from '@/types/order';
 import type { ProfessionalIntegration, ProfessionalProfileData } from './contracts';
 
 interface ProfessionalResponseDto {
@@ -34,7 +35,23 @@ function mapProfileData(dto: ProfessionalResponseDto): ProfessionalProfileData {
 
 export const defaultProfessionalIntegration: ProfessionalIntegration = {
   orders: {
-    getOrders: (params) => ordersApi.getMyOrders(params),
+    getOrders: async (params) => {
+      const assignedOrders = await ordersApi.getMyOrders(params);
+      const shouldIncludeInbox = !params?.status || params.status === OrderStatus.PENDING;
+
+      if (!shouldIncludeInbox) {
+        return assignedOrders;
+      }
+
+      const inboxOrders = await ordersApi.getProfessionalExpressInbox(params);
+      const uniqueOrders = [...assignedOrders, ...inboxOrders].filter(
+        (order, index, all) => all.findIndex((item) => item.id === order.id) === index,
+      );
+
+      return uniqueOrders.sort((left, right) =>
+        new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+      );
+    },
     getById: (id) => ordersApi.getById(id),
     respond: async (orderId, payload) => {
       const response = await apiClient.post(

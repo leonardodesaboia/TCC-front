@@ -38,9 +38,12 @@ export interface OrderSummary {
   status: OrderStatus;
   mode?: OrderMode;
   categoryId: string;
-  areaId: string;
+  areaId?: string;
   description: string;
   professionalId?: string | null;
+  professionalProResponse?: ProResponse | null;
+  professionalClientResponse?: ClientProposalResponse | null;
+  professionalProposedAmount?: number | null;
   addressId: string;
   addressSnapshot?: OrderAddressSnapshot | null;
   scheduledAt?: string | null;
@@ -100,8 +103,11 @@ export interface OrderSummaryDto {
   clientId: string;
   professionalId?: string | null;
   serviceId?: string | null;
-  areaId: string;
+  areaId?: string | null;
   categoryId: string;
+  professionalProResponse?: ProResponse | null;
+  professionalClientResponse?: ClientProposalResponse | null;
+  professionalProposedAmount?: number | string | null;
   mode?: string | null;
   status: OrderStatus;
   description: string;
@@ -146,6 +152,7 @@ export interface ExpressProposalDto {
 export type OrderDetailsDto = OrderSummaryDto;
 
 export type ProResponse = 'accepted' | 'rejected' | 'timeout';
+export type ClientProposalResponse = 'accepted' | 'rejected';
 
 export interface ProRespondRequest {
   response: ProResponse;

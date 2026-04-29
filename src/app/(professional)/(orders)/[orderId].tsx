@@ -82,11 +82,24 @@ export default function ProfessionalOrderDetailScreen() {
   const order = orderQuery.data;
   if (!order) return <ErrorState message="Pedido nao encontrado." />;
 
-  const areaName = areasQuery.data?.find((a) => a.id === order.areaId)?.name ?? 'Area';
+  const areaName = order.areaId
+    ? areasQuery.data?.find((a) => a.id === order.areaId)?.name
+    : undefined;
   const categoryName = categoriesQuery.data?.find((c) => c.id === order.categoryId)?.name ?? 'Servico';
   const badge = STATUS_BADGE[order.status] ?? STATUS_BADGE[OrderStatus.PENDING];
   const completionPhotos = order.photos.filter((p) => p.type === 'completion_proof');
   const isOnDemand = order.mode === OrderMode.ON_DEMAND;
+  const isExpressInvitation =
+    order.mode === OrderMode.EXPRESS &&
+    order.status === OrderStatus.PENDING &&
+    !order.professionalId &&
+    !order.professionalProResponse;
+  const isAwaitingClientChoice =
+    order.mode === OrderMode.EXPRESS &&
+    order.status === OrderStatus.PENDING &&
+    !order.professionalId &&
+    order.professionalProResponse === 'accepted' &&
+    !order.professionalClientResponse;
 
   function handleAccept() {
     const amount = parseFloat(proposedAmount.replace(',', '.'));
@@ -162,10 +175,22 @@ export default function ProfessionalOrderDetailScreen() {
           <View style={styles.badgesRow}>
             <Badge label={badge.label} variant={badge.variant} />
             <Badge label={isOnDemand ? 'Sob demanda' : 'Express'} variant={isOnDemand ? 'info' : 'warning'} />
+            {isExpressInvitation ? <Badge label="Aguardando proposta" variant="default" /> : null}
+            {isAwaitingClientChoice ? <Badge label="Proposta enviada" variant="info" /> : null}
           </View>
           <Text variant="titleLg">{categoryName}</Text>
-          <Text variant="labelLg" color={colors.neutral[500]}>{areaName}</Text>
+          {areaName ? <Text variant="labelLg" color={colors.neutral[500]}>{areaName}</Text> : null}
           <Text variant="bodySm" color={colors.neutral[500]}>{order.description}</Text>
+          {isExpressInvitation ? (
+            <Text variant="labelLg" color={colors.neutral[600]} style={styles.centered}>
+              Este cliente ainda está escolhendo profissionais. Envie sua proposta para participar da seleção.
+            </Text>
+          ) : null}
+          {isAwaitingClientChoice ? (
+            <Text variant="labelLg" color={colors.neutral[600]} style={styles.centered}>
+              Sua proposta foi enviada. Agora o cliente precisa escolher entre as propostas recebidas.
+            </Text>
+          ) : null}
           {order.scheduledAt ? (
             <Text variant="labelLg" color={colors.neutral[600]}>
               Agendado para: {formatDateTime(order.scheduledAt)}
@@ -288,7 +313,7 @@ export default function ProfessionalOrderDetailScreen() {
             </View>
           ) : null}
 
-          {order.status === OrderStatus.PENDING && !isOnDemand ? (
+          {order.status === OrderStatus.PENDING && !isOnDemand && isExpressInvitation ? (
             <View style={styles.actionsColumn}>
               <Text variant="bodySm" color={colors.neutral[500]}>
                 Informe seu valor para aceitar o pedido:
@@ -321,6 +346,19 @@ export default function ProfessionalOrderDetailScreen() {
                   Enviar proposta
                 </Button>
               </View>
+            </View>
+          ) : null}
+
+          {isAwaitingClientChoice ? (
+            <View style={styles.waitingCard}>
+              <Text variant="bodySm" color={colors.neutral[500]} style={styles.centered}>
+                Proposta enviada com sucesso.
+              </Text>
+              {order.professionalProposedAmount ? (
+                <Text variant="titleSm" color={colors.primary.default} style={styles.centered}>
+                  Valor proposto: {formatMoney(order.professionalProposedAmount)}
+                </Text>
+              ) : null}
             </View>
           ) : null}
 

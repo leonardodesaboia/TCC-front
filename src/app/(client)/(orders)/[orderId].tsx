@@ -38,20 +38,40 @@ function formatDateTime(value?: string | null) {
 
 function buildTimeline(status: OrderStatus, mode?: OrderMode): TimelineStep[] {
   const isOnDemand = mode === OrderMode.ON_DEMAND;
+  const progressedPastPending = [
+    OrderStatus.ACCEPTED,
+    OrderStatus.COMPLETED_BY_PRO,
+    OrderStatus.COMPLETED,
+    OrderStatus.DISPUTED,
+  ].includes(status);
+  const progressedPastAccepted = [
+    OrderStatus.COMPLETED_BY_PRO,
+    OrderStatus.COMPLETED,
+    OrderStatus.DISPUTED,
+  ].includes(status);
+
   return [
     { label: 'Pedido criado', completed: true, active: false },
     {
       label: isOnDemand ? 'Aguardando profissional' : 'Buscando profissionais',
-      completed: status !== OrderStatus.PENDING,
+      completed: progressedPastPending,
       active: status === OrderStatus.PENDING,
     },
     {
       label: isOnDemand ? 'Pedido aceito' : 'Proposta aceita',
-      completed: status !== OrderStatus.PENDING,
+      completed: progressedPastPending,
       active: status === OrderStatus.ACCEPTED,
     },
-    { label: 'Serviço realizado', completed: status === OrderStatus.COMPLETED_BY_PRO || status === OrderStatus.COMPLETED, active: status === OrderStatus.COMPLETED_BY_PRO },
-    { label: 'Confirmado pelo cliente', completed: status === OrderStatus.COMPLETED, active: status === OrderStatus.DISPUTED },
+    {
+      label: 'Serviço realizado',
+      completed: progressedPastAccepted,
+      active: status === OrderStatus.COMPLETED_BY_PRO,
+    },
+    {
+      label: isOnDemand ? 'Confirmado pelo cliente' : 'Confirmado pelo cliente',
+      completed: status === OrderStatus.COMPLETED,
+      active: false,
+    },
   ];
 }
 
@@ -161,8 +181,8 @@ export default function OrderDetailScreen() {
   const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const orderQuery = useOrder(orderId);
-  const isExpress = orderQuery.data?.mode !== OrderMode.ON_DEMAND;
-  const proposalsQuery = useOrderProposals(isExpress ? orderId : '');
+  const shouldLoadProposals = orderQuery.data?.mode === OrderMode.EXPRESS;
+  const proposalsQuery = useOrderProposals(orderId, shouldLoadProposals);
   const chooseProposal = useChooseOrderProposal(orderId);
   const cancelOrder = useCancelOrder(orderId);
   const confirmOrder = useConfirmOrder(orderId);
@@ -181,7 +201,9 @@ export default function OrderDetailScreen() {
         message="Não foi possível carregar esse pedido."
         onRetry={() => {
           void orderQuery.refetch();
-          void proposalsQuery.refetch();
+          if (shouldLoadProposals) {
+            void proposalsQuery.refetch();
+          }
           void areasQuery.refetch();
           void categoriesQuery.refetch();
           void reviewsQuery.refetch();
@@ -195,8 +217,10 @@ export default function OrderDetailScreen() {
     return <ErrorState message="Pedido não encontrado." />;
   }
 
-  const areaName = areasQuery.data?.find((area) => area.id === order.areaId)?.name ?? 'Área';
   const categoryName = categoriesQuery.data?.find((category) => category.id === order.categoryId)?.name ?? 'Serviço';
+  const areaName = order.areaId
+    ? areasQuery.data?.find((area) => area.id === order.areaId)?.name
+    : undefined;
   const isOnDemand = order.mode === OrderMode.ON_DEMAND;
   const timeline = buildTimeline(order.status, order.mode);
   const proposals = isOnDemand ? [] : (proposalsQuery.data ?? []);
@@ -225,7 +249,7 @@ export default function OrderDetailScreen() {
             <Badge label={isOnDemand ? 'Sob demanda' : 'Express'} variant={isOnDemand ? 'info' : 'warning'} />
           </View>
           <Text variant="titleLg">{categoryName}</Text>
-          <Text variant="labelLg" color={colors.neutral[500]}>{areaName}</Text>
+          {areaName ? <Text variant="labelLg" color={colors.neutral[500]}>{areaName}</Text> : null}
           <Text variant="bodySm" color={colors.neutral[500]}>{order.description}</Text>
           {order.scheduledAt ? (
             <Text variant="labelLg" color={colors.neutral[600]}>

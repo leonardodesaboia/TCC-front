@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Switch, View } from 'react-native';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Button, Input, Text } from '@/components/ui';
@@ -8,7 +8,7 @@ import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { useAuth } from '@/providers/AuthProvider';
 import { useMyProfessionalProfile } from '@/lib/hooks/useProfessionalArea';
-import { useUpdateProfessionalProfile } from '@/lib/hooks/useProfessionalManagement';
+import { useUpdateProfessionalGeo, useUpdateProfessionalProfile } from '@/lib/hooks/useProfessionalManagement';
 import { colors, spacing } from '@/theme';
 
 export default function EditProfessionalProfileScreen() {
@@ -16,16 +16,19 @@ export default function EditProfessionalProfileScreen() {
   const profileQuery = useMyProfessionalProfile();
   const profile = profileQuery.data;
   const updateProfile = useUpdateProfessionalProfile(profile?.id ?? '');
+  const updateGeo = useUpdateProfessionalGeo(profile?.id ?? '');
 
   const [bio, setBio] = useState('');
   const [yearsOfExperience, setYearsOfExperience] = useState('');
   const [baseHourlyRate, setBaseHourlyRate] = useState('');
+  const [geoActive, setGeoActive] = useState(false);
 
   useEffect(() => {
     if (profile) {
       setBio(profile.bio ?? '');
       setYearsOfExperience(profile.yearsOfExperience?.toString() ?? '');
       setBaseHourlyRate(profile.baseHourlyRate?.toString() ?? '');
+      setGeoActive(profile.geoActive ?? false);
     }
   }, [profile]);
 
@@ -38,6 +41,18 @@ export default function EditProfessionalProfileScreen() {
       yearsOfExperience: yearsOfExperience ? parseInt(yearsOfExperience, 10) : undefined,
       baseHourlyRate: baseHourlyRate ? parseFloat(baseHourlyRate.replace(',', '.')) : undefined,
     });
+  }
+
+  function handleToggleExpress(value: boolean) {
+    setGeoActive(value);
+    updateGeo.mutate(
+      { geoActive: value },
+      {
+        onError: () => {
+          setGeoActive(profile?.geoActive ?? false);
+        },
+      },
+    );
   }
 
   return (
@@ -82,6 +97,27 @@ export default function EditProfessionalProfileScreen() {
             keyboardType="numeric"
           />
         </FormField>
+
+        <View style={styles.expressCard}>
+          <View style={styles.expressHeader}>
+            <View style={styles.expressText}>
+              <Text variant="bodySm">Disponível para Express</Text>
+              <Text variant="labelSm" color={colors.neutral[500]}>
+                Ative para entrar na fila de pedidos próximos quando sua localização estiver válida.
+              </Text>
+            </View>
+            <Switch
+              value={geoActive}
+              onValueChange={handleToggleExpress}
+              disabled={updateGeo.isPending}
+              trackColor={{ false: colors.neutral[300], true: colors.primary.default }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+          <Text variant="labelSm" color={colors.neutral[500]}>
+            Se a ativação falhar, o backend provavelmente ainda não possui coordenadas válidas para o seu perfil.
+          </Text>
+        </View>
       </View>
 
       <Button
@@ -98,4 +134,21 @@ const styles = StyleSheet.create({
   screen: { gap: spacing[6] },
   form: { gap: spacing[4] },
   field: { gap: spacing[1] },
+  expressCard: {
+    gap: spacing[2],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[50],
+    borderRadius: 16,
+    padding: spacing[4],
+  },
+  expressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  expressText: {
+    flex: 1,
+    gap: spacing[1],
+  },
 });

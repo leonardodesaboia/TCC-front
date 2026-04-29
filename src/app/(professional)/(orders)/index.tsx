@@ -102,6 +102,20 @@ export default function ProfessionalOrdersScreen() {
             const categoryName = categories.find((c) => c.id === order.categoryId)?.name ?? 'Servico';
             const snapshot = order.addressSnapshot;
             const badge = STATUS_BADGE[order.status] ?? STATUS_BADGE[OrderStatus.PENDING];
+            const isExpressInvitation =
+              order.mode === OrderMode.EXPRESS &&
+              order.status === OrderStatus.PENDING &&
+              !order.professionalId &&
+              !order.professionalProResponse;
+            const isAwaitingClientChoice =
+              order.mode === OrderMode.EXPRESS &&
+              order.status === OrderStatus.PENDING &&
+              !order.professionalId &&
+              order.professionalProResponse === 'accepted' &&
+              !order.professionalClientResponse;
+            const displayAmount = order.totalAmount > 0
+              ? order.totalAmount
+              : order.professionalProposedAmount ?? 0;
 
             return (
               <Pressable
@@ -128,6 +142,8 @@ export default function ProfessionalOrdersScreen() {
                     ) : order.mode === OrderMode.EXPRESS ? (
                       <Badge label="Express" variant="warning" />
                     ) : null}
+                    {isExpressInvitation ? <Badge label="Aguardando proposta" variant="default" /> : null}
+                    {isAwaitingClientChoice ? <Badge label="Proposta enviada" variant="info" /> : null}
                   </View>
                 </View>
 
@@ -147,9 +163,9 @@ export default function ProfessionalOrdersScreen() {
                 </View>
 
                 <View style={styles.bottom}>
-                  {order.totalAmount > 0 ? (
+                  {displayAmount > 0 ? (
                     <Text variant="titleSm" color={colors.primary.default}>
-                      {formatMoney(order.totalAmount)}
+                      {formatMoney(displayAmount)}
                     </Text>
                   ) : null}
                 </View>

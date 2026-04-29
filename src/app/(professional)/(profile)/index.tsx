@@ -73,6 +73,24 @@ export default function ProfessionalProfileScreen() {
         </View>
       </Pressable>
 
+      {profile ? (
+        <View style={styles.statusCard}>
+          <View style={styles.statusText}>
+            <Text variant="titleSm">Express</Text>
+            <Text variant="labelLg" color={colors.neutral[500]}>
+              {profile.geoActive
+                ? 'Seu perfil está marcado como disponível para pedidos Express.'
+                : 'Seu perfil ainda não está disponível para pedidos Express.'}
+            </Text>
+          </View>
+          <View style={[styles.statusPill, profile.geoActive ? styles.statusPillActive : styles.statusPillInactive]}>
+            <Text variant="labelSm" color={profile.geoActive ? colors.success : colors.neutral[600]}>
+              {profile.geoActive ? 'Ativo' : 'Inativo'}
+            </Text>
+          </View>
+        </View>
+      ) : null}
+
       {/* Professional section */}
       <View style={styles.menuSection}>
         <Text variant="labelLg" color={colors.neutral[500]} style={styles.menuSectionTitle}>
@@ -105,7 +123,7 @@ export default function ProfessionalProfileScreen() {
         <MenuItem
           icon={<Bell color={colors.neutral[600]} size={20} />}
           label="Notificacoes"
-          onPress={() => {}}
+          onPress={() => router.push('/(professional)/notifications' as any)}
         />
       </View>
 
@@ -159,6 +177,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[1],
     marginTop: spacing[1],
+  },
+  statusCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[50],
+    padding: spacing[4],
+  },
+  statusText: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  statusPill: {
+    borderRadius: radius.full,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+  },
+  statusPillActive: {
+    backgroundColor: colors.success + '15',
+  },
+  statusPillInactive: {
+    backgroundColor: colors.neutral[200],
   },
   menuSection: {
     borderRadius: radius.xl,

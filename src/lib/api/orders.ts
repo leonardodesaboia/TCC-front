@@ -32,9 +32,14 @@ function mapOrderSummary(dto: OrderSummaryDto): OrderSummary {
     status: dto.status,
     mode: dto.mode === 'on_demand' ? OrderMode.ON_DEMAND : dto.mode === 'express' ? OrderMode.EXPRESS : undefined,
     categoryId: dto.categoryId,
-    areaId: dto.areaId,
+    areaId: dto.areaId ?? undefined,
     description: dto.description,
     professionalId: dto.professionalId ?? undefined,
+    professionalProResponse: dto.professionalProResponse ?? undefined,
+    professionalClientResponse: dto.professionalClientResponse ?? undefined,
+    professionalProposedAmount: dto.professionalProposedAmount != null
+      ? toNumber(dto.professionalProposedAmount)
+      : undefined,
     addressId: dto.addressId,
     addressSnapshot: dto.addressSnapshot ?? undefined,
     scheduledAt: dto.scheduledAt ?? undefined,
@@ -78,6 +83,15 @@ export const ordersApi = {
   async getMyOrders(params: OrderFiltersDto = {}): Promise<OrderSummary[]> {
     const response = await apiClient.get<SpringPage<OrderSummaryDto> | ApiResponse<OrderSummaryDto[]> | OrderSummaryDto[]>(
       '/api/v1/orders',
+      { params },
+    );
+
+    return unwrapList(response.data).map(mapOrderSummary);
+  },
+
+  async getProfessionalExpressInbox(params: OrderFiltersDto = {}): Promise<OrderSummary[]> {
+    const response = await apiClient.get<SpringPage<OrderSummaryDto> | ApiResponse<OrderSummaryDto[]> | OrderSummaryDto[]>(
+      '/api/v1/orders/express/inbox',
       { params },
     );
 

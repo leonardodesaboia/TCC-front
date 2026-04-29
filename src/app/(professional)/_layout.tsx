@@ -40,6 +40,7 @@ export default function ProfessionalLayout() {
       tabBar={(props) => <ProfessionalTabBar {...props} />}
     >
       <Tabs.Screen name="index" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="(dashboard)" options={{ title: 'Inicio' }} />
       <Tabs.Screen name="(orders)" options={{ title: 'Pedidos' }} />
       <Tabs.Screen name="conversations" options={{ title: 'Conversas' }} />

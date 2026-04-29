@@ -20,7 +20,7 @@ import { useServiceCategories } from '@/lib/hooks/useCatalog';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { useMyProfessionalProfile, useProfessionalOrders } from '@/lib/hooks/useProfessionalArea';
 import { useAuth } from '@/providers/AuthProvider';
-import { OrderStatus } from '@/types/order';
+import { OrderMode, OrderStatus } from '@/types/order';
 import { colors, radius, spacing } from '@/theme';
 
 function formatMoney(value: number) {
@@ -93,7 +93,7 @@ export default function ProfessionalDashboardScreen() {
           <Text variant="displaySm">Seu painel</Text>
         </View>
         <Pressable
-          onPress={() => router.push('/(professional)/(orders)' as any)}
+          onPress={() => router.push('/(professional)/notifications' as any)}
           style={styles.bellBtn}
         >
           <Bell color={colors.neutral[700]} size={22} />
@@ -138,6 +138,18 @@ export default function ProfessionalDashboardScreen() {
           {pendingOrders.slice(0, 3).map((order) => {
             const categoryName = categories.find((c) => c.id === order.categoryId)?.name ?? 'Servico';
             const snapshot = order.addressSnapshot;
+            const isExpressInvitation =
+              order.mode === OrderMode.EXPRESS &&
+              !order.professionalId &&
+              !order.professionalProResponse;
+            const isAwaitingClientChoice =
+              order.mode === OrderMode.EXPRESS &&
+              !order.professionalId &&
+              order.professionalProResponse === 'accepted' &&
+              !order.professionalClientResponse;
+            const displayAmount = order.totalAmount > 0
+              ? order.totalAmount
+              : order.professionalProposedAmount ?? 0;
             return (
               <Pressable
                 key={order.id}
@@ -156,7 +168,13 @@ export default function ProfessionalDashboardScreen() {
                       {order.description}
                     </Text>
                   </View>
-                  <Badge label="Novo" variant="warning" />
+                  {isAwaitingClientChoice ? (
+                    <Badge label="Proposta enviada" variant="info" />
+                  ) : isExpressInvitation ? (
+                    <Badge label="Novo" variant="warning" />
+                  ) : (
+                    <Badge label="Pendente" variant="warning" />
+                  )}
                 </View>
                 <View style={styles.orderMeta}>
                   <View style={styles.metaItem}>
@@ -165,9 +183,11 @@ export default function ProfessionalDashboardScreen() {
                       {snapshot ? `${snapshot.street}, ${snapshot.number}` : 'Endereco'}
                     </Text>
                   </View>
-                  <Text variant="titleSm" color={colors.primary.default}>
-                    {formatMoney(order.totalAmount)}
-                  </Text>
+                  {displayAmount > 0 ? (
+                    <Text variant="titleSm" color={colors.primary.default}>
+                      {formatMoney(displayAmount)}
+                    </Text>
+                  ) : null}
                 </View>
               </Pressable>
             );

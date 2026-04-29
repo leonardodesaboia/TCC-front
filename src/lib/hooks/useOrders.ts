@@ -21,11 +21,11 @@ export function useOrder(id: string) {
   });
 }
 
-export function useOrderProposals(id: string) {
+export function useOrderProposals(id: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.orders.proposals(id),
     queryFn: () => clientIntegration.orders.getExpressProposals(id),
-    enabled: !!id,
+    enabled: enabled && !!id,
   });
 }
 

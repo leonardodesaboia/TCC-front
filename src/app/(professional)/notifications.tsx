@@ -33,7 +33,7 @@ function formatDate(value?: string) {
   }).format(new Date(value));
 }
 
-export default function NotificationsScreen() {
+export default function ProfessionalNotificationsScreen() {
   const router = useRouter();
   const notificationsQuery = useNotifications();
   const markRead = useMarkNotificationRead();
@@ -83,7 +83,7 @@ export default function NotificationsScreen() {
 
                   const orderId = typeof item.data?.orderId === 'string' ? item.data.orderId : undefined;
                   if (orderId) {
-                    router.push(`/(client)/(orders)/${orderId}` as any);
+                    router.push(`/(professional)/(orders)/${orderId}` as any);
                   }
                 }}
                 style={({ pressed }) => [
