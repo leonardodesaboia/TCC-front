@@ -540,6 +540,24 @@ export default function RegisterProfessionalScreen() {
           </View>
 
           <View style={styles.chipsWrap}>
+            {areasQuery.isLoading ? (
+              <Text variant="bodySm" color={colors.neutral[500]}>
+                Carregando áreas...
+              </Text>
+            ) : null}
+
+            {areasQuery.isError ? (
+              <Text variant="bodySm" color={colors.error}>
+                Não foi possível carregar as áreas. Tente novamente em instantes.
+              </Text>
+            ) : null}
+
+            {!areasQuery.isLoading && !areasQuery.isError && areas.length === 0 ? (
+              <Text variant="bodySm" color={colors.neutral[500]}>
+                Nenhuma área disponível no catálogo no momento.
+              </Text>
+            ) : null}
+
             {areas.map((area) => (
               <Pressable
                 key={area.id}
@@ -555,6 +573,24 @@ export default function RegisterProfessionalScreen() {
 
           {selectedAreaId ? (
             <View style={styles.categoriesList}>
+              {categoriesQuery.isLoading ? (
+                <Text variant="bodySm" color={colors.neutral[500]}>
+                  Carregando profissões...
+                </Text>
+              ) : null}
+
+              {categoriesQuery.isError ? (
+                <Text variant="bodySm" color={colors.error}>
+                  Não foi possível carregar as profissões desta área.
+                </Text>
+              ) : null}
+
+              {!categoriesQuery.isLoading && !categoriesQuery.isError && visibleCategories.length === 0 ? (
+                <Text variant="bodySm" color={colors.neutral[500]}>
+                  Nenhuma profissão disponível para esta área.
+                </Text>
+              ) : null}
+
               {visibleCategories.map((category) => {
                 const selected = selectedSpecialties.some((item) => item.categoryId === category.id);
                 return (

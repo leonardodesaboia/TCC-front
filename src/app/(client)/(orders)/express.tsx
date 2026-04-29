@@ -52,13 +52,17 @@ export default function ExpressOrderScreen() {
   async function handleSubmit() {
     if (!canSubmit || !selectedAddressId || !areaId || !categoryId) return;
 
-    await createOrder.mutateAsync({
-      areaId,
-      categoryId,
-      description: description.trim(),
-      addressId: selectedAddressId,
-      urgencyFee: addUrgency ? 15 : 0,
-    });
+    try {
+      await createOrder.mutateAsync({
+        areaId,
+        categoryId,
+        description: description.trim(),
+        addressId: selectedAddressId,
+        urgencyFee: addUrgency ? 15 : undefined,
+      });
+    } catch {
+      // A mutation already surfaces the API message via toast.
+    }
   }
 
   if (addressesQuery.isLoading) {
