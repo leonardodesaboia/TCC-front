@@ -5,7 +5,10 @@ import { professionalIntegration } from '@/lib/integrations/professional';
 import { getApiErrorMessage } from '@/lib/utils/errors';
 import { toast } from '@/lib/utils/toast';
 import { useAuth } from '@/providers/AuthProvider';
-import type { OrderFiltersDto, ProRespondRequest } from '@/types/order';
+import { OrderStatus, type OrderDetails, type OrderFiltersDto, type ProRespondRequest } from '@/types/order';
+
+const PRO_LIST_POLL_MS = 10000;
+const PRO_DETAIL_POLL_MS = 5000;
 
 export function useMyProfessionalProfile() {
   const { user } = useAuth();
@@ -20,6 +23,7 @@ export function useProfessionalOrders(params: OrderFiltersDto = {}) {
   return useQuery({
     queryKey: queryKeys.professionalOrders.list(params),
     queryFn: () => professionalIntegration.orders.getOrders(params),
+    refetchInterval: PRO_LIST_POLL_MS,
   });
 }
 
@@ -28,6 +32,13 @@ export function useProfessionalOrder(id: string) {
     queryKey: queryKeys.professionalOrders.detail(id),
     queryFn: () => professionalIntegration.orders.getById(id),
     enabled: !!id,
+    refetchInterval: (query) => {
+      const order = query.state.data as OrderDetails | undefined;
+      if (!order) return PRO_DETAIL_POLL_MS;
+      return order.status === OrderStatus.PENDING || order.status === OrderStatus.ACCEPTED
+        ? PRO_DETAIL_POLL_MS
+        : false;
+    },
   });
 }
 

@@ -89,7 +89,7 @@ export default function ForgotPasswordScreen() {
   ], [pw]);
 
   const goBack = () => {
-    if (step === 1) { router.replace('/(auth)/login'); return; }
+    if (step === 1) { router.back(); return; }
     setStep((s) => (s - 1) as Step);
   };
 

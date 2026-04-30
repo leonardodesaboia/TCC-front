@@ -9,10 +9,14 @@ const conversationKeys = {
   messages: (id: string) => ['conversations', id, 'messages'] as const,
 };
 
+const CONVERSATION_LIST_POLL_MS = 15000;
+const CONVERSATION_MESSAGES_POLL_MS = 4000;
+
 export function useConversations() {
   return useQuery({
     queryKey: conversationKeys.all,
     queryFn: () => conversationsApi.getAll(),
+    refetchInterval: CONVERSATION_LIST_POLL_MS,
   });
 }
 
@@ -29,6 +33,7 @@ export function useConversationMessages(id: string) {
     queryKey: conversationKeys.messages(id),
     queryFn: () => conversationsApi.getMessages(id),
     enabled: !!id,
+    refetchInterval: CONVERSATION_MESSAGES_POLL_MS,
   });
 }
 

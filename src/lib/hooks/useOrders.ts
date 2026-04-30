@@ -4,7 +4,9 @@ import { queryKeys } from '@/lib/constants/query-keys';
 import { clientIntegration } from '@/lib/integrations/client';
 import { getApiErrorMessage } from '@/lib/utils/errors';
 import { toast } from '@/lib/utils/toast';
-import type { CreateOnDemandOrderRequestDto, CreateOrderRequestDto, OrderFiltersDto } from '@/types/order';
+import { OrderStatus, type CreateOnDemandOrderRequestDto, type CreateOrderRequestDto, type OrderDetails, type OrderFiltersDto } from '@/types/order';
+
+const ACTIVE_ORDER_POLL_MS = 5000;
 
 export function useMyOrders(params: OrderFiltersDto = {}) {
   return useQuery({
@@ -18,6 +20,13 @@ export function useOrder(id: string) {
     queryKey: queryKeys.orders.detail(id),
     queryFn: () => clientIntegration.orders.getById(id),
     enabled: !!id,
+    refetchInterval: (query) => {
+      const order = query.state.data as OrderDetails | undefined;
+      if (!order) return ACTIVE_ORDER_POLL_MS;
+      return order.status === OrderStatus.PENDING || order.status === OrderStatus.ACCEPTED
+        ? ACTIVE_ORDER_POLL_MS
+        : false;
+    },
   });
 }
 
@@ -26,6 +35,7 @@ export function useOrderProposals(id: string, enabled = true) {
     queryKey: queryKeys.orders.proposals(id),
     queryFn: () => clientIntegration.orders.getExpressProposals(id),
     enabled: enabled && !!id,
+    refetchInterval: enabled ? ACTIVE_ORDER_POLL_MS : false,
   });
 }
 

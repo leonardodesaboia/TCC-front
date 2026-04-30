@@ -301,7 +301,7 @@ export default function RegisterProfessionalScreen() {
       return;
     }
 
-    router.replace('/(auth)/register/');
+    router.back();
   };
 
   function toggleCategory(categoryId: string) {

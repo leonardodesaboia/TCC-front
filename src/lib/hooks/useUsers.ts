@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '@/lib/api/users';
 import { queryKeys } from '@/lib/constants/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -6,6 +6,14 @@ import { getApiErrorMessage } from '@/lib/utils/errors';
 import { toast } from '@/lib/utils/toast';
 import type { UpdateUserRequest } from '@/types/user';
 import { useRouter } from 'expo-router';
+
+export function useUser(id: string) {
+  return useQuery({
+    queryKey: [...queryKeys.user, id],
+    queryFn: () => usersApi.getById(id),
+    enabled: !!id,
+  });
+}
 
 export function useUpdateProfile() {
   const queryClient = useQueryClient();

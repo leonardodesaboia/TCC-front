@@ -157,7 +157,7 @@ export default function RegisterClientScreen() {
     <Screen edges={['top', 'bottom']}>
       <View style={styles.topRow}>
         <Pressable
-          onPress={() => (step === 1 ? router.replace('/(auth)/register/') : goBack())}
+          onPress={() => (step === 1 ? router.back() : goBack())}
           hitSlop={8}
           style={styles.backBtn}
         >
