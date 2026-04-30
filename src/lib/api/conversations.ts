@@ -15,11 +15,16 @@ import type {
 } from '@/types/conversation';
 
 function mapConversationSummary(dto: ConversationSummaryDto): ConversationSummary {
+  const lastMessageContent = dto.lastMessage?.content?.trim();
+  const lastMessagePreview = dto.lastMessage
+    ? lastMessageContent || (dto.lastMessage.msgType === 'image' ? 'Imagem enviada' : 'Mensagem do sistema')
+    : undefined;
+
   return {
     id: dto.id,
     orderId: dto.orderId,
     otherParticipantId: dto.otherParticipantId,
-    lastMessage: dto.lastMessage ?? undefined,
+    lastMessage: lastMessagePreview,
     unreadCount: toNumber(dto.unreadCount),
   };
 }

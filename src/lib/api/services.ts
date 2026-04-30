@@ -1,6 +1,7 @@
 import { apiClient } from './client';
 import { unwrapItem, unwrapList } from './utils';
 import type { ApiResponse, SpringPage } from '@/types/api';
+import type { ProfessionalOfferingDto } from '@/types/professional-management';
 import type {
   GetServicesParamsDto,
   ServiceDetails,
@@ -35,6 +36,29 @@ function mapServiceDetails(dto: ServiceDetailsDto): ServiceDetails {
   };
 }
 
+function mapProfessionalOffering(dto: ProfessionalOfferingDto): ServiceSummary {
+  const price = dto.price != null ? toNumber(dto.price) : 0;
+  const effectivePrice = dto.effectivePrice != null ? toNumber(dto.effectivePrice) : price;
+
+  return {
+    id: dto.id,
+    name: dto.title,
+    description: dto.description ?? '',
+    price,
+    effectivePrice,
+    durationInMinutes: dto.estimatedDurationMinutes != null ? toNumber(dto.estimatedDurationMinutes) : undefined,
+    professionId: dto.categoryId,
+  };
+}
+
+function mapProfessionalOfferingDetails(dto: ProfessionalOfferingDto): ServiceDetails {
+  return {
+    ...mapProfessionalOffering(dto),
+    requirements: undefined,
+    includedItems: undefined,
+  };
+}
+
 export const servicesApi = {
   async getAll(params: GetServicesParamsDto = {}): Promise<ServiceSummary[]> {
     const response = await apiClient.get<SpringPage<ServiceDto> | ApiResponse<ServiceDto[]> | ServiceDto[]>(
@@ -54,19 +78,21 @@ export const servicesApi = {
   },
 
   async getByProfessional(professionalId: string): Promise<ServiceSummary[]> {
-    const response = await apiClient.get<SpringPage<ServiceDto> | ApiResponse<ServiceDto[]> | ServiceDto[]>(
+    const response = await apiClient.get<
+      SpringPage<ProfessionalOfferingDto> | ApiResponse<ProfessionalOfferingDto[]> | ProfessionalOfferingDto[]
+    >(
       `/api/v1/professionals/${professionalId}/services`,
       { params: { includeInactive: false, size: 100 } },
     );
 
-    return unwrapList<ServiceDto>(response.data).map(mapService);
+    return unwrapList<ProfessionalOfferingDto>(response.data).map(mapProfessionalOffering);
   },
 
   async getByProfessionalAndId(professionalId: string, serviceId: string): Promise<ServiceDetails> {
-    const response = await apiClient.get<ApiResponse<ServiceDetailsDto> | ServiceDetailsDto>(
+    const response = await apiClient.get<ApiResponse<ProfessionalOfferingDto> | ProfessionalOfferingDto>(
       `/api/v1/professionals/${professionalId}/services/${serviceId}`,
     );
 
-    return mapServiceDetails(unwrapItem(response.data));
+    return mapProfessionalOfferingDetails(unwrapItem(response.data));
   },
 };

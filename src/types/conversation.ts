@@ -14,7 +14,7 @@ export interface ConversationSummaryDto {
   id: string;
   orderId: string;
   otherParticipantId: string;
-  lastMessage?: string | null;
+  lastMessage?: MessageDto | null;
   unreadCount?: number | string | null;
 }
 
