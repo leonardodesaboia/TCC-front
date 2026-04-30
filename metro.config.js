@@ -3,7 +3,18 @@ const https = require('https');
 const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
-const proxyTarget = process.env.EXPO_PUBLIC_API_PROXY_TARGET || 'http://localhost:8080';
+const proxyTarget = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080';
+const PROXIED_PREFIXES = [
+  '/api/',
+  '/areas',
+  '/professions',
+  '/professionals',
+  '/services',
+];
+
+function shouldProxy(url) {
+  return typeof url === 'string' && PROXIED_PREFIXES.some((prefix) => url.startsWith(prefix));
+}
 
 function createProxyMiddleware(middleware) {
   const target = new URL(proxyTarget);
@@ -11,7 +22,7 @@ function createProxyMiddleware(middleware) {
   const basePath = target.pathname === '/' ? '' : target.pathname.replace(/\/$/, '');
 
   return (req, res, next) => {
-    if (!req.url?.startsWith('/api/')) {
+    if (!shouldProxy(req.url)) {
       return middleware(req, res, next);
     }
 

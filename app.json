@@ -37,7 +37,19 @@
           "root": "src/app"
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O AllSet usa sua localização para encontrar pedidos Express próximos."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#FF6B35"
+        }
+      ]
     ]
   }
 }
