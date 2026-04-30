@@ -9,7 +9,7 @@ import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Avatar, Badge, Text } from '@/components/ui';
 import { useConversations } from '@/lib/hooks/useConversations';
-import { useProfessional } from '@/lib/hooks/useProfessionals';
+import { useUser } from '@/lib/hooks/useUsers';
 import type { ConversationSummary } from '@/types/conversation';
 import { colors, radius, spacing } from '@/theme';
 
@@ -24,8 +24,8 @@ function formatDate(value?: string) {
 }
 
 function ConversationCard({ conversation, onPress }: { conversation: ConversationSummary; onPress: () => void }) {
-  const proQuery = useProfessional(conversation.otherParticipantId);
-  const proName = proQuery.data?.name ?? `Pedido ${conversation.orderId.slice(0, 8)}`;
+  const userQuery = useUser(conversation.otherParticipantId);
+  const displayName = userQuery.data?.name ?? `Pedido ${conversation.orderId.slice(0, 8)}`;
 
   return (
     <Pressable
@@ -33,13 +33,13 @@ function ConversationCard({ conversation, onPress }: { conversation: Conversatio
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <Avatar
-        name={proName}
+        name={displayName}
         size="md"
         backgroundColor={colors.primary.default}
       />
       <View style={styles.textWrap}>
         <View style={styles.titleRow}>
-          <Text variant="titleSm" numberOfLines={1} style={styles.titleFlex}>{proName}</Text>
+          <Text variant="titleSm" numberOfLines={1} style={styles.titleFlex}>{displayName}</Text>
           {conversation.unreadCount > 0 ? <Badge label={String(conversation.unreadCount)} /> : null}
         </View>
         <Text variant="bodySm" color={colors.neutral[500]} numberOfLines={1}>

@@ -8,7 +8,7 @@ import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Avatar, Badge, Button, Divider, Text } from '@/components/ui';
 import { useProfessional } from '@/lib/hooks/useProfessionals';
-import { useProfessionalService, useService } from '@/lib/hooks/useServices';
+import { useProfessionalService } from '@/lib/hooks/useServices';
 import { colors, radius, spacing } from '@/theme';
 
 function formatMoney(value: number) {
@@ -29,29 +29,30 @@ export default function ServiceDetailScreen() {
 
   const professionalQuery = useProfessional(professionalId ?? '');
   const professionalServiceQuery = useProfessionalService(professionalId ?? '', id);
-  const fallbackServiceQuery = useService(id);
+  const serviceQuery = professionalServiceQuery;
 
-  const useProfessionalScopedService = !!professionalId;
-  const serviceQuery = useProfessionalScopedService ? professionalServiceQuery : fallbackServiceQuery;
+  if (!professionalId) {
+    return <ErrorState message="Abra este serviço pela tela do profissional para continuar." />;
+  }
 
-  if (serviceQuery.isLoading || (professionalId && professionalQuery.isLoading)) {
+  if (serviceQuery.isLoading || professionalQuery.isLoading) {
     return <LoadingScreen message="Carregando detalhes do serviço..." />;
   }
 
-  if (serviceQuery.isError || (professionalId && professionalQuery.isError)) {
+  if (serviceQuery.isError || professionalQuery.isError) {
     return (
       <ErrorState
         message="Não foi possível carregar esse serviço."
         onRetry={() => {
           void serviceQuery.refetch();
-          if (professionalId) void professionalQuery.refetch();
+          void professionalQuery.refetch();
         }}
       />
     );
   }
 
   const service = serviceQuery.data;
-  const professional = professionalId ? professionalQuery.data : null;
+  const professional = professionalQuery.data;
 
   if (!service) {
     return <ErrorState message="Serviço não encontrado." />;
@@ -145,26 +146,18 @@ export default function ServiceDetailScreen() {
           <Text variant="titleLg" color={colors.primary.default}>{formatMoney(service.effectivePrice)}</Text>
         </View>
         <View style={styles.ctaBtn}>
-          {professionalId ? (
-            <Button
-              variant="primary"
-              size="lg"
-              onPress={() =>
-                router.push({
-                  pathname: '/(client)/(orders)/checkout/[serviceId]',
-                  params: { serviceId: id, professionalId },
-                })
-              }
-            >
-              Agendar serviço
-            </Button>
-          ) : (
-            <EmptyState
-              icon={Clock}
-              title="Origem do serviço ausente"
-              description="Abra este serviço pela tela do profissional para continuar."
-            />
-          )}
+          <Button
+            variant="primary"
+            size="lg"
+            onPress={() =>
+              router.push({
+                pathname: '/(client)/(orders)/checkout/[serviceId]',
+                params: { serviceId: id, professionalId },
+              })
+            }
+          >
+            Agendar serviço
+          </Button>
         </View>
       </View>
     </Screen>

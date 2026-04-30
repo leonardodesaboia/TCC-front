@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Clock, MapPin, MessageCircle, Phone, Star } from 'lucide-react-native';
+import { Clock, MapPin, Phone, Star } from 'lucide-react-native';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
@@ -10,6 +10,7 @@ import { Avatar, Badge, Button, Divider, Text } from '@/components/ui';
 import { useProfessional } from '@/lib/hooks/useProfessionals';
 import { useProfessionalReviews } from '@/lib/hooks/useReviews';
 import { useProfessionalServices } from '@/lib/hooks/useServices';
+import type { ServiceSummary } from '@/types/service';
 import { colors, radius, spacing } from '@/theme';
 
 function formatMoney(value: number) {
@@ -32,6 +33,28 @@ function formatRelativeDate(value: string) {
   }).format(new Date(value));
 }
 
+function normalize(value?: string) {
+  return value?.trim().toLowerCase() ?? '';
+}
+
+function isCategoryService(service: ServiceSummary, categoryId?: string, categoryName?: string) {
+  const normalizedCategoryId = normalize(categoryId);
+  const normalizedCategoryName = normalize(categoryName);
+
+  if (normalizedCategoryId && normalize(service.professionId) === normalizedCategoryId) {
+    return true;
+  }
+
+  if (!normalizedCategoryName) {
+    return false;
+  }
+
+  return (
+    normalize(service.name).includes(normalizedCategoryName) ||
+    normalize(service.description).includes(normalizedCategoryName)
+  );
+}
+
 function StarRating({ rating }: { rating: number }) {
   return (
     <View style={styles.starRow}>
@@ -48,7 +71,11 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 export default function ProfessionalProfileScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, categoryId, categoryName } = useLocalSearchParams<{
+    id: string;
+    categoryId?: string;
+    categoryName?: string;
+  }>();
   const router = useRouter();
 
   const professionalQuery = useProfessional(id);
@@ -75,6 +102,12 @@ export default function ProfessionalProfileScreen() {
   const professional = professionalQuery.data;
   const services = servicesQuery.data ?? [];
   const reviews = reviewsQuery.data ?? [];
+  const prioritizedServices = [...services].sort((left, right) => {
+    const leftMatches = isCategoryService(left, categoryId, categoryName);
+    const rightMatches = isCategoryService(right, categoryId, categoryName);
+    return Number(rightMatches) - Number(leftMatches);
+  });
+  const primaryService = prioritizedServices[0];
 
   if (!professional) {
     return <ErrorState message="Profissional não encontrado." />;
@@ -139,36 +172,50 @@ export default function ProfessionalProfileScreen() {
 
         <View style={styles.section}>
           <Text variant="titleSm">Serviços</Text>
-          {services.length > 0 ? (
+          {prioritizedServices.length > 0 ? (
             <View style={styles.servicesList}>
-              {services.map((service) => (
-                <View key={service.id} style={styles.serviceCard}>
-                  <View style={styles.serviceInfo}>
-                    <Text variant="titleSm">{service.name}</Text>
-                    <Text variant="labelLg" color={colors.neutral[500]}>{service.description}</Text>
-                    <View style={styles.serviceMeta}>
-                      <Clock color={colors.neutral[400]} size={12} />
-                      <Text variant="labelSm" color={colors.neutral[500]}>{formatDuration(service.durationInMinutes)}</Text>
+              {prioritizedServices.map((service) => {
+                const selectedCategoryMatch = isCategoryService(service, categoryId, categoryName);
+
+                return (
+                  <View key={service.id} style={styles.serviceCard}>
+                    <View style={styles.serviceInfo}>
+                      <View style={styles.serviceTitleRow}>
+                        <Text variant="titleSm" style={styles.serviceTitle}>{service.name}</Text>
+                        {selectedCategoryMatch ? (
+                          <Badge label="Categoria selecionada" variant="info" />
+                        ) : null}
+                      </View>
+                      <Text variant="labelLg" color={colors.neutral[500]}>{service.description}</Text>
+                      <View style={styles.serviceMeta}>
+                        <Clock color={colors.neutral[400]} size={12} />
+                        <Text variant="labelSm" color={colors.neutral[500]}>{formatDuration(service.durationInMinutes)}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.serviceRight}>
+                      <Text variant="titleSm" color={colors.primary.default}>{formatMoney(service.effectivePrice)}</Text>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        fullWidth={false}
+                        onPress={() =>
+                          router.push({
+                            pathname: '/(client)/(search)/services/[id]',
+                            params: {
+                              id: service.id,
+                              professionalId: professional.id,
+                              categoryId,
+                              categoryName,
+                            },
+                          })
+                        }
+                      >
+                        Ver detalhes
+                      </Button>
                     </View>
                   </View>
-                  <View style={styles.serviceRight}>
-                    <Text variant="titleSm" color={colors.primary.default}>{formatMoney(service.effectivePrice)}</Text>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      fullWidth={false}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/(client)/(search)/services/[id]',
-                          params: { id: service.id, professionalId: professional.id },
-                        })
-                      }
-                    >
-                      Ver detalhes
-                    </Button>
-                  </View>
-                </View>
-              ))}
+                );
+              })}
             </View>
           ) : (
             <EmptyState
@@ -216,29 +263,24 @@ export default function ProfessionalProfileScreen() {
       </ScrollView>
 
       <View style={styles.bottomBar}>
-        <Button
-          variant="secondary"
-          size="lg"
-          fullWidth={false}
-          leftIcon={<MessageCircle color={colors.primary.default} size={20} />}
-          onPress={() => {}}
-        >
-          Mensagem
-        </Button>
         <View style={styles.ctaMain}>
           <Button
             variant="primary"
             size="lg"
             leftIcon={<Phone color="#FFFFFF" size={20} />}
             onPress={() => {
-              const firstService = services[0];
-              if (!firstService) return;
+              if (!primaryService) return;
               router.push({
                 pathname: '/(client)/(search)/services/[id]',
-                params: { id: firstService.id, professionalId: professional.id },
+                params: {
+                  id: primaryService.id,
+                  professionalId: professional.id,
+                  categoryId,
+                  categoryName,
+                },
               });
             }}
-            disabled={services.length === 0}
+            disabled={!primaryService}
           >
             Contratar
           </Button>
@@ -280,6 +322,15 @@ const styles = StyleSheet.create({
     gap: spacing[3],
   },
   serviceInfo: { flex: 1, gap: spacing[1] },
+  serviceTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing[2],
+  },
+  serviceTitle: {
+    flex: 1,
+  },
   serviceMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing[1], marginTop: spacing[1] },
   serviceRight: { alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing[2] },
   reviewsList: { gap: spacing[3] },

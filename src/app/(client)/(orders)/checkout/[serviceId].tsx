@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Calendar, Check, Clock, MapPin, Shield } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -40,6 +40,19 @@ function formatTime(date: Date) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date);
+}
+
+function formatDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatTimeInputValue(date: Date) {
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
 }
 
 export default function CheckoutScreen() {
@@ -99,6 +112,24 @@ export default function CheckoutScreen() {
 
   const canSubmit = !!selectedAddress && description.trim().length > 0 && scheduledDate > new Date();
 
+  function handleWebDateChange(value: string) {
+    const [year, month, day] = value.split('-').map(Number);
+    if (!year || !month || !day) return;
+
+    const updated = new Date(scheduledDate);
+    updated.setFullYear(year, month - 1, day);
+    setScheduledDate(updated);
+  }
+
+  function handleWebTimeChange(value: string) {
+    const [hours, minutes] = value.split(':').map(Number);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return;
+
+    const updated = new Date(scheduledDate);
+    updated.setHours(hours, minutes, 0, 0);
+    setScheduledDate(updated);
+  }
+
   function handleSubmit() {
     if (!selectedAddress || !description.trim()) return;
 
@@ -151,53 +182,74 @@ export default function CheckoutScreen() {
             <Text variant="titleSm">Data e horário</Text>
           </View>
 
-          <View style={styles.dateTimeRow}>
-            <Pressable style={styles.dateTimeChip} onPress={() => setShowDatePicker(true)}>
-              <Calendar color={colors.primary.default} size={16} />
-              <Text variant="labelLg" color={colors.neutral[700]}>
-                {formatDate(scheduledDate)}
-              </Text>
-            </Pressable>
+          {Platform.OS === 'web' ? (
+            <View style={styles.dateTimeRow}>
+              <Input
+                value={formatDateInputValue(scheduledDate)}
+                onChangeText={handleWebDateChange}
+                leftIcon={<Calendar color={colors.primary.default} size={16} />}
+                style={styles.webDateInput}
+                {...({ type: 'date', min: formatDateInputValue(new Date()) } as any)}
+              />
+              <Input
+                value={formatTimeInputValue(scheduledDate)}
+                onChangeText={handleWebTimeChange}
+                leftIcon={<Clock color={colors.primary.default} size={16} />}
+                style={styles.webDateInput}
+                {...({ type: 'time', step: 1800 } as any)}
+              />
+            </View>
+          ) : (
+            <>
+              <View style={styles.dateTimeRow}>
+                <Pressable style={styles.dateTimeChip} onPress={() => setShowDatePicker(true)}>
+                  <Calendar color={colors.primary.default} size={16} />
+                  <Text variant="labelLg" color={colors.neutral[700]}>
+                    {formatDate(scheduledDate)}
+                  </Text>
+                </Pressable>
 
-            <Pressable style={styles.dateTimeChip} onPress={() => setShowTimePicker(true)}>
-              <Clock color={colors.primary.default} size={16} />
-              <Text variant="labelLg" color={colors.neutral[700]}>
-                {formatTime(scheduledDate)}
-              </Text>
-            </Pressable>
-          </View>
+                <Pressable style={styles.dateTimeChip} onPress={() => setShowTimePicker(true)}>
+                  <Clock color={colors.primary.default} size={16} />
+                  <Text variant="labelLg" color={colors.neutral[700]}>
+                    {formatTime(scheduledDate)}
+                  </Text>
+                </Pressable>
+              </View>
 
-          {showDatePicker && (
-            <DateTimePicker
-              value={scheduledDate}
-              mode="date"
-              minimumDate={new Date()}
-              onChange={(_event, date) => {
-                setShowDatePicker(false);
-                if (date) {
-                  const updated = new Date(scheduledDate);
-                  updated.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-                  setScheduledDate(updated);
-                }
-              }}
-            />
-          )}
+              {showDatePicker && (
+                <DateTimePicker
+                  value={scheduledDate}
+                  mode="date"
+                  minimumDate={new Date()}
+                  onChange={(_event, date) => {
+                    setShowDatePicker(false);
+                    if (date) {
+                      const updated = new Date(scheduledDate);
+                      updated.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+                      setScheduledDate(updated);
+                    }
+                  }}
+                />
+              )}
 
-          {showTimePicker && (
-            <DateTimePicker
-              value={scheduledDate}
-              mode="time"
-              is24Hour
-              minuteInterval={30}
-              onChange={(_event, date) => {
-                setShowTimePicker(false);
-                if (date) {
-                  const updated = new Date(scheduledDate);
-                  updated.setHours(date.getHours(), date.getMinutes());
-                  setScheduledDate(updated);
-                }
-              }}
-            />
+              {showTimePicker && (
+                <DateTimePicker
+                  value={scheduledDate}
+                  mode="time"
+                  is24Hour
+                  minuteInterval={30}
+                  onChange={(_event, date) => {
+                    setShowTimePicker(false);
+                    if (date) {
+                      const updated = new Date(scheduledDate);
+                      updated.setHours(date.getHours(), date.getMinutes(), 0, 0);
+                      setScheduledDate(updated);
+                    }
+                  }}
+                />
+              )}
+            </>
           )}
         </View>
 
@@ -310,6 +362,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral[100],
     borderWidth: 1,
     borderColor: colors.neutral[200],
+  },
+  webDateInput: {
+    textAlignVertical: 'center',
   },
   addressCard: {
     flexDirection: 'row',

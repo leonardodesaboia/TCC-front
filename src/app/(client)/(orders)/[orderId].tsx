@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera, DollarSign, MapPin, MessageCircle, Phone, Star } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
@@ -181,7 +181,9 @@ export default function OrderDetailScreen() {
   const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const orderQuery = useOrder(orderId);
-  const shouldLoadProposals = orderQuery.data?.mode === OrderMode.EXPRESS;
+  const shouldLoadProposals =
+    orderQuery.data?.mode === OrderMode.EXPRESS &&
+    orderQuery.data?.status === OrderStatus.PENDING;
   const proposalsQuery = useOrderProposals(orderId, shouldLoadProposals);
   const chooseProposal = useChooseOrderProposal(orderId);
   const cancelOrder = useCancelOrder(orderId);
@@ -229,12 +231,21 @@ export default function OrderDetailScreen() {
   const completionPhotos = order.photos.filter((photo) => photo.type === 'completion_proof');
 
   function handleCancel() {
+    const confirmCancel = () => cancelOrder.mutate('Cancelado pelo cliente no app');
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Tem certeza que deseja cancelar este pedido? Essa ação não pode ser desfeita.')) {
+        confirmCancel();
+      }
+      return;
+    }
+
     Alert.alert(
       'Cancelar pedido',
       'Tem certeza que deseja cancelar este pedido? Essa ação não pode ser desfeita.',
       [
         { text: 'Não', style: 'cancel' },
-        { text: 'Sim, cancelar', style: 'destructive', onPress: () => cancelOrder.mutate('Cancelado pelo cliente no app') },
+        { text: 'Sim, cancelar', style: 'destructive', onPress: confirmCancel },
       ],
     );
   }
@@ -255,6 +266,14 @@ export default function OrderDetailScreen() {
             <Text variant="labelLg" color={colors.neutral[600]}>
               Agendado para: {formatDateTime(order.scheduledAt)}
             </Text>
+          ) : null}
+          {order.status === OrderStatus.CANCELLED && order.cancelReason ? (
+            <View style={styles.cancelCard}>
+              <Text variant="labelLg" color={colors.error}>Motivo do cancelamento</Text>
+              <Text variant="bodySm" color={colors.neutral[700]} style={styles.centered}>
+                {order.cancelReason}
+              </Text>
+            </View>
           ) : null}
         </View>
 
@@ -436,6 +455,26 @@ export default function OrderDetailScreen() {
                 {hasReview ? 'Ver avaliação' : 'Avaliar pedido'}
               </Button>
             ) : null}
+            {order.status === OrderStatus.CANCELLED && order.mode === OrderMode.EXPRESS && areaName ? (
+              <Button
+                variant="primary"
+                size="sm"
+                fullWidth={false}
+                onPress={() =>
+                  router.push({
+                    pathname: '/(client)/(orders)/express',
+                    params: {
+                      areaId: order.areaId ?? '',
+                      categoryId: order.categoryId,
+                      areaName: areaName ?? '',
+                      categoryName,
+                    },
+                  } as never)
+                }
+              >
+                Refazer pedido
+              </Button>
+            ) : null}
           </View>
         </View>
 
@@ -550,6 +589,16 @@ const styles = StyleSheet.create({
     gap: spacing[3],
   },
   paymentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cancelCard: {
+    width: '100%',
+    backgroundColor: colors.neutral[50],
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.error,
+    padding: spacing[4],
+    gap: spacing[1],
+    alignItems: 'center',
+  },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
   bottomBar: {
     paddingTop: spacing[3],

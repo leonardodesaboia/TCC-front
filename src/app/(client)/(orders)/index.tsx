@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ClipboardList } from 'lucide-react-native';
 import { ErrorState } from '@/components/feedback/ErrorState';
@@ -77,8 +77,16 @@ export default function OrdersScreen() {
     };
   });
 
+  const isRefreshing = ordersQuery.isFetching && !ordersQuery.isLoading;
+
   return (
-    <Screen edges={['top']} style={styles.screen}>
+    <Screen
+      edges={['top']}
+      style={styles.screen}
+      refreshControl={
+        <RefreshControl refreshing={isRefreshing} onRefresh={() => ordersQuery.refetch()} />
+      }
+    >
       <Text variant="displaySm">Pedidos</Text>
 
       <ScrollView

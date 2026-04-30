@@ -75,7 +75,7 @@ export default function SearchScreen() {
     if (!area || !category) return;
 
     router.push({
-      pathname: '/(client)/(orders)/express',
+      pathname: '/(client)/(search)/category/[categoryId]',
       params: { areaId, categoryId, areaName: area.name, categoryName: category.name },
     } as never);
   }
