@@ -1317,6 +1317,22 @@ O frontend não deve esperar chat disponível antes de o cliente escolher o prof
 
 Uma review pode existir mas ainda não estar publicada.
 
+### Busca por área usa apenas contrato oficial
+
+O fluxo de busca do frontend deve usar apenas o contrato atual da API:
+
+- `GET /api/v1/service-areas`
+- `GET /api/v1/service-categories`
+- `GET /api/v1/professionals`
+- `GET /api/v1/professionals/{id}`
+- `GET /api/v1/professionals/{professionalId}/services`
+
+Observações importantes:
+
+- não depender de rotas legadas fora de `/api/v1/...`
+- filtrar profissionais por área e categoria a partir de `specialties` e dados do catálogo
+- novas integrações não devem recriar adaptadores temporários no backend sem necessidade real
+
 ### URLs de arquivo privado expiram
 
 Se o frontend armazenar `downloadUrl`, precisa considerar que ela pode expirar.
