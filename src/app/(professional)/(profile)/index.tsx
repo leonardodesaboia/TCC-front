@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import {
   Bell,
@@ -16,6 +18,8 @@ import { Avatar, Divider, Text } from '@/components/ui';
 import { useAuth } from '@/providers/AuthProvider';
 import { useLogout } from '@/lib/hooks/useAuth';
 import { useMyProfessionalProfile } from '@/lib/hooks/useProfessionalArea';
+import { useUpdateProfessionalGeo } from '@/lib/hooks/useProfessionalManagement';
+import { toast } from '@/lib/utils/toast';
 import { colors, radius, spacing } from '@/theme';
 
 interface MenuItemProps {
@@ -49,10 +53,63 @@ export default function ProfessionalProfileScreen() {
   const { user } = useAuth();
   const logout = useLogout();
   const profileQuery = useMyProfessionalProfile();
+  const updateGeo = useUpdateProfessionalGeo(profileQuery.data?.id ?? '');
+  const [geoActive, setGeoActive] = useState(false);
+  const [isCapturingLocation, setIsCapturingLocation] = useState(false);
 
   const name = user?.name ?? 'Profissional AllSet';
   const email = user?.email ?? 'email@exemplo.com';
   const profile = profileQuery.data;
+
+  useEffect(() => {
+    setGeoActive(profile?.geoActive ?? false);
+  }, [profile?.geoActive]);
+
+  async function handleToggleExpress(value: boolean) {
+    const previous = profile?.geoActive ?? false;
+    setGeoActive(value);
+
+    if (!profile?.id) {
+      setGeoActive(previous);
+      return;
+    }
+
+    if (!value) {
+      updateGeo.mutate(
+        { geoActive: false },
+        { onError: () => setGeoActive(previous) },
+      );
+      return;
+    }
+
+    setIsCapturingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setGeoActive(previous);
+        toast.error('Permissão negada', 'Habilite a localização para entrar na fila Express.');
+        return;
+      }
+
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      updateGeo.mutate(
+        {
+          geoActive: true,
+          geoLat: position.coords.latitude,
+          geoLng: position.coords.longitude,
+        },
+        { onError: () => setGeoActive(previous) },
+      );
+    } catch {
+      setGeoActive(previous);
+      toast.error('Erro de localização', 'Não foi possível obter sua localização atual.');
+    } finally {
+      setIsCapturingLocation(false);
+    }
+  }
 
   return (
     <Screen edges={['top']} style={styles.screen}>
@@ -78,15 +135,29 @@ export default function ProfessionalProfileScreen() {
           <View style={styles.statusText}>
             <Text variant="titleSm">Express</Text>
             <Text variant="labelLg" color={colors.neutral[500]}>
-              {profile.geoActive
+              {geoActive
                 ? 'Seu perfil está marcado como disponível para pedidos Express.'
                 : 'Seu perfil ainda não está disponível para pedidos Express.'}
             </Text>
-          </View>
-          <View style={[styles.statusPill, profile.geoActive ? styles.statusPillActive : styles.statusPillInactive]}>
-            <Text variant="labelSm" color={profile.geoActive ? colors.success : colors.neutral[600]}>
-              {profile.geoActive ? 'Ativo' : 'Inativo'}
+            <Text variant="labelSm" color={colors.neutral[500]}>
+              {isCapturingLocation
+                ? 'Obtendo localização atual do dispositivo...'
+                : 'Ative para entrar na fila de pedidos próximos usando sua localização atual.'}
             </Text>
+          </View>
+          <View style={styles.statusControls}>
+            <View style={[styles.statusPill, geoActive ? styles.statusPillActive : styles.statusPillInactive]}>
+              <Text variant="labelSm" color={geoActive ? colors.success : colors.neutral[600]}>
+                {geoActive ? 'Ativo' : 'Inativo'}
+              </Text>
+            </View>
+            <Switch
+              value={geoActive}
+              onValueChange={handleToggleExpress}
+              disabled={updateGeo.isPending || isCapturingLocation}
+              trackColor={{ false: colors.neutral[300], true: colors.primary.default }}
+              thumbColor="#FFFFFF"
+            />
           </View>
         </View>
       ) : null}
@@ -191,6 +262,10 @@ const styles = StyleSheet.create({
   statusText: {
     flex: 1,
     gap: spacing[1],
+  },
+  statusControls: {
+    alignItems: 'center',
+    gap: spacing[2],
   },
   statusPill: {
     borderRadius: radius.full,

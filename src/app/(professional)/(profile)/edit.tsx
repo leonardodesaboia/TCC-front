@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Switch, View } from 'react-native';
+import * as Location from 'expo-location';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Button, Input, Text } from '@/components/ui';
@@ -9,6 +10,7 @@ import { ErrorState } from '@/components/feedback/ErrorState';
 import { useAuth } from '@/providers/AuthProvider';
 import { useMyProfessionalProfile } from '@/lib/hooks/useProfessionalArea';
 import { useUpdateProfessionalGeo, useUpdateProfessionalProfile } from '@/lib/hooks/useProfessionalManagement';
+import { toast } from '@/lib/utils/toast';
 import { colors, spacing } from '@/theme';
 
 export default function EditProfessionalProfileScreen() {
@@ -22,6 +24,7 @@ export default function EditProfessionalProfileScreen() {
   const [yearsOfExperience, setYearsOfExperience] = useState('');
   const [baseHourlyRate, setBaseHourlyRate] = useState('');
   const [geoActive, setGeoActive] = useState(false);
+  const [isCapturingLocation, setIsCapturingLocation] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -43,16 +46,45 @@ export default function EditProfessionalProfileScreen() {
     });
   }
 
-  function handleToggleExpress(value: boolean) {
+  async function handleToggleExpress(value: boolean) {
+    const previous = profile?.geoActive ?? false;
     setGeoActive(value);
-    updateGeo.mutate(
-      { geoActive: value },
-      {
-        onError: () => {
-          setGeoActive(profile?.geoActive ?? false);
+
+    if (!value) {
+      updateGeo.mutate(
+        { geoActive: false },
+        { onError: () => setGeoActive(previous) },
+      );
+      return;
+    }
+
+    setIsCapturingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setGeoActive(previous);
+        toast.error('Permissão negada', 'Habilite a localização para entrar na fila Express.');
+        return;
+      }
+
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      updateGeo.mutate(
+        {
+          geoActive: true,
+          geoLat: position.coords.latitude,
+          geoLng: position.coords.longitude,
         },
-      },
-    );
+        { onError: () => setGeoActive(previous) },
+      );
+    } catch (error) {
+      setGeoActive(previous);
+      toast.error('Erro de localização', 'Não foi possível obter sua localização atual.');
+    } finally {
+      setIsCapturingLocation(false);
+    }
   }
 
   return (
@@ -109,14 +141,20 @@ export default function EditProfessionalProfileScreen() {
             <Switch
               value={geoActive}
               onValueChange={handleToggleExpress}
-              disabled={updateGeo.isPending}
+              disabled={updateGeo.isPending || isCapturingLocation}
               trackColor={{ false: colors.neutral[300], true: colors.primary.default }}
               thumbColor="#FFFFFF"
             />
           </View>
-          <Text variant="labelSm" color={colors.neutral[500]}>
-            Se a ativação falhar, o backend provavelmente ainda não possui coordenadas válidas para o seu perfil.
-          </Text>
+          {isCapturingLocation ? (
+            <Text variant="labelSm" color={colors.neutral[500]}>
+              Obtendo localização atual do dispositivo...
+            </Text>
+          ) : (
+            <Text variant="labelSm" color={colors.neutral[500]}>
+              Ao ativar, capturamos a localização atual do seu dispositivo. Você pode desligar a qualquer momento.
+            </Text>
+          )}
         </View>
       </View>
 

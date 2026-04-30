@@ -5,6 +5,7 @@ import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Screen } from '@/components/layout/Screen';
 import { ProfessionalTabBar } from '@/components/layout/ProfessionalTabBar';
 import { useLogout } from '@/lib/hooks/useAuth';
+import { usePushNotifications } from '@/lib/hooks/usePushNotifications';
 import { UserRole } from '@/types/user';
 import { colors, spacing } from '@/theme';
 import { useAuth } from '@/providers/AuthProvider';
@@ -29,6 +30,7 @@ function UnsupportedRoleState() {
 
 export default function ProfessionalLayout() {
   const { isAuthenticated, isInitialized, isLoading, user } = useAuth();
+  usePushNotifications();
 
   if (!isInitialized || isLoading) return <LoadingScreen />;
   if (!isAuthenticated) return <Redirect href="/(auth)/login" />;

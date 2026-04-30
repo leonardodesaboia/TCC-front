@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera, DollarSign, MapPin, MessageCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -89,17 +89,24 @@ export default function ProfessionalOrderDetailScreen() {
   const badge = STATUS_BADGE[order.status] ?? STATUS_BADGE[OrderStatus.PENDING];
   const completionPhotos = order.photos.filter((p) => p.type === 'completion_proof');
   const isOnDemand = order.mode === OrderMode.ON_DEMAND;
+  const isExpressQueueEntry = order.mode === OrderMode.EXPRESS && !order.professionalId;
   const isExpressInvitation =
-    order.mode === OrderMode.EXPRESS &&
+    isExpressQueueEntry &&
     order.status === OrderStatus.PENDING &&
-    !order.professionalId &&
     !order.professionalProResponse;
   const isAwaitingClientChoice =
-    order.mode === OrderMode.EXPRESS &&
+    isExpressQueueEntry &&
     order.status === OrderStatus.PENDING &&
-    !order.professionalId &&
     order.professionalProResponse === 'accepted' &&
     !order.professionalClientResponse;
+  const isExpressSelfRejected =
+    isExpressQueueEntry && order.professionalProResponse === 'rejected';
+  const isExpressTimedOut =
+    isExpressQueueEntry && order.professionalProResponse === 'timeout';
+  const isExpressClientChoseOther =
+    isExpressQueueEntry &&
+    order.professionalProResponse === 'accepted' &&
+    order.professionalClientResponse === 'rejected';
 
   function handleAccept() {
     const amount = parseFloat(proposedAmount.replace(',', '.'));
@@ -156,12 +163,21 @@ export default function ProfessionalOrderDetailScreen() {
   }
 
   function handleCancel() {
+    const confirmCancel = () => cancelOrder.mutate('Cancelado pelo profissional');
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Tem certeza que deseja cancelar este pedido?')) {
+        confirmCancel();
+      }
+      return;
+    }
+
     Alert.alert(
       'Cancelar pedido',
       'Tem certeza que deseja cancelar este pedido?',
       [
         { text: 'Nao', style: 'cancel' },
-        { text: 'Sim, cancelar', style: 'destructive', onPress: () => cancelOrder.mutate('Cancelado pelo profissional') },
+        { text: 'Sim, cancelar', style: 'destructive', onPress: confirmCancel },
       ],
     );
   }
@@ -177,6 +193,9 @@ export default function ProfessionalOrderDetailScreen() {
             <Badge label={isOnDemand ? 'Sob demanda' : 'Express'} variant={isOnDemand ? 'info' : 'warning'} />
             {isExpressInvitation ? <Badge label="Aguardando proposta" variant="default" /> : null}
             {isAwaitingClientChoice ? <Badge label="Proposta enviada" variant="info" /> : null}
+            {isExpressSelfRejected ? <Badge label="Recusado por você" variant="muted" /> : null}
+            {isExpressTimedOut ? <Badge label="Prazo expirado" variant="muted" /> : null}
+            {isExpressClientChoseOther ? <Badge label="Não selecionado" variant="muted" /> : null}
           </View>
           <Text variant="titleLg">{categoryName}</Text>
           {areaName ? <Text variant="labelLg" color={colors.neutral[500]}>{areaName}</Text> : null}
@@ -359,6 +378,30 @@ export default function ProfessionalOrderDetailScreen() {
                   Valor proposto: {formatMoney(order.professionalProposedAmount)}
                 </Text>
               ) : null}
+            </View>
+          ) : null}
+
+          {isExpressSelfRejected ? (
+            <View style={styles.waitingCard}>
+              <Text variant="bodySm" color={colors.neutral[500]} style={styles.centered}>
+                Você recusou este pedido. Não há mais ações disponíveis.
+              </Text>
+            </View>
+          ) : null}
+
+          {isExpressTimedOut ? (
+            <View style={styles.waitingCard}>
+              <Text variant="bodySm" color={colors.neutral[500]} style={styles.centered}>
+                O prazo para responder a este pedido expirou.
+              </Text>
+            </View>
+          ) : null}
+
+          {isExpressClientChoseOther ? (
+            <View style={styles.waitingCard}>
+              <Text variant="bodySm" color={colors.neutral[500]} style={styles.centered}>
+                O cliente escolheu outro profissional para este pedido.
+              </Text>
             </View>
           ) : null}
 

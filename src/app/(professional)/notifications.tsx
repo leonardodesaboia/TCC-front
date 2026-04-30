@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Bell, CalendarClock, CheckCheck, MessageCircle, ReceiptText, ShieldAlert, Star } from 'lucide-react-native';
 import { EmptyState } from '@/components/feedback/EmptyState';
@@ -50,8 +50,15 @@ export default function ProfessionalNotificationsScreen() {
   const notifications = notificationsQuery.data ?? [];
   const unreadCount = notifications.filter((item) => !item.readAt).length;
 
+  const isRefreshing = notificationsQuery.isFetching && !notificationsQuery.isLoading;
+
   return (
-    <Screen edges={['top']}>
+    <Screen
+      edges={['top']}
+      refreshControl={
+        <RefreshControl refreshing={isRefreshing} onRefresh={() => notificationsQuery.refetch()} />
+      }
+    >
       <Header title="Notificações" showBack />
 
       {unreadCount > 0 ? (

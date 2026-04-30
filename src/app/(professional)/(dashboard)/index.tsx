@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   ArrowRight,
@@ -10,6 +10,7 @@ import {
   DollarSign,
   MapPin,
   Star,
+  Zap,
 } from 'lucide-react-native';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { EmptyState } from '@/components/feedback/EmptyState';
@@ -78,12 +79,35 @@ export default function ProfessionalDashboardScreen() {
   const unreadNotifications = (notificationsQuery.data ?? []).filter((n) => !n.readAt).length;
 
   const pendingOrders = allOrders.filter((o) => o.status === OrderStatus.PENDING);
+  const expressInvitations = pendingOrders.filter(
+    (o) =>
+      o.mode === OrderMode.EXPRESS &&
+      !o.professionalId &&
+      !o.professionalProResponse,
+  );
+  const otherPendingOrders = pendingOrders.filter(
+    (order) => !expressInvitations.some((invitation) => invitation.id === order.id),
+  );
   const activeOrders = allOrders.filter((o) => o.status === OrderStatus.ACCEPTED);
   const completedOrders = allOrders.filter((o) => o.status === OrderStatus.COMPLETED);
   const totalEarnings = completedOrders.reduce((sum, o) => sum + o.totalAmount, 0);
 
+  const isRefreshing =
+    (ordersQuery.isFetching && !ordersQuery.isLoading) ||
+    (notificationsQuery.isFetching && !notificationsQuery.isLoading);
+
+  function handleRefresh() {
+    void ordersQuery.refetch();
+    void notificationsQuery.refetch();
+    void profileQuery.refetch();
+  }
+
   return (
-    <Screen edges={['top']} style={styles.screen}>
+    <Screen
+      edges={['top']}
+      style={styles.screen}
+      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+    >
       {/* Greeting */}
       <View style={styles.greeting}>
         <View style={styles.greetingLeft}>
@@ -109,7 +133,7 @@ export default function ProfessionalDashboardScreen() {
 
       {/* Stats */}
       <View style={styles.statsRow}>
-        <StatCard icon={Clock} label="Pendentes" value={pendingOrders.length} iconColor={colors.warning} />
+        <StatCard icon={Zap} label="Express disp." value={expressInvitations.length} iconColor={colors.warning} />
         <StatCard icon={CheckCircle} label="Concluidos" value={completedOrders.length} iconColor={colors.success} />
         <StatCard icon={DollarSign} label="Ganhos" value={formatMoney(totalEarnings)} iconColor={colors.success} />
       </View>
@@ -125,23 +149,71 @@ export default function ProfessionalDashboardScreen() {
         </View>
       ) : null}
 
-      {/* Pending orders */}
-      {pendingOrders.length > 0 ? (
+      {/* Express invitations */}
+      {expressInvitations.length > 0 ? (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text variant="titleMd">Pedidos pendentes</Text>
+            <View style={styles.sectionTitleRow}>
+              <Zap color={colors.warning} size={16} />
+              <Text variant="titleMd">Convites Express</Text>
+              <Badge label={String(expressInvitations.length)} variant="warning" />
+            </View>
             <Pressable onPress={() => router.push('/(professional)/(orders)' as any)}>
               <Text variant="labelLg" color={colors.primary.default}>Ver todos</Text>
             </Pressable>
           </View>
 
-          {pendingOrders.slice(0, 3).map((order) => {
+          {expressInvitations.slice(0, 3).map((order) => {
             const categoryName = categories.find((c) => c.id === order.categoryId)?.name ?? 'Servico';
             const snapshot = order.addressSnapshot;
-            const isExpressInvitation =
-              order.mode === OrderMode.EXPRESS &&
-              !order.professionalId &&
-              !order.professionalProResponse;
+            return (
+              <Pressable
+                key={order.id}
+                onPress={() => router.push(`/(professional)/(orders)/${order.id}` as any)}
+                style={({ pressed }) => [styles.invitationCard, pressed && styles.pressed]}
+              >
+                <View style={styles.orderTop}>
+                  <View style={[styles.orderCategoryIcon, styles.invitationIcon]}>
+                    <Zap color={colors.warning} size={20} />
+                  </View>
+                  <View style={styles.orderText}>
+                    <Text variant="titleSm">{categoryName}</Text>
+                    <Text variant="bodySm" color={colors.neutral[500]} numberOfLines={1}>
+                      {order.description}
+                    </Text>
+                  </View>
+                  <Badge label="Novo" variant="warning" />
+                </View>
+                <View style={styles.orderMeta}>
+                  <View style={styles.metaItem}>
+                    <MapPin color={colors.neutral[400]} size={14} />
+                    <Text variant="labelLg" color={colors.neutral[600]} numberOfLines={1}>
+                      {snapshot ? `${snapshot.street}, ${snapshot.number}` : 'Endereco'}
+                    </Text>
+                  </View>
+                  <Text variant="labelLg" color={colors.warning}>
+                    Enviar proposta
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {/* Other pending orders */}
+      {otherPendingOrders.length > 0 ? (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text variant="titleMd">Aguardando</Text>
+            <Pressable onPress={() => router.push('/(professional)/(orders)' as any)}>
+              <Text variant="labelLg" color={colors.primary.default}>Ver todos</Text>
+            </Pressable>
+          </View>
+
+          {otherPendingOrders.slice(0, 3).map((order) => {
+            const categoryName = categories.find((c) => c.id === order.categoryId)?.name ?? 'Servico';
+            const snapshot = order.addressSnapshot;
             const isAwaitingClientChoice =
               order.mode === OrderMode.EXPRESS &&
               !order.professionalId &&
@@ -170,8 +242,6 @@ export default function ProfessionalDashboardScreen() {
                   </View>
                   {isAwaitingClientChoice ? (
                     <Badge label="Proposta enviada" variant="info" />
-                  ) : isExpressInvitation ? (
-                    <Badge label="Novo" variant="warning" />
                   ) : (
                     <Badge label="Pendente" variant="warning" />
                   )}
@@ -193,7 +263,9 @@ export default function ProfessionalDashboardScreen() {
             );
           })}
         </View>
-      ) : (
+      ) : null}
+
+      {pendingOrders.length === 0 ? (
         <View style={styles.section}>
           <Text variant="titleMd">Pedidos pendentes</Text>
           <EmptyState
@@ -202,7 +274,7 @@ export default function ProfessionalDashboardScreen() {
             description="Novos pedidos Express aparecerao aqui quando clientes proximos solicitarem servicos."
           />
         </View>
-      )}
+      ) : null}
 
       {/* Active orders */}
       {activeOrders.length > 0 ? (
@@ -291,6 +363,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
   orderCard: {
     borderRadius: radius.xl,
     backgroundColor: colors.neutral[50],
@@ -298,6 +375,17 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral[200],
     padding: spacing[4],
     gap: spacing[3],
+  },
+  invitationCard: {
+    borderRadius: radius.xl,
+    backgroundColor: '#FFF7E6',
+    borderWidth: 1,
+    borderColor: colors.warning,
+    padding: spacing[4],
+    gap: spacing[3],
+  },
+  invitationIcon: {
+    backgroundColor: '#FFFFFF',
   },
   pressed: { backgroundColor: colors.neutral[100] },
   orderTop: {
