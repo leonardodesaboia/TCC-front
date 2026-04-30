@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
-  ArrowRight,
   Bell,
   Brush,
   Droplets,
@@ -14,7 +13,7 @@ import {
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Screen } from '@/components/layout/Screen';
-import { Text } from '@/components/ui';
+import { Button, Text } from '@/components/ui';
 import { OrderCard, type OrderCardItem } from '@/components/client/orders/OrderCard';
 import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
 import { useNotifications } from '@/lib/hooks/useNotifications';
@@ -156,18 +155,27 @@ export default function ClientHomeScreen() {
       ) : null}
 
       {/* CTA */}
-      <Pressable
-        onPress={() => router.push('/(client)/(search)')}
-        style={styles.ctaCard}
-      >
-        <View style={styles.ctaContent}>
-          <Text variant="titleSm" color="#FFFFFF">Precisa de algo?</Text>
-          <Text variant="labelLg" color="rgba(255,255,255,0.8)">
-            Crie um pedido Express e receba propostas de profissionais próximos
-          </Text>
+      <View style={styles.ctaRow}>
+        <View style={styles.ctaBtn}>
+          <Button
+            variant="primary"
+            size="lg"
+            onPress={() => router.push('/(client)/(search)')}
+          >
+            Agendar serviço
+          </Button>
         </View>
-        <ArrowRight color="#FFFFFF" size={20} />
-      </Pressable>
+        <View style={styles.ctaBtn}>
+          <Button
+            variant="secondary"
+            size="lg"
+            rightIcon={<Zap color={colors.primary.default} size={16} />}
+            onPress={() => router.push('/(client)/(express)')}
+          >
+            Express
+          </Button>
+        </View>
+      </View>
     </Screen>
   );
 }
@@ -247,16 +255,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pressed: { opacity: 0.7 },
-  ctaCard: {
+  ctaRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: spacing[3],
-    backgroundColor: colors.primary.default,
-    borderRadius: radius.xl,
-    padding: spacing[4],
   },
-  ctaContent: {
+  ctaBtn: {
     flex: 1,
-    gap: spacing[1],
   },
 });

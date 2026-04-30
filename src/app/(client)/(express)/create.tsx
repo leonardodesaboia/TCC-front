@@ -12,7 +12,7 @@ import { useAddresses } from '@/lib/hooks/useAddresses';
 import { useCreateOrder } from '@/lib/hooks/useOrders';
 import { colors, radius, spacing } from '@/theme';
 
-export default function ExpressOrderScreen() {
+export default function ExpressCreateScreen() {
   const { areaId, categoryId, areaName, categoryName } = useLocalSearchParams<{
     areaId: string;
     categoryId: string;
@@ -61,7 +61,7 @@ export default function ExpressOrderScreen() {
         urgencyFee: addUrgency ? 15 : undefined,
       });
     } catch {
-      // A mutation already surfaces the API message via toast.
+      // mutation já exibe o erro via toast
     }
   }
 

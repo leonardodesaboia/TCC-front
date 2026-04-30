@@ -108,7 +108,7 @@ export default function ProfessionalsByCategoryScreen() {
       onAction: () => {
         if (!areaId || !categoryId) return;
         router.push({
-          pathname: '/(client)/(orders)/express',
+          pathname: '/(client)/(express)/create',
           params: {
             areaId,
             categoryId,

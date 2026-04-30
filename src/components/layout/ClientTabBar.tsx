@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { ClipboardList, Home, Search, UserRound } from 'lucide-react-native';
+import { ClipboardList, Home, Search, UserRound, Zap } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
@@ -11,6 +11,7 @@ type TabIcon = ComponentType<{ color?: string; size?: number; strokeWidth?: numb
 const CLIENT_TABS: Array<{ name: string; label: string; icon: TabIcon }> = [
   { name: '(home)', label: 'Início', icon: Home },
   { name: '(search)', label: 'Buscar', icon: Search },
+  { name: '(express)', label: 'Express', icon: Zap },
   { name: '(orders)', label: 'Pedidos', icon: ClipboardList },
   { name: '(profile)', label: 'Perfil', icon: UserRound },
 ];

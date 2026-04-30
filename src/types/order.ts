@@ -112,7 +112,7 @@ export interface OrderSummaryDto {
   status: OrderStatus;
   description: string;
   addressId: string;
-  addressSnapshot?: OrderAddressSnapshot | null;
+  addressSnapshot?: string | null;
   scheduledAt?: string | null;
   expiresAt?: string | null;
   urgencyFee?: number | string | null;

@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Clock, MapPin } from 'lucide-react-native';
-import { Avatar, Badge, Text } from '@/components/ui';
+import { Calendar, Clock, MapPin, Zap } from 'lucide-react-native';
+import { Avatar, Text } from '@/components/ui';
 import { OrderStatusBadge, type OrderStatus } from './OrderStatusBadge';
 import { colors, radius, spacing } from '@/theme';
 import { OrderMode } from '@/types/order';
@@ -50,9 +50,15 @@ export function OrderCard({ order, onPress }: OrderCardProps) {
         <View style={styles.badgesCol}>
           <OrderStatusBadge status={order.status} />
           {order.mode === OrderMode.ON_DEMAND ? (
-            <Badge label="Sob demanda" variant="info" />
+            <View style={[styles.modePill, styles.modePillSobDemanda]}>
+              <Calendar color={colors.info} size={12} />
+              <Text variant="labelSm" color={colors.info}>Sob demanda</Text>
+            </View>
           ) : order.mode === OrderMode.EXPRESS ? (
-            <Badge label="Express" variant="warning" />
+            <View style={[styles.modePill, styles.modePillExpress]}>
+              <Zap color={colors.warning} size={12} />
+              <Text variant="labelSm" color={colors.warning}>Express</Text>
+            </View>
           ) : null}
         </View>
       </View>
@@ -131,5 +137,20 @@ const styles = StyleSheet.create({
   },
   bottom: {
     alignItems: 'flex-end',
+  },
+  modePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    borderWidth: 1,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing[2],
+    paddingVertical: 2,
+  },
+  modePillExpress: {
+    borderColor: colors.warning,
+  },
+  modePillSobDemanda: {
+    borderColor: colors.info,
   },
 });

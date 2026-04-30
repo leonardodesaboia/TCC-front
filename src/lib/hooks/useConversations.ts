@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { conversationsApi } from '@/lib/api/conversations';
 import { getApiErrorMessage } from '@/lib/utils/errors';
 import { toast } from '@/lib/utils/toast';
+import type { Message } from '@/types/conversation';
 
 const conversationKeys = {
   all: ['conversations'] as const,
@@ -42,8 +43,14 @@ export function useSendMessage(conversationId: string) {
 
   return useMutation({
     mutationFn: (content: string) => conversationsApi.sendMessage(conversationId, { content }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: conversationKeys.messages(conversationId) });
+    onSuccess: (newMessage) => {
+      queryClient.setQueryData(
+        conversationKeys.messages(conversationId),
+        (old: Message[] | undefined) =>
+          [...(old ?? []), newMessage].sort(
+            (a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime(),
+          ),
+      );
       queryClient.invalidateQueries({ queryKey: conversationKeys.all });
     },
     onError: (error: unknown) => {

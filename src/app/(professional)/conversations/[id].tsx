@@ -37,7 +37,8 @@ export default function ProfessionalConversationDetailScreen() {
     if (messagesQuery.data?.length) {
       markRead.mutate();
     }
-  }, [markRead, messagesQuery.data?.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messagesQuery.data?.length]);
 
   useEffect(() => {
     if (messageCount > 0) {

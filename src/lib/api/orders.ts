@@ -41,7 +41,11 @@ function mapOrderSummary(dto: OrderSummaryDto): OrderSummary {
       ? toNumber(dto.professionalProposedAmount)
       : undefined,
     addressId: dto.addressId,
-    addressSnapshot: dto.addressSnapshot ?? undefined,
+    addressSnapshot: dto.addressSnapshot
+      ? (typeof dto.addressSnapshot === 'string'
+          ? JSON.parse(dto.addressSnapshot)
+          : dto.addressSnapshot)
+      : undefined,
     scheduledAt: dto.scheduledAt ?? undefined,
     urgencyFee: toNumber(dto.urgencyFee),
     baseAmount: toNumber(dto.baseAmount),

@@ -88,7 +88,9 @@ export const conversationsApi = {
       `/api/v1/conversations/${id}/messages`,
       { params: { size: 100 } },
     );
-    return unwrapList<MessageDto>(response.data).map(mapMessage);
+    return unwrapList<MessageDto>(response.data).map(mapMessage).sort((a, b) =>
+      new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()
+    );
   },
 
   async sendMessage(id: string, payload: SendMessageRequest): Promise<Message> {
