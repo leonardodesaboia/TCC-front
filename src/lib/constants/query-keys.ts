@@ -10,6 +10,8 @@ export const queryKeys = {
     all: ['professionals'] as const,
     detail: (id: string) => ['professionals', id] as const,
     search: (params: object) => ['professionals', 'search', params] as const,
+    byCategory: (categoryId?: string, areaId?: string, params?: object) =>
+      ['professionals', 'by-category', categoryId ?? 'all', areaId ?? 'all', params] as const,
     myProfile: ['professionals', 'my-profile'] as const,
   },
   services: {

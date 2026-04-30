@@ -14,6 +14,7 @@ export interface SearchProfessional {
   availability: string;
   badge?: string;
   accentColor?: string;
+  ctaLabel?: string;
 }
 
 interface ProfessionalCardProps {
@@ -60,9 +61,16 @@ export function ProfessionalCard({ professional, onPress }: ProfessionalCardProp
             {professional.neighborhood}
           </Text>
         </View>
-        <Text variant="labelLg" color={colors.primary.default}>
-          {professional.availability}
-        </Text>
+        <View style={styles.bottomRight}>
+          <Text variant="labelLg" color={colors.primary.default}>
+            {professional.availability}
+          </Text>
+          {professional.ctaLabel ? (
+            <Text variant="labelLg" color={colors.neutral[800]}>
+              {professional.ctaLabel}
+            </Text>
+          ) : null}
+        </View>
       </View>
     </Pressable>
   );
@@ -104,12 +112,18 @@ const styles = StyleSheet.create({
   },
   bottom: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
+    gap: spacing[2],
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[1],
+    flex: 1,
+  },
+  bottomRight: {
+    alignItems: 'flex-end',
+    gap: spacing[0.5],
   },
 });

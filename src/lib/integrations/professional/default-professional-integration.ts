@@ -33,17 +33,35 @@ function mapProfileData(dto: ProfessionalResponseDto): ProfessionalProfileData {
   };
 }
 
+const COMBINED_LIST_SIZE = 100;
+
 export const defaultProfessionalIntegration: ProfessionalIntegration = {
   orders: {
     getOrders: async (params) => {
-      const assignedOrders = await ordersApi.getMyOrders(params);
       const shouldIncludeInbox = !params?.status || params.status === OrderStatus.PENDING;
 
       if (!shouldIncludeInbox) {
-        return assignedOrders;
+        return ordersApi.getMyOrders(params);
       }
 
-      const inboxOrders = await ordersApi.getProfessionalExpressInbox(params);
+      // A combinação assigned + inbox não suporta paginação parcial: cada endpoint
+      // pagina separadamente, então page/size do caller produziriam itens duplicados
+      // ou ausentes. Buscamos páginas únicas grandes e mesclamos por completo.
+      const listParams = { status: params?.status, page: 0, size: COMBINED_LIST_SIZE };
+      const [assignedResult, inboxResult] = await Promise.allSettled([
+        ordersApi.getMyOrders(listParams),
+        ordersApi.getProfessionalExpressInbox(listParams),
+      ]);
+
+      if (assignedResult.status !== 'fulfilled') {
+        throw assignedResult.reason;
+      }
+
+      // O inbox Express ainda pode falhar no backend; nesse caso preservamos a
+      // tela com os pedidos já atribuídos em vez de derrubar todo o dashboard.
+      const assignedOrders = assignedResult.value;
+      const inboxOrders = inboxResult.status === 'fulfilled' ? inboxResult.value : [];
+
       const uniqueOrders = [...assignedOrders, ...inboxOrders].filter(
         (order, index, all) => all.findIndex((item) => item.id === order.id) === index,
       );

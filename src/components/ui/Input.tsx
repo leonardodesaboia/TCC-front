@@ -11,12 +11,20 @@ interface InputProps extends TextInputProps {
 
 export function Input({ error, leftIcon, rightIcon, style, ...props }: InputProps) {
   const [focused, setFocused] = useState(false);
+  const isMultiline = !!props.multiline;
 
   return (
-    <View style={[styles.container, focused && styles.focused, error && styles.error]}>
+    <View
+      style={[
+        styles.container,
+        isMultiline && styles.containerMultiline,
+        focused && styles.focused,
+        error && styles.error,
+      ]}
+    >
       {leftIcon}
       <TextInput
-        style={[styles.input, style]}
+        style={[styles.input, isMultiline && styles.inputMultiline, style]}
         placeholderTextColor={colors.neutral[400]}
         onFocus={(e) => { setFocused(true); props.onFocus?.(e); }}
         onBlur={(e) => { setFocused(false); props.onBlur?.(e); }}
@@ -39,6 +47,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral[50],
     gap: spacing[3],
   },
+  containerMultiline: {
+    minHeight: 52,
+    height: 'auto',
+    alignItems: 'flex-start',
+    paddingVertical: spacing[3],
+  },
   focused: {
     borderColor: colors.primary.default,
     backgroundColor: colors.neutral[50],
@@ -50,5 +64,11 @@ const styles = StyleSheet.create({
     flex: 1,
     ...typography.bodySm,
     color: colors.neutral[900],
+  },
+  inputMultiline: {
+    minHeight: 52,
+    textAlignVertical: 'top',
+    paddingTop: 0,
+    paddingBottom: 0,
   },
 });

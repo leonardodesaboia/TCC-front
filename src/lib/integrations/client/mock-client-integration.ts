@@ -18,6 +18,7 @@ const MOCK_PROFESSIONALS: ProfessionalSummary[] = [
     rating: 4.9,
     reviewCount: 127,
     badgeLabel: 'Top Pro',
+    availabilityLabel: 'Disponível hoje',
   },
   {
     id: 'pro-2',
@@ -31,6 +32,7 @@ const MOCK_PROFESSIONALS: ProfessionalSummary[] = [
     city: 'Fortaleza',
     rating: 4.7,
     reviewCount: 85,
+    availabilityLabel: 'Agenda para amanhã',
   },
 ];
 
@@ -186,13 +188,21 @@ export const mockClientIntegration: ClientIntegration = {
   professionals: {
     async search(params) {
       const query = params?.query?.toLowerCase().trim();
-      return query
-        ? MOCK_PROFESSIONALS.filter((item) =>
-            item.name.toLowerCase().includes(query) ||
-            item.profession.toLowerCase().includes(query) ||
-            item.specialties.some((tag) => tag.toLowerCase().includes(query)),
-          )
-        : MOCK_PROFESSIONALS;
+      const professionId = params?.professionId;
+      const areaId = params?.areaId;
+
+      return MOCK_PROFESSIONALS.filter((item) => {
+        const matchesQuery = !query ||
+          item.name.toLowerCase().includes(query) ||
+          item.profession.toLowerCase().includes(query) ||
+          item.specialties.some((tag) => tag.toLowerCase().includes(query));
+        const matchesProfession = !professionId ||
+          item.professions.some((profession) => profession.id === professionId);
+        const matchesArea = !areaId ||
+          item.areas.some((area) => area.id === areaId);
+
+        return matchesQuery && matchesProfession && matchesArea;
+      });
     },
     async getById(id) {
       const base = MOCK_PROFESSIONALS.find((item) => item.id === id) ?? MOCK_PROFESSIONALS[0];
