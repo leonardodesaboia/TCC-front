@@ -14,7 +14,7 @@ export function useMyProfessionalProfile() {
   const { user } = useAuth();
   return useQuery({
     queryKey: queryKeys.professionals.myProfile,
-    queryFn: () => professionalIntegration.profile.getMyProfile(user!.id),
+    queryFn: () => professionalIntegration.profile.getMyProfile(),
     enabled: !!user?.id,
   });
 }

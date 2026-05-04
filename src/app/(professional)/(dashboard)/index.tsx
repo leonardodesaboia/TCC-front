@@ -12,6 +12,7 @@ import {
   Star,
   Zap,
 } from 'lucide-react-native';
+import { ExpressAvailabilityCard } from '@/components/availability/ExpressAvailabilityCard';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
@@ -137,6 +138,8 @@ export default function ProfessionalDashboardScreen() {
         <StatCard icon={CheckCircle} label="Concluidos" value={completedOrders.length} iconColor={colors.success} />
         <StatCard icon={DollarSign} label="Ganhos" value={formatMoney(totalEarnings)} iconColor={colors.success} />
       </View>
+
+      <ExpressAvailabilityCard variant="compact" />
 
       {/* Rating */}
       {profile ? (

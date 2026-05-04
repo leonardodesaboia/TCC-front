@@ -1,10 +1,13 @@
 import { Redirect, Tabs } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
+import { ExpressStatusBar } from '@/components/availability/ExpressStatusBar';
 import { Button, Text } from '@/components/ui';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Screen } from '@/components/layout/Screen';
 import { ProfessionalTabBar } from '@/components/layout/ProfessionalTabBar';
+import { ExpressAvailabilityProvider } from '@/lib/availability/ExpressAvailabilityProvider';
 import { useLogout } from '@/lib/hooks/useAuth';
+import { useMyProfessionalProfile } from '@/lib/hooks/useProfessionalArea';
 import { usePushNotifications } from '@/lib/hooks/usePushNotifications';
 import { UserRole } from '@/types/user';
 import { colors, spacing } from '@/theme';
@@ -30,6 +33,7 @@ function UnsupportedRoleState() {
 
 export default function ProfessionalLayout() {
   const { isAuthenticated, isInitialized, isLoading, user } = useAuth();
+  const profileQuery = useMyProfessionalProfile();
   usePushNotifications();
 
   if (!isInitialized || isLoading) return <LoadingScreen />;
@@ -37,21 +41,34 @@ export default function ProfessionalLayout() {
   if (user?.role && user.role !== UserRole.PROFESSIONAL) return <UnsupportedRoleState />;
 
   return (
-    <Tabs
-      screenOptions={{ headerShown: false }}
-      tabBar={(props) => <ProfessionalTabBar {...props} />}
+    <ExpressAvailabilityProvider
+      professionalId={profileQuery.data?.id ?? null}
+      initialGeoActive={profileQuery.data?.geoActive ?? false}
+      initialGeoCapturedAt={profileQuery.data?.geoCapturedAt ?? null}
+      initialGeoAccuracyMeters={profileQuery.data?.geoAccuracyMeters ?? null}
     >
-      <Tabs.Screen name="index" options={{ href: null }} />
-      <Tabs.Screen name="notifications" options={{ href: null }} />
-      <Tabs.Screen name="(dashboard)" options={{ title: 'Inicio' }} />
-      <Tabs.Screen name="(orders)" options={{ title: 'Pedidos' }} />
-      <Tabs.Screen name="conversations" options={{ title: 'Conversas' }} />
-      <Tabs.Screen name="(profile)" options={{ title: 'Perfil' }} />
-    </Tabs>
+      <View style={styles.container}>
+        <ExpressStatusBar />
+        <Tabs
+          screenOptions={{ headerShown: false }}
+          tabBar={(props) => <ProfessionalTabBar {...props} />}
+        >
+          <Tabs.Screen name="index" options={{ href: null }} />
+          <Tabs.Screen name="notifications" options={{ href: null }} />
+          <Tabs.Screen name="(dashboard)" options={{ title: 'Inicio' }} />
+          <Tabs.Screen name="(orders)" options={{ title: 'Pedidos' }} />
+          <Tabs.Screen name="conversations" options={{ title: 'Conversas' }} />
+          <Tabs.Screen name="(profile)" options={{ title: 'Perfil' }} />
+        </Tabs>
+      </View>
+    </ExpressAvailabilityProvider>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   unsupported: {
     flex: 1,
     justifyContent: 'center',

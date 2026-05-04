@@ -43,6 +43,9 @@ export interface UpdateGeoRequest {
   geoActive: boolean;
   geoLat?: number;
   geoLng?: number;
+  accuracyMeters?: number;
+  capturedAt?: string;
+  source?: string;
 }
 
 export interface VerifyProfessionalRequest {
@@ -84,6 +87,8 @@ export interface ProfessionalProfileRecord {
   verificationStatus: VerificationStatus;
   rejectionReason?: string;
   geoActive: boolean;
+  geoCapturedAt?: string;
+  geoAccuracyMeters?: number;
   subscriptionPlanId?: string;
   subscriptionExpiresAt?: string;
   averageRating: number;
@@ -102,6 +107,8 @@ export interface ProfessionalProfileRecordDto {
   verificationStatus: VerificationStatus;
   rejectionReason?: string | null;
   geoActive: boolean;
+  geoCapturedAt?: string | null;
+  geoAccuracyMeters?: number | string | null;
   subscriptionPlanId?: string | null;
   subscriptionExpiresAt?: string | null;
   averageRating?: number | string | null;

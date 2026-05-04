@@ -13,6 +13,8 @@ export interface ProfessionalProfileData {
   baseHourlyRate?: number;
   verificationStatus?: string;
   geoActive?: boolean;
+  geoCapturedAt?: string;
+  geoAccuracyMeters?: number;
   averageRating: number;
   reviewCount: number;
   createdAt: string;
@@ -28,7 +30,7 @@ export interface ProfessionalOrdersIntegration {
 }
 
 export interface ProfessionalProfileIntegration {
-  getMyProfile(userId: string): Promise<ProfessionalProfileData>;
+  getMyProfile(): Promise<ProfessionalProfileData>;
 }
 
 export interface ProfessionalIntegration {

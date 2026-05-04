@@ -61,6 +61,8 @@ function mapProfessionalProfileRecord(dto: ProfessionalProfileRecordDto): Profes
     verificationStatus: dto.verificationStatus,
     rejectionReason: dto.rejectionReason ?? undefined,
     geoActive: dto.geoActive,
+    geoCapturedAt: dto.geoCapturedAt ?? undefined,
+    geoAccuracyMeters: dto.geoAccuracyMeters != null ? toNumber(dto.geoAccuracyMeters) : undefined,
     subscriptionPlanId: dto.subscriptionPlanId ?? undefined,
     subscriptionExpiresAt: dto.subscriptionExpiresAt ?? undefined,
     averageRating: toNumber(dto.averageRating),

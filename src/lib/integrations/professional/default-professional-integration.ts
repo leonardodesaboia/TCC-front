@@ -1,7 +1,7 @@
 import { ordersApi } from '@/lib/api/orders';
 import { apiClient } from '@/lib/api/client';
-import { unwrapItem, unwrapList, toNumber } from '@/lib/api/utils';
-import type { ApiResponse, SpringPage } from '@/types/api';
+import { unwrapItem, toNumber } from '@/lib/api/utils';
+import type { ApiResponse } from '@/types/api';
 import { OrderStatus } from '@/types/order';
 import type { ProfessionalIntegration, ProfessionalProfileData } from './contracts';
 
@@ -13,6 +13,8 @@ interface ProfessionalResponseDto {
   baseHourlyRate?: number | string | null;
   verificationStatus?: string | null;
   geoActive?: boolean | null;
+  geoCapturedAt?: string | null;
+  geoAccuracyMeters?: number | string | null;
   averageRating?: number | string | null;
   reviewCount?: number | string | null;
   createdAt: string;
@@ -27,6 +29,8 @@ function mapProfileData(dto: ProfessionalResponseDto): ProfessionalProfileData {
     baseHourlyRate: dto.baseHourlyRate != null ? toNumber(dto.baseHourlyRate) : undefined,
     verificationStatus: dto.verificationStatus ?? undefined,
     geoActive: dto.geoActive ?? undefined,
+    geoCapturedAt: dto.geoCapturedAt ?? undefined,
+    geoAccuracyMeters: dto.geoAccuracyMeters != null ? toNumber(dto.geoAccuracyMeters) : undefined,
     averageRating: toNumber(dto.averageRating),
     reviewCount: toNumber(dto.reviewCount),
     createdAt: dto.createdAt,
@@ -83,17 +87,11 @@ export const defaultProfessionalIntegration: ProfessionalIntegration = {
     cancel: (orderId, reason) => ordersApi.cancel(orderId, reason),
   },
   profile: {
-    getMyProfile: async (userId) => {
-      const response = await apiClient.get<SpringPage<ProfessionalResponseDto> | ApiResponse<ProfessionalResponseDto[]> | ProfessionalResponseDto[]>(
-        '/api/v1/professionals',
-        { params: { size: 100 } },
+    getMyProfile: async () => {
+      const response = await apiClient.get<ApiResponse<ProfessionalResponseDto> | ProfessionalResponseDto>(
+        '/api/v1/professionals/me',
       );
-      const all = unwrapList<ProfessionalResponseDto>(response.data);
-      const mine = all.find((p) => p.userId === userId);
-      if (!mine) {
-        throw new Error('Perfil profissional não encontrado.');
-      }
-      return mapProfileData(mine);
+      return mapProfileData(unwrapItem(response.data));
     },
   },
 };
