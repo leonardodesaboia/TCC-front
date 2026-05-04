@@ -99,21 +99,25 @@ function OrderCard({
             </Text>
           )}
         </View>
-        <View style={styles.topText}>
-          <Text variant="titleSm">{categoryName}</Text>
-          <Text variant="bodySm" color={colors.neutral[500]} numberOfLines={1}>
-            {order.description}
-          </Text>
-        </View>
-        <View style={styles.badgesRow}>
-          <Badge label={badge.label} variant={badge.variant} />
-          {order.mode === OrderMode.ON_DEMAND ? (
-            <Badge label="Sob demanda" variant="info" />
-          ) : order.mode === OrderMode.EXPRESS ? (
-            <Badge label="Express" variant="warning" />
-          ) : null}
-          {isExpressInvitation ? <Badge label="Aguardando proposta" variant="default" /> : null}
-          {isAwaitingClientChoice ? <Badge label="Proposta enviada" variant="info" /> : null}
+        <View style={styles.topContent}>
+          <View style={styles.topText}>
+            <Text variant="titleSm" numberOfLines={2} style={styles.categoryTitle}>
+              {categoryName}
+            </Text>
+            <Text variant="bodySm" color={colors.neutral[500]} numberOfLines={1}>
+              {order.description}
+            </Text>
+          </View>
+          <View style={styles.badgesRow}>
+            <Badge label={badge.label} variant={badge.variant} />
+            {order.mode === OrderMode.ON_DEMAND ? (
+              <Badge label="Sob demanda" variant="info" />
+            ) : order.mode === OrderMode.EXPRESS ? (
+              <Badge label="Express" variant="warning" />
+            ) : null}
+            {isExpressInvitation ? <Badge label="Aguardando proposta" variant="default" /> : null}
+            {isAwaitingClientChoice ? <Badge label="Proposta enviada" variant="info" /> : null}
+          </View>
         </View>
       </View>
 
@@ -305,7 +309,7 @@ const styles = StyleSheet.create({
   pressed: { backgroundColor: colors.neutral[100] },
   top: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing[3],
   },
   categoryIcon: {
@@ -315,8 +319,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary.light,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  topText: { flex: 1, gap: 2 },
+    },
+  topContent: { flex: 1, gap: spacing[2], minWidth: 0 },
+  topText: { gap: 2, minWidth: 0 },
+  categoryTitle: { flexShrink: 1 },
   meta: { gap: spacing[2], paddingLeft: spacing[1] },
   metaItem: {
     flexDirection: 'row',

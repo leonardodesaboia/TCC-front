@@ -10,7 +10,6 @@ import {
 
 export const apiClient = axios.create({
   baseURL: API_URL,
-  headers: { 'Content-Type': 'application/json' },
   timeout: API_TIMEOUT,
 });
 
@@ -19,6 +18,11 @@ apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) =>
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData && config.headers) {
+    delete config.headers['Content-Type'];
+  }
+
   return config;
 });
 

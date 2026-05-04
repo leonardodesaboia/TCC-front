@@ -128,7 +128,6 @@ export const usersApi = {
     const response = await apiClient.post<ApiResponse<UserResponseDto> | UserResponseDto>(
       `/api/users/${userId}/avatar`,
       formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } },
     );
     return mapUser(unwrapItem(response.data));
   },

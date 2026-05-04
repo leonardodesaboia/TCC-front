@@ -9,7 +9,6 @@ import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Avatar, Badge, Text } from '@/components/ui';
 import { useConversations } from '@/lib/hooks/useConversations';
-import { useUser } from '@/lib/hooks/useUsers';
 import type { ConversationSummary } from '@/types/conversation';
 import { colors, radius, spacing } from '@/theme';
 
@@ -24,8 +23,7 @@ function formatDate(value?: string) {
 }
 
 function ConversationCard({ conversation, onPress }: { conversation: ConversationSummary; onPress: () => void }) {
-  const userQuery = useUser(conversation.otherParticipantId);
-  const displayName = userQuery.data?.name ?? `Pedido ${conversation.orderId.slice(0, 8)}`;
+  const displayName = `Pedido ${conversation.orderId.slice(0, 8)}`;
 
   return (
     <Pressable

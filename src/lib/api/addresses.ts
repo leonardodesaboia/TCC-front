@@ -3,6 +3,7 @@ import { toNumber, unwrapItem, unwrapList } from './utils';
 import type { Address, AddressDto, CreateAddressRequestDto, UpdateAddressRequestDto } from '@/types/address';
 import type { ApiResponse } from '@/types/api';
 import { getAuthenticatedUserId } from '@/lib/utils/auth-session';
+import { normalizeStateCode, normalizeZipCode } from '@/lib/utils/address-format';
 
 function mapAddress(dto: AddressDto): Address {
   return {
@@ -14,13 +15,21 @@ function mapAddress(dto: AddressDto): Address {
     complement: dto.complement ?? undefined,
     district: dto.district,
     city: dto.city,
-    state: dto.state,
-    zipCode: dto.zipCode,
+    state: normalizeStateCode(dto.state),
+    zipCode: normalizeZipCode(dto.zipCode),
     lat: toNumber(dto.lat),
     lng: toNumber(dto.lng),
     isDefault: dto.isDefault ?? false,
     createdAt: dto.createdAt ?? undefined,
     updatedAt: dto.updatedAt ?? undefined,
+  };
+}
+
+function normalizeAddressPayload<T extends CreateAddressRequestDto | UpdateAddressRequestDto>(payload: T): T {
+  return {
+    ...payload,
+    ...(payload.state ? { state: normalizeStateCode(payload.state) } : {}),
+    ...(payload.zipCode ? { zipCode: normalizeZipCode(payload.zipCode) } : {}),
   };
 }
 
@@ -37,7 +46,7 @@ export const addressesApi = {
     const userId = await getAuthenticatedUserId();
     const response = await apiClient.post<ApiResponse<AddressDto> | AddressDto>(
       `/api/users/${userId}/addresses`,
-      payload,
+      normalizeAddressPayload(payload),
     );
     return mapAddress(unwrapItem(response.data));
   },
@@ -46,7 +55,7 @@ export const addressesApi = {
     const userId = await getAuthenticatedUserId();
     const response = await apiClient.put<ApiResponse<AddressDto> | AddressDto>(
       `/api/users/${userId}/addresses/${id}`,
-      payload,
+      normalizeAddressPayload(payload),
     );
     return mapAddress(unwrapItem(response.data));
   },

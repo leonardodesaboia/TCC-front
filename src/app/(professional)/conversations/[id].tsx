@@ -29,16 +29,32 @@ export default function ProfessionalConversationDetailScreen() {
   const sendMessage = useSendMessage(id);
   const [content, setContent] = useState('');
   const scrollRef = useRef<ScrollView>(null);
+  const lastMarkedMessageIdRef = useRef<string | null>(null);
 
   const messages = messagesQuery.data ?? [];
   const messageCount = messages.length;
+  const lastUnreadIncomingMessageId = [...messages]
+    .reverse()
+    .find((message) => message.senderId !== user?.id && !message.readAt)?.id;
 
   useEffect(() => {
-    if (messagesQuery.data?.length) {
-      markRead.mutate();
+    if (!lastUnreadIncomingMessageId) {
+      lastMarkedMessageIdRef.current = null;
+      return;
     }
+
+    if (lastMarkedMessageIdRef.current === lastUnreadIncomingMessageId || markRead.isPending) {
+      return;
+    }
+
+    lastMarkedMessageIdRef.current = lastUnreadIncomingMessageId;
+    markRead.mutate(undefined, {
+      onError: () => {
+        lastMarkedMessageIdRef.current = null;
+      },
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messagesQuery.data?.length]);
+  }, [lastUnreadIncomingMessageId, markRead.isPending]);
 
   useEffect(() => {
     if (messageCount > 0) {

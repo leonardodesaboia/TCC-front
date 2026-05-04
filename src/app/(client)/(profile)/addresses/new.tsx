@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/Header';
 import { Button, Input, Text } from '@/components/ui';
 import { FormField } from '@/components/forms/FormField';
 import { useCreateAddress } from '@/lib/hooks/useAddresses';
+import { maskZipCode, normalizeStateCode, normalizeZipCode } from '@/lib/utils/address-format';
 import { spacing, colors } from '@/theme';
 
 export default function NewAddressScreen() {
@@ -28,12 +29,12 @@ export default function NewAddressScreen() {
 
   const canSave =
     label.trim().length > 0 &&
-    zipCode.trim().length > 0 &&
+    normalizeZipCode(zipCode).length === 9 &&
     street.trim().length > 0 &&
     number.trim().length > 0 &&
     district.trim().length > 0 &&
     city.trim().length > 0 &&
-    state.trim().length === 2 &&
+    normalizeStateCode(state).length === 2 &&
     lat.trim().length > 0 &&
     lng.trim().length > 0 &&
     !Number.isNaN(parsedLat) &&
@@ -44,13 +45,13 @@ export default function NewAddressScreen() {
 
     await createAddress.mutateAsync({
       label: label.trim(),
-      zipCode: zipCode.trim(),
+      zipCode: normalizeZipCode(zipCode),
       street: street.trim(),
       number: number.trim(),
       complement: complement.trim() || undefined,
       district: district.trim(),
       city: city.trim(),
-      state: state.trim().toUpperCase(),
+      state: normalizeStateCode(state),
       lat: parsedLat,
       lng: parsedLng,
       isDefault: false,
@@ -69,7 +70,13 @@ export default function NewAddressScreen() {
         </FormField>
 
         <FormField label="CEP">
-          <Input value={zipCode} onChangeText={setZipCode} placeholder="00000-000" keyboardType="numeric" />
+          <Input
+            value={zipCode}
+            onChangeText={(value) => setZipCode(maskZipCode(value))}
+            placeholder="00000-000"
+            keyboardType="numeric"
+            maxLength={9}
+          />
         </FormField>
 
         <FormField label="Rua">
@@ -101,7 +108,14 @@ export default function NewAddressScreen() {
           </View>
           <View style={styles.flex1}>
             <FormField label="Estado">
-              <Input value={state} onChangeText={setState} placeholder="UF" autoCapitalize="characters" maxLength={2} />
+              <Input
+                value={state}
+                onChangeText={(value) => setState(normalizeStateCode(value))}
+                placeholder="UF"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={2}
+              />
             </FormField>
           </View>
         </View>

@@ -153,11 +153,17 @@ export default function ProfessionalOrderDetailScreen() {
 
     const asset = result.assets[0];
     const formData = new FormData();
-    formData.append('file', {
-      uri: asset.uri,
-      type: asset.mimeType ?? 'image/jpeg',
-      name: asset.fileName ?? 'completion.jpg',
-    } as any);
+    const webFile = (asset as typeof asset & { file?: File }).file;
+
+    if (Platform.OS === 'web' && webFile instanceof File) {
+      formData.append('file', webFile, webFile.name);
+    } else {
+      formData.append('file', {
+        uri: asset.uri,
+        type: asset.mimeType ?? 'image/jpeg',
+        name: asset.fileName ?? 'completion.jpg',
+      } as any);
+    }
 
     completeOrder.mutate(formData);
   }

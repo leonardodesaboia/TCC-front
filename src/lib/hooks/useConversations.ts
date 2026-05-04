@@ -64,9 +64,25 @@ export function useMarkConversationRead(conversationId: string) {
 
   return useMutation({
     mutationFn: () => conversationsApi.markRead(conversationId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: conversationKeys.messages(conversationId) });
-      queryClient.invalidateQueries({ queryKey: conversationKeys.all });
+    onSuccess: (event) => {
+      queryClient.setQueryData(
+        conversationKeys.messages(conversationId),
+        (old: Message[] | undefined) =>
+          (old ?? []).map((message) =>
+            message.senderId !== event.readerUserId && !message.readAt
+              ? { ...message, readAt: event.readAt }
+              : message,
+          ),
+      );
+      queryClient.setQueryData(
+        conversationKeys.all,
+        (old: { id: string; unreadCount: number }[] | undefined) =>
+          (old ?? []).map((conversation) =>
+            conversation.id === conversationId
+              ? { ...conversation, unreadCount: 0 }
+              : conversation,
+          ),
+      );
     },
   });
 }

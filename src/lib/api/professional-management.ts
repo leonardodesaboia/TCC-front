@@ -178,7 +178,6 @@ export const professionalManagementApi = {
       `/api/v1/professionals/${professionalId}/documents`,
       payload.formData,
       {
-        headers: { 'Content-Type': 'multipart/form-data' },
         params: { docType: payload.docType, docSide: payload.docSide },
       },
     );

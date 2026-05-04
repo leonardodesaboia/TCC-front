@@ -173,15 +173,12 @@ export const ordersApi = {
     const response = await apiClient.post<ApiResponse<OrderDetailsDto> | OrderDetailsDto>(
       `/api/v1/orders/${orderId}/complete`,
       formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } },
     );
 
     return mapOrderDetails(unwrapItem(response.data));
   },
 
   async uploadPhoto(orderId: string, formData: FormData): Promise<void> {
-    await apiClient.post(`/api/v1/orders/${orderId}/photos`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    await apiClient.post(`/api/v1/orders/${orderId}/photos`, formData);
   },
 };
