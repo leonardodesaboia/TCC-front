@@ -37,6 +37,10 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function sortByNewest<T extends { createdAt: string }>(items: T[]) {
+  return [...items].sort((left, right) => +new Date(right.createdAt) - +new Date(left.createdAt));
+}
+
 export default function OrdersScreen() {
   const router = useRouter();
   const [filter, setFilter] = useState('Todos');
@@ -60,7 +64,7 @@ export default function OrdersScreen() {
   }
 
   const categories = categoriesQuery.data ?? [];
-  const filtered: OrderCardItem[] = (ordersQuery.data ?? []).map((order) => {
+  const filtered: OrderCardItem[] = sortByNewest(ordersQuery.data ?? []).map((order) => {
     const categoryName = categories.find((category) => category.id === order.categoryId)?.name ?? 'Serviço';
     const snapshot = order.addressSnapshot;
     return {
