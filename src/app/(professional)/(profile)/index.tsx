@@ -58,7 +58,10 @@ export default function ProfessionalProfileScreen() {
   return (
     <Screen edges={['top']} style={styles.screen}>
       {/* Profile card */}
-      <Pressable style={styles.profileCard} onPress={() => router.push('/(professional)/(profile)/edit' as any)}>
+      <Pressable
+        style={({ pressed }) => [styles.profileCard, pressed && styles.profileCardPressed]}
+        onPress={() => router.push('/(professional)/(profile)/edit' as any)}
+      >
         <Avatar uri={user?.profileImage} name={name} size="xl" />
         <View style={styles.profileInfo}>
           <Text variant="titleLg">{name}</Text>
@@ -71,6 +74,12 @@ export default function ProfessionalProfileScreen() {
               </Text>
             </View>
           ) : null}
+        </View>
+        <View style={styles.profileHintRow}>
+          <Text variant="labelLg" color={colors.primary.default}>
+            Toque para editar seus dados
+          </Text>
+          <ChevronRight color={colors.primary.default} size={16} />
         </View>
       </Pressable>
 
@@ -151,7 +160,15 @@ const styles = StyleSheet.create({
   profileCard: {
     alignItems: 'center',
     gap: spacing[4],
-    paddingVertical: spacing[4],
+    paddingVertical: spacing[5],
+    paddingHorizontal: spacing[4],
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[50],
+  },
+  profileCardPressed: {
+    opacity: 0.75,
   },
   profileInfo: {
     alignItems: 'center',
@@ -162,6 +179,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[1],
     marginTop: spacing[1],
+  },
+  profileHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: radius.full,
+    backgroundColor: colors.primary.light,
   },
   menuSection: {
     borderRadius: radius.xl,

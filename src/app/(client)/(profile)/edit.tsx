@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Camera } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -49,7 +49,17 @@ export default function EditProfileScreen() {
     const type = match ? `image/${match[1]}` : 'image/jpeg';
 
     const formData = new FormData();
-    formData.append('file', { uri, name: filename, type } as unknown as Blob);
+    const webFile = (asset as typeof asset & { file?: File }).file;
+
+    if (Platform.OS !== 'web') {
+      formData.append('file', { uri, name: filename, type } as any);
+    } else if (webFile instanceof File) {
+      formData.append('file', webFile, webFile.name);
+    } else {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      formData.append('file', blob, filename);
+    }
 
     setUploadingAvatar(true);
     try {
