@@ -1,12 +1,12 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Clock, MapPin, Phone, Star } from 'lucide-react-native';
+import { ChevronRight, Clock, MapPin, Star } from 'lucide-react-native';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
-import { Avatar, Badge, Button, Divider, Text } from '@/components/ui';
+import { Avatar, Badge, Divider, Text } from '@/components/ui';
 import { useProfessional } from '@/lib/hooks/useProfessionals';
 import { useProfessionalReviews } from '@/lib/hooks/useReviews';
 import { useProfessionalServices } from '@/lib/hooks/useServices';
@@ -107,7 +107,6 @@ export default function ProfessionalProfileScreen() {
     const rightMatches = isCategoryService(right, categoryId, categoryName);
     return Number(rightMatches) - Number(leftMatches);
   });
-  const primaryService = prioritizedServices[0];
 
   if (!professional) {
     return <ErrorState message="Profissional não encontrado." />;
@@ -178,7 +177,21 @@ export default function ProfessionalProfileScreen() {
                 const selectedCategoryMatch = isCategoryService(service, categoryId, categoryName);
 
                 return (
-                  <View key={service.id} style={styles.serviceCard}>
+                  <Pressable
+                    key={service.id}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/(client)/(search)/services/[id]',
+                        params: {
+                          id: service.id,
+                          professionalId: professional.id,
+                          categoryId,
+                          categoryName,
+                        },
+                      })
+                    }
+                    style={({ pressed }) => [styles.serviceCard, pressed && styles.serviceCardPressed]}
+                  >
                     <View style={styles.serviceInfo}>
                       <View style={styles.serviceTitleRow}>
                         <Text variant="titleSm" style={styles.serviceTitle}>{service.name}</Text>
@@ -194,26 +207,9 @@ export default function ProfessionalProfileScreen() {
                     </View>
                     <View style={styles.serviceRight}>
                       <Text variant="titleSm" color={colors.primary.default}>{formatMoney(service.effectivePrice)}</Text>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        fullWidth={false}
-                        onPress={() =>
-                          router.push({
-                            pathname: '/(client)/(search)/services/[id]',
-                            params: {
-                              id: service.id,
-                              professionalId: professional.id,
-                              categoryId,
-                              categoryName,
-                            },
-                          })
-                        }
-                      >
-                        Ver detalhes
-                      </Button>
+                      <ChevronRight color={colors.neutral[400]} size={20} />
                     </View>
-                  </View>
+                  </Pressable>
                 );
               })}
             </View>
@@ -259,33 +255,7 @@ export default function ProfessionalProfileScreen() {
           )}
         </View>
 
-        <View style={{ height: spacing[4] }} />
       </ScrollView>
-
-      <View style={styles.bottomBar}>
-        <View style={styles.ctaMain}>
-          <Button
-            variant="primary"
-            size="lg"
-            leftIcon={<Phone color="#FFFFFF" size={20} />}
-            onPress={() => {
-              if (!primaryService) return;
-              router.push({
-                pathname: '/(client)/(search)/services/[id]',
-                params: {
-                  id: primaryService.id,
-                  professionalId: professional.id,
-                  categoryId,
-                  categoryName,
-                },
-              });
-            }}
-            disabled={!primaryService}
-          >
-            Contratar
-          </Button>
-        </View>
-      </View>
     </Screen>
   );
 }
@@ -321,6 +291,9 @@ const styles = StyleSheet.create({
     padding: spacing[3],
     gap: spacing[3],
   },
+  serviceCardPressed: {
+    backgroundColor: colors.neutral[100],
+  },
   serviceInfo: { flex: 1, gap: spacing[1] },
   serviceTitleRow: {
     flexDirection: 'row',
@@ -332,7 +305,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   serviceMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing[1], marginTop: spacing[1] },
-  serviceRight: { alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing[2] },
+  serviceRight: { alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing[3] },
   reviewsList: { gap: spacing[3] },
   reviewCard: {
     backgroundColor: colors.neutral[50],
@@ -345,12 +318,4 @@ const styles = StyleSheet.create({
   reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
   reviewInfo: { flex: 1, gap: 2 },
   starRow: { flexDirection: 'row', gap: 2 },
-  bottomBar: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-  },
-  ctaMain: { flex: 1 },
 });

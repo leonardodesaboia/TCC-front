@@ -7,6 +7,7 @@ import { Button, Input, Text } from '@/components/ui';
 import { FormField } from '@/components/forms/FormField';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
+import { getCategoryVisual } from '@/lib/catalog/category-visuals';
 import { useServiceCategories } from '@/lib/hooks/useCatalog';
 import { useMyProfessionalProfile } from '@/lib/hooks/useProfessionalArea';
 import { useCreateProfessionalOffering } from '@/lib/hooks/useProfessionalManagement';
@@ -70,15 +71,27 @@ export default function NewProfessionalServiceScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
             {categories.map((category) => {
               const active = category.id === categoryId;
+              const visual = getCategoryVisual(category.name);
+              const Icon = visual.Icon;
               return (
                 <Pressable
                   key={category.id}
                   onPress={() => setCategoryId(category.id)}
                   style={[styles.chip, active && styles.chipActive]}
                 >
-                  <Text variant="labelLg" color={active ? '#FFFFFF' : colors.neutral[700]}>
-                    {category.name}
-                  </Text>
+                  <View style={styles.chipContent}>
+                    <View
+                      style={[
+                        styles.chipIcon,
+                        active ? styles.chipIconActive : { backgroundColor: visual.bgColor },
+                      ]}
+                    >
+                      <Icon size={14} color={active ? '#FFFFFF' : visual.color} />
+                    </View>
+                    <Text variant="labelLg" color={active ? '#FFFFFF' : colors.neutral[700]}>
+                      {category.name}
+                    </Text>
+                  </View>
                 </Pressable>
               );
             })}
@@ -166,6 +179,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral[100],
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[2],
+  },
+  chipContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  chipIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipIconActive: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
   },
   chipActive: {
     backgroundColor: colors.primary.default,

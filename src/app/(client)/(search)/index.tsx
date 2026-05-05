@@ -1,15 +1,9 @@
-import React, { useDeferredValue, useMemo, useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  Brush,
-  Droplets,
-  HardHat,
-  Heart,
+  ChevronRight,
   Search,
-  Sparkles,
-  Wrench,
-  Zap,
 } from 'lucide-react-native';
 import { SearchBar } from '@/components/client/search/SearchBar';
 import { EmptyState } from '@/components/feedback/EmptyState';
@@ -17,30 +11,21 @@ import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Screen } from '@/components/layout/Screen';
 import { Text } from '@/components/ui';
+import { getAreaVisual } from '@/lib/catalog/area-visuals';
+import { getCategoryVisual } from '@/lib/catalog/category-visuals';
 import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
-import type { ServiceArea } from '@/types/catalog';
 import { colors, radius, spacing } from '@/theme';
-
-const AREA_STYLES: Record<string, { color: string; bgColor: string; icon: React.ReactNode }> = {
-  elétrica: { color: '#F59E0B', bgColor: '#FEF3C7', icon: <Zap size={24} /> },
-  limpeza: { color: '#3B82F6', bgColor: '#DBEAFE', icon: <Sparkles size={24} /> },
-  hidráulica: { color: '#06B6D4', bgColor: '#CFFAFE', icon: <Droplets size={24} /> },
-  pintura: { color: '#8B5CF6', bgColor: '#EDE9FE', icon: <Brush size={24} /> },
-  manutenção: { color: '#EF4444', bgColor: '#FEE2E2', icon: <Wrench size={24} /> },
-  reforma: { color: '#E98936', bgColor: '#FFF1E5', icon: <HardHat size={24} /> },
-  cuidados: { color: '#EC4899', bgColor: '#FCE7F3', icon: <Heart size={24} /> },
-};
-
-function getAreaVisual(area: ServiceArea) {
-  const key = area.name.toLowerCase();
-  return AREA_STYLES[key] ?? { color: colors.primary.default, bgColor: colors.primary.light, icon: <Search size={24} /> };
-}
 
 export default function SearchScreen() {
   const router = useRouter();
+  const { areaId: initialAreaId } = useLocalSearchParams<{ areaId?: string }>();
   const [query, setQuery] = useState('');
-  const [selectedArea, setSelectedArea] = useState<string | null>(null);
+  const [selectedArea, setSelectedArea] = useState<string | null>(initialAreaId ?? null);
   const deferredQuery = useDeferredValue(query).trim().toLowerCase();
+
+  useEffect(() => {
+    if (initialAreaId) setSelectedArea(initialAreaId);
+  }, [initialAreaId]);
 
   const areasQuery = useServiceAreas();
   const categoriesQuery = useServiceCategories();
@@ -115,16 +100,19 @@ export default function SearchScreen() {
           {filteredCategories.length > 0 ? (
             <View style={styles.categoryList}>
               {filteredCategories.map((category) => {
-                const areaVisual = getAreaVisual(currentArea);
+                const visual = getCategoryVisual(category.name);
+                const Icon = visual.Icon;
                 return (
                   <Pressable
                     key={category.id}
                     onPress={() => handleCategoryPress(currentArea.id, category.id)}
                     style={({ pressed }) => [styles.categoryItem, pressed && styles.pressed]}
                   >
-                    <View style={[styles.categoryDot, { backgroundColor: areaVisual.color }]} />
+                    <View style={[styles.categoryIcon, { backgroundColor: visual.bgColor }]}>
+                      <Icon size={18} color={visual.color} />
+                    </View>
                     <Text variant="bodySm" style={styles.categoryName}>{category.name}</Text>
-                    <Text variant="labelLg" color={colors.primary.default}>Solicitar</Text>
+                    <ChevronRight color={colors.neutral[400]} size={20} />
                   </Pressable>
                 );
               })}
@@ -145,7 +133,8 @@ export default function SearchScreen() {
           {filteredAreas.length > 0 ? (
             <View style={styles.grid}>
               {filteredAreas.map((area) => {
-                const visual = getAreaVisual(area);
+                const visual = getAreaVisual(area.name);
+                const Icon = visual.Icon;
                 return (
                   <Pressable
                     key={area.id}
@@ -153,7 +142,7 @@ export default function SearchScreen() {
                     style={({ pressed }) => [styles.areaCard, pressed && styles.pressed]}
                   >
                     <View style={[styles.areaIcon, { backgroundColor: visual.bgColor }]}>
-                      {visual.icon}
+                      <Icon size={24} color={visual.color} />
                     </View>
                     <Text variant="titleSm">{area.name}</Text>
                     <Text variant="labelSm" color={colors.neutral[500]}>
@@ -212,6 +201,12 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral[200],
     backgroundColor: colors.neutral[50],
   },
-  categoryDot: { width: 8, height: 8, borderRadius: 4 },
+  categoryIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   categoryName: { flex: 1 },
 });

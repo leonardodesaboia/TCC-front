@@ -8,6 +8,7 @@ import { type Control, useForm, useWatch } from 'react-hook-form';
 import { Screen } from '@/components/layout/Screen';
 import { FormInput } from '@/components/forms/FormInput';
 import { Button, Input, Text } from '@/components/ui';
+import { getCategoryVisual } from '@/lib/catalog/category-visuals';
 import { useRegisterProfessional } from '@/lib/hooks/useAuth';
 import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
 import { toast } from '@/lib/utils/toast';
@@ -593,15 +594,27 @@ export default function RegisterProfessionalScreen() {
 
               {visibleCategories.map((category) => {
                 const selected = selectedSpecialties.some((item) => item.categoryId === category.id);
+                const visual = getCategoryVisual(category.name);
+                const Icon = visual.Icon;
                 return (
                   <Pressable
                     key={category.id}
                     onPress={() => toggleCategory(category.id)}
                     style={[styles.categoryCard, selected && styles.categoryCardSelected]}
                   >
-                    <Text variant="bodySm" color={selected ? colors.primary.default : colors.neutral[800]}>
-                      {category.name}
-                    </Text>
+                    <View style={styles.categoryCardContent}>
+                      <View
+                        style={[
+                          styles.categoryIcon,
+                          selected ? styles.categoryIconSelected : { backgroundColor: visual.bgColor },
+                        ]}
+                      >
+                        <Icon size={16} color={selected ? colors.primary.default : visual.color} />
+                      </View>
+                      <Text variant="bodySm" color={selected ? colors.primary.default : colors.neutral[800]}>
+                        {category.name}
+                      </Text>
+                    </View>
                   </Pressable>
                 );
               })}
@@ -619,11 +632,24 @@ export default function RegisterProfessionalScreen() {
               {selectedSpecialties.map((specialty) => (
                 <View key={specialty.categoryId} style={styles.specialtyCard}>
                   <View style={styles.specialtyHeader}>
+                    <View style={styles.specialtyInfo}>
+                      {(() => {
+                        const categoryName = getCategoryName(specialty.categoryId, categories);
+                        const visual = getCategoryVisual(categoryName);
+                        const Icon = visual.Icon;
+
+                        return (
+                          <View style={[styles.specialtyIcon, { backgroundColor: visual.bgColor }]}>
+                            <Icon size={18} color={visual.color} />
+                          </View>
+                        );
+                      })()}
                     <View style={styles.specialtyText}>
                       <Text variant="titleSm">{getCategoryName(specialty.categoryId, categories)}</Text>
                       <Text variant="labelLg" color={colors.neutral[500]}>
                         {getAreaName(specialty.categoryId, categories, areas)}
                       </Text>
+                    </View>
                     </View>
                     <Pressable onPress={() => toggleCategory(specialty.categoryId)}>
                       <Text variant="labelLg" color={colors.error}>Remover</Text>
@@ -763,6 +789,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[3],
   },
+  categoryCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  categoryIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryIconSelected: {
+    backgroundColor: '#FFFFFF',
+  },
   categoryCardSelected: {
     borderColor: colors.primary.default,
     backgroundColor: colors.primary.light,
@@ -788,6 +829,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: spacing[3],
+  },
+  specialtyInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[3],
+  },
+  specialtyIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   specialtyText: {
     flex: 1,

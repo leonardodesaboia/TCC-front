@@ -1,32 +1,48 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Brush, Droplets, HardHat, Heart, Search, Sparkles, Wrench, Zap } from 'lucide-react-native';
+import {
+  ChevronRight,
+  Clock,
+  Zap,
+} from 'lucide-react-native';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Screen } from '@/components/layout/Screen';
 import { Text } from '@/components/ui';
+import { getAreaVisual } from '@/lib/catalog/area-visuals';
+import { getCategoryVisual } from '@/lib/catalog/category-visuals';
 import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
-import type { ServiceArea } from '@/types/catalog';
 import { colors, radius, spacing } from '@/theme';
 
-const AREA_STYLES: Record<string, { color: string; bgColor: string; icon: React.ReactNode }> = {
-  elétrica: { color: '#F59E0B', bgColor: '#FEF3C7', icon: <Zap size={24} color="#F59E0B" /> },
-  limpeza: { color: '#3B82F6', bgColor: '#DBEAFE', icon: <Sparkles size={24} color="#3B82F6" /> },
-  hidráulica: { color: '#06B6D4', bgColor: '#CFFAFE', icon: <Droplets size={24} color="#06B6D4" /> },
-  pintura: { color: '#8B5CF6', bgColor: '#EDE9FE', icon: <Brush size={24} color="#8B5CF6" /> },
-  manutenção: { color: '#EF4444', bgColor: '#FEE2E2', icon: <Wrench size={24} color="#EF4444" /> },
-  reforma: { color: '#E98936', bgColor: '#FFF1E5', icon: <HardHat size={24} color="#E98936" /> },
-  cuidados: { color: '#EC4899', bgColor: '#FCE7F3', icon: <Heart size={24} color="#EC4899" /> },
-};
+const EXPRESS_ACCENT = colors.warning;
+const EXPRESS_ACCENT_BG = '#FFFBEB';
+const EXPRESS_ACCENT_BORDER = '#FCD34D';
 
-function getAreaVisual(area: ServiceArea) {
+interface StepProps {
+  index: number;
+  label: string;
+  active: boolean;
+}
+
+function Step({ index, label, active }: StepProps) {
   return (
-    AREA_STYLES[area.name.toLowerCase()] ?? {
-      color: colors.primary.default,
-      bgColor: colors.primary.light,
-      icon: <Search size={24} color={colors.primary.default} />,
-    }
+    <View style={styles.step}>
+      <View style={[styles.stepNum, active && styles.stepNumActive]}>
+        <Text
+          variant="labelSm"
+          color={active ? '#FFFFFF' : colors.neutral[500]}
+        >
+          {index}
+        </Text>
+      </View>
+      <Text
+        variant="labelSm"
+        color={active ? colors.neutral[900] : colors.neutral[500]}
+      >
+        {label}
+      </Text>
+    </View>
   );
 }
 
@@ -71,65 +87,95 @@ export default function ExpressHubScreen() {
 
   return (
     <Screen edges={['top']} style={styles.screen}>
-      <Text variant="displaySm">Pedido Express</Text>
-      <Text variant="bodySm" color={colors.neutral[500]}>
-        Descreva o que precisa e receba propostas de profissionais próximos.
-      </Text>
+      {/* Hero */}
+      <View style={styles.hero}>
+        <View style={styles.heroIcon}>
+          <Zap color="#FFFFFF" size={26} fill="#FFFFFF" />
+        </View>
+        <View style={styles.heroText}>
+          <Text variant="titleLg" color="#FFFFFF">Pedido Express</Text>
+          <View style={styles.heroSubRow}>
+            <Clock color="rgba(255,255,255,0.85)" size={14} />
+            <Text variant="labelLg" color="rgba(255,255,255,0.9)">
+              Propostas em minutos
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Steps */}
+      <View style={styles.steps}>
+        <Step index={1} label="Categoria" active />
+        <View style={styles.stepLine} />
+        <Step index={2} label="Descrição" active={false} />
+        <View style={styles.stepLine} />
+        <Step index={3} label="Propostas" active={false} />
+      </View>
 
       {currentArea ? (
         <>
-          <Pressable onPress={() => setSelectedAreaId(null)}>
-            <Text variant="labelLg" color={colors.primary.default}>
+          <Pressable onPress={() => setSelectedAreaId(null)} style={styles.backLink}>
+            <Text variant="labelLg" color={EXPRESS_ACCENT}>
               ← Voltar para áreas
             </Text>
           </Pressable>
 
           <Text variant="titleMd">{currentArea.name}</Text>
 
-          <View style={styles.categoryList}>
+          <View style={styles.list}>
             {currentCategories.length === 0 ? (
               <Text variant="bodySm" color={colors.neutral[500]}>
                 Nenhum serviço disponível nesta área.
               </Text>
-            ) : currentCategories.map((category) => {
-              const visual = getAreaVisual(currentArea);
-              return (
-                <Pressable
-                  key={category.id}
-                  onPress={() => handleCategoryPress(currentArea.id, category.id)}
-                  style={({ pressed }) => [styles.categoryItem, pressed && styles.pressed]}
-                >
-                  <View style={[styles.categoryDot, { backgroundColor: visual.color }]} />
-                  <Text variant="bodySm" style={styles.categoryName}>
-                    {category.name}
-                  </Text>
-                  <Text variant="labelLg" color={colors.primary.default}>
-                    Criar pedido
-                  </Text>
-                </Pressable>
-              );
-            })}
+            ) : (
+              currentCategories.map((category) => {
+                const visual = getCategoryVisual(category.name);
+                const Icon = visual.Icon;
+
+                return (
+                  <Pressable
+                    key={category.id}
+                    onPress={() => handleCategoryPress(currentArea.id, category.id)}
+                    style={({ pressed }) => [styles.categoryRow, pressed && styles.pressed]}
+                  >
+                    <View style={[styles.categoryBolt, { backgroundColor: visual.bgColor }]}>
+                      <Icon color={visual.color} size={18} />
+                    </View>
+                    <Text variant="bodySm" style={styles.categoryName}>
+                      {category.name}
+                    </Text>
+                    <Text variant="labelLg" color={EXPRESS_ACCENT}>
+                      Criar pedido →
+                    </Text>
+                  </Pressable>
+                );
+              })
+            )}
           </View>
         </>
       ) : (
         <>
           <Text variant="titleMd">Selecione a área</Text>
-          <View style={styles.grid}>
+          <View style={styles.list}>
             {areas.map((area) => {
-              const visual = getAreaVisual(area);
+              const visual = getAreaVisual(area.name);
+              const Icon = visual.Icon;
               return (
                 <Pressable
                   key={area.id}
                   onPress={() => setSelectedAreaId(area.id)}
-                  style={({ pressed }) => [styles.areaCard, pressed && styles.pressed]}
+                  style={({ pressed }) => [styles.areaRow, pressed && styles.pressed]}
                 >
-                  <View style={[styles.areaIcon, { backgroundColor: visual.bgColor }]}>
-                    {visual.icon}
+                  <View style={[styles.areaRowIcon, { backgroundColor: visual.bgColor }]}>
+                    <Icon size={22} color={visual.color} />
                   </View>
-                  <Text variant="titleSm">{area.name}</Text>
-                  <Text variant="labelSm" color={colors.neutral[500]}>
-                    {categories.filter((c) => c.areaId === area.id).length} serviços
-                  </Text>
+                  <View style={styles.areaRowText}>
+                    <Text variant="titleSm">{area.name}</Text>
+                    <Text variant="labelSm" color={colors.neutral[500]}>
+                      {categories.filter((c) => c.areaId === area.id).length} serviços
+                    </Text>
+                  </View>
+                  <ChevronRight color={colors.neutral[400]} size={20} />
                 </Pressable>
               );
             })}
@@ -142,28 +188,78 @@ export default function ExpressHubScreen() {
 
 const styles = StyleSheet.create({
   screen: { gap: spacing[4] },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[3] },
-  areaCard: {
-    width: '47%',
+  hero: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: spacing[3],
+    padding: spacing[4],
     borderRadius: radius.xl,
+    backgroundColor: EXPRESS_ACCENT,
+  },
+  heroIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.22)',
+  },
+  heroText: { flex: 1, gap: spacing[1] },
+  heroSubRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[1] },
+  steps: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[2],
+    backgroundColor: EXPRESS_ACCENT_BG,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: EXPRESS_ACCENT_BORDER,
+  },
+  step: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
+  stepNum: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.neutral[300],
+  },
+  stepNumActive: {
+    backgroundColor: EXPRESS_ACCENT,
+    borderColor: EXPRESS_ACCENT,
+  },
+  stepLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: EXPRESS_ACCENT_BORDER,
+    marginHorizontal: spacing[1],
+  },
+  backLink: { alignSelf: 'flex-start' },
+  list: { gap: spacing[2] },
+  areaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    padding: spacing[3],
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.neutral[200],
     backgroundColor: colors.neutral[50],
-    paddingVertical: spacing[5],
-    paddingHorizontal: spacing[3],
   },
-  areaIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  areaRowIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  areaRowText: { flex: 1, gap: 2 },
   pressed: { opacity: 0.7 },
-  categoryList: { gap: spacing[1] },
-  categoryItem: {
+  categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[3],
@@ -171,9 +267,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    backgroundColor: colors.neutral[50],
+    borderColor: EXPRESS_ACCENT_BORDER,
+    backgroundColor: EXPRESS_ACCENT_BG,
   },
-  categoryDot: { width: 8, height: 8, borderRadius: 4 },
+  categoryBolt: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(245,158,11,0.15)',
+  },
   categoryName: { flex: 1 },
 });
