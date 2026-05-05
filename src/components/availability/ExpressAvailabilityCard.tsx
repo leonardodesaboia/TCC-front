@@ -15,6 +15,11 @@ interface BadgeStyle {
   label: string;
 }
 
+interface CompactCardTone {
+  borderColor: string;
+  backgroundColor: string;
+}
+
 function badgeFor(status: ExpressAvailabilityStatus): BadgeStyle {
   switch (status) {
     case 'idle':
@@ -31,6 +36,18 @@ function badgeFor(status: ExpressAvailabilityStatus): BadgeStyle {
       return { backgroundColor: '#FEF3C7', foregroundColor: '#B45309', label: 'Atualizando...' };
     case 'unavailable':
       return { backgroundColor: '#FEE2E2', foregroundColor: colors.error, label: 'Indisponivel' };
+  }
+}
+
+function compactToneFor(status: ExpressAvailabilityStatus): CompactCardTone {
+  switch (status) {
+    case 'active':
+      return { borderColor: '#A7F3D0', backgroundColor: '#ECFDF5' };
+    case 'permission-denied':
+    case 'unavailable':
+      return { borderColor: '#FECACA', backgroundColor: '#FEF2F2' };
+    default:
+      return { borderColor: colors.neutral[200], backgroundColor: colors.neutral[50] };
   }
 }
 
@@ -59,11 +76,20 @@ function messageFor(status: ExpressAvailabilityStatus, lastCapturedAt: Date | nu
 export function ExpressAvailabilityCard({ variant = 'default' }: ExpressAvailabilityCardProps) {
   const { status, geoActive, lastCapturedAt, toggle, forceCapture, openSettings } = useExpressAvailability();
   const badge = badgeFor(status);
+  const compactTone = compactToneFor(status);
   const busy = status === 'requesting-permission' || status === 'capturing';
 
   if (variant === 'compact') {
     return (
-      <View style={styles.compactCard}>
+      <View
+        style={[
+          styles.compactCard,
+          {
+            borderColor: compactTone.borderColor,
+            backgroundColor: compactTone.backgroundColor,
+          },
+        ]}
+      >
         <View style={styles.compactLeft}>
           <Zap color={colors.primary.default} size={16} />
           <Text variant="bodySm">Express</Text>
@@ -81,8 +107,9 @@ export function ExpressAvailabilityCard({ variant = 'default' }: ExpressAvailabi
           accessibilityRole="switch"
           accessibilityState={{ checked: geoActive, busy }}
           accessibilityLabel={`Express ${geoActive ? 'ativo' : 'desligado'}`}
-          trackColor={{ false: colors.neutral[300], true: colors.primary.default }}
+          trackColor={{ false: colors.neutral[300], true: colors.success }}
           thumbColor="#FFFFFF"
+          ios_backgroundColor={colors.neutral[300]}
         />
       </View>
     );
@@ -102,8 +129,9 @@ export function ExpressAvailabilityCard({ variant = 'default' }: ExpressAvailabi
           disabled={busy}
           accessibilityRole="switch"
           accessibilityState={{ checked: geoActive, busy }}
-          trackColor={{ false: colors.neutral[300], true: colors.primary.default }}
+          trackColor={{ false: colors.neutral[300], true: colors.success }}
           thumbColor="#FFFFFF"
+          ios_backgroundColor={colors.neutral[300]}
         />
       </View>
 

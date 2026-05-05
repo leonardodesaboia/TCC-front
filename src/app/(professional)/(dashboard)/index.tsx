@@ -2,22 +2,21 @@ import { useMemo } from 'react';
 import { Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
-  ArrowRight,
   Bell,
-  CheckCircle,
+  ChevronRight,
   ClipboardList,
   Clock,
-  DollarSign,
   MapPin,
   Star,
   Zap,
 } from 'lucide-react-native';
 import { ExpressAvailabilityCard } from '@/components/availability/ExpressAvailabilityCard';
-import { ErrorState } from '@/components/feedback/ErrorState';
 import { EmptyState } from '@/components/feedback/EmptyState';
+import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Screen } from '@/components/layout/Screen';
 import { Badge, Text } from '@/components/ui';
+import { getCategoryVisual } from '@/lib/catalog/category-visuals';
 import { useServiceCategories } from '@/lib/hooks/useCatalog';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { useMyProfessionalProfile, useProfessionalOrders } from '@/lib/hooks/useProfessionalArea';
@@ -29,28 +28,20 @@ function formatMoney(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
 
-function StatCard({ icon: Icon, label, value, iconColor }: {
-  icon: typeof Clock;
-  label: string;
-  value: string | number;
-  iconColor?: string;
-}) {
-  const color = iconColor ?? colors.primary.default;
-  return (
-    <View style={styles.statCard}>
-      <View style={[styles.statIcon, { backgroundColor: color + '15' }]}>
-        <Icon color={color} size={18} />
-      </View>
-      <Text variant="titleLg">{value}</Text>
-      <Text variant="labelLg" color={colors.neutral[500]}>{label}</Text>
-    </View>
-  );
+function sortByNewest<T extends { createdAt: string }>(items: T[]) {
+  return [...items].sort((left, right) => +new Date(right.createdAt) - +new Date(left.createdAt));
 }
 
 export default function ProfessionalDashboardScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const firstName = useMemo(() => user?.name?.split(' ')[0] ?? 'Profissional', [user?.name]);
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Bom dia';
+    if (hour < 18) return 'Boa tarde';
+    return 'Boa noite';
+  }, []);
   const profileQuery = useMyProfessionalProfile();
   const ordersQuery = useProfessionalOrders();
   const categoriesQuery = useServiceCategories();
@@ -79,17 +70,11 @@ export default function ProfessionalDashboardScreen() {
   const categories = categoriesQuery.data ?? [];
   const unreadNotifications = (notificationsQuery.data ?? []).filter((n) => !n.readAt).length;
 
-  const pendingOrders = allOrders.filter((o) => o.status === OrderStatus.PENDING);
-  const expressInvitations = pendingOrders.filter(
-    (o) =>
-      o.mode === OrderMode.EXPRESS &&
-      !o.professionalId &&
-      !o.professionalProResponse,
+  const pendingOrders = sortByNewest(allOrders.filter((o) => o.status === OrderStatus.PENDING));
+  const pendingDisplayOrders = pendingOrders;
+  const activeOrders = sortByNewest(
+    allOrders.filter((o) => [OrderStatus.ACCEPTED, OrderStatus.COMPLETED_BY_PRO].includes(o.status)),
   );
-  const otherPendingOrders = pendingOrders.filter(
-    (order) => !expressInvitations.some((invitation) => invitation.id === order.id),
-  );
-  const activeOrders = allOrders.filter((o) => o.status === OrderStatus.ACCEPTED);
   const completedOrders = allOrders.filter((o) => o.status === OrderStatus.COMPLETED);
   const totalEarnings = completedOrders.reduce((sum, o) => sum + o.totalAmount, 0);
 
@@ -109,17 +94,25 @@ export default function ProfessionalDashboardScreen() {
       style={styles.screen}
       refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
     >
-      {/* Greeting */}
       <View style={styles.greeting}>
         <View style={styles.greetingLeft}>
           <Text variant="bodySm" color={colors.neutral[500]}>
-            Ola, {firstName}
+            {greeting}, {firstName}
           </Text>
           <Text variant="displaySm">Seu painel</Text>
+          {profile && profile.reviewCount > 0 ? (
+            <View style={styles.ratingRow}>
+              <Star color={colors.warning} fill={colors.warning} size={14} />
+              <Text variant="bodySm" color={colors.neutral[500]}>
+                {profile.averageRating.toFixed(1)} ({profile.reviewCount})
+              </Text>
+            </View>
+          ) : null}
         </View>
         <Pressable
           onPress={() => router.push('/(professional)/notifications' as any)}
           style={styles.bellBtn}
+          hitSlop={8}
         >
           <Bell color={colors.neutral[700]} size={22} />
           {unreadNotifications > 0 ? (
@@ -132,110 +125,109 @@ export default function ProfessionalDashboardScreen() {
         </Pressable>
       </View>
 
-      {/* Stats */}
-      <View style={styles.statsRow}>
-        <StatCard icon={Zap} label="Express disp." value={expressInvitations.length} iconColor={colors.warning} />
-        <StatCard icon={CheckCircle} label="Concluidos" value={completedOrders.length} iconColor={colors.success} />
-        <StatCard icon={DollarSign} label="Ganhos" value={formatMoney(totalEarnings)} iconColor={colors.success} />
+      <View style={styles.metricsRow}>
+        <View style={styles.metricChip}>
+          <Zap color={colors.primary.default} size={14} />
+          <Text variant="titleSm" style={styles.metricValue}>
+            {activeOrders.length}
+          </Text>
+          <Text variant="labelSm" color={colors.neutral[500]} style={styles.metricLabel}>
+            Ativos
+          </Text>
+        </View>
+        <View style={styles.metricChip}>
+          <Clock color={colors.warning} size={14} />
+          <Text variant="titleSm" style={styles.metricValue}>
+            {pendingOrders.length}
+          </Text>
+          <Text variant="labelSm" color={colors.neutral[500]} style={styles.metricLabel}>
+            Pendentes
+          </Text>
+        </View>
+        <View style={styles.metricChip}>
+          <Clock color={colors.success} size={14} />
+          <Text
+            variant="titleSm"
+            style={styles.metricValue}
+          >
+            {completedOrders.length}
+          </Text>
+          <Text variant="labelSm" color={colors.neutral[500]} style={styles.metricLabel}>
+            Concluidos
+          </Text>
+        </View>
       </View>
 
       <ExpressAvailabilityCard variant="compact" />
 
-      {/* Rating */}
-      {profile ? (
-        <View style={styles.ratingCard}>
-          <Star color={colors.warning} fill={colors.warning} size={18} />
-          <Text variant="titleSm">{profile.averageRating.toFixed(1)}</Text>
-          <Text variant="bodySm" color={colors.neutral[500]}>
-            ({profile.reviewCount} {profile.reviewCount === 1 ? 'avaliacao' : 'avaliacoes'})
-          </Text>
-        </View>
-      ) : null}
-
-      {/* Express invitations */}
-      {expressInvitations.length > 0 ? (
+      {pendingDisplayOrders.length > 0 ? (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleRow}>
-              <Zap color={colors.warning} size={16} />
-              <Text variant="titleMd">Convites Express</Text>
-              <Badge label={String(expressInvitations.length)} variant="warning" />
-            </View>
+            <Text variant="titleMd">Pendentes</Text>
             <Pressable onPress={() => router.push('/(professional)/(orders)' as any)}>
               <Text variant="labelLg" color={colors.primary.default}>Ver todos</Text>
             </Pressable>
           </View>
 
-          {expressInvitations.slice(0, 3).map((order) => {
+          {pendingDisplayOrders.map((order) => {
             const categoryName = categories.find((c) => c.id === order.categoryId)?.name ?? 'Servico';
             const snapshot = order.addressSnapshot;
-            return (
-              <Pressable
-                key={order.id}
-                onPress={() => router.push(`/(professional)/(orders)/${order.id}` as any)}
-                style={({ pressed }) => [styles.invitationCard, pressed && styles.pressed]}
-              >
-                <View style={styles.orderTop}>
-                  <View style={[styles.orderCategoryIcon, styles.invitationIcon]}>
-                    <Zap color={colors.warning} size={20} />
-                  </View>
-                  <View style={styles.orderText}>
-                    <Text variant="titleSm">{categoryName}</Text>
-                    <Text variant="bodySm" color={colors.neutral[500]} numberOfLines={1}>
-                      {order.description}
-                    </Text>
-                  </View>
-                  <Badge label="Novo" variant="warning" />
-                </View>
-                <View style={styles.orderMeta}>
-                  <View style={styles.metaItem}>
-                    <MapPin color={colors.neutral[400]} size={14} />
-                    <Text variant="labelLg" color={colors.neutral[600]} numberOfLines={1}>
-                      {snapshot ? `${snapshot.street}, ${snapshot.number}` : 'Endereco'}
-                    </Text>
-                  </View>
-                  <Text variant="labelLg" color={colors.warning}>
-                    Enviar proposta
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : null}
-
-      {/* Other pending orders */}
-      {otherPendingOrders.length > 0 ? (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text variant="titleMd">Aguardando</Text>
-            <Pressable onPress={() => router.push('/(professional)/(orders)' as any)}>
-              <Text variant="labelLg" color={colors.primary.default}>Ver todos</Text>
-            </Pressable>
-          </View>
-
-          {otherPendingOrders.slice(0, 3).map((order) => {
-            const categoryName = categories.find((c) => c.id === order.categoryId)?.name ?? 'Servico';
-            const snapshot = order.addressSnapshot;
+            const categoryVisual = getCategoryVisual(categoryName);
+            const CategoryIcon = categoryVisual.Icon;
+            const isExpressInvitation =
+              order.mode === OrderMode.EXPRESS &&
+              !order.professionalId &&
+              !order.professionalProResponse;
             const isAwaitingClientChoice =
               order.mode === OrderMode.EXPRESS &&
               !order.professionalId &&
               order.professionalProResponse === 'accepted' &&
               !order.professionalClientResponse;
+            const isExpressPending = order.mode === OrderMode.EXPRESS;
             const displayAmount = order.totalAmount > 0
               ? order.totalAmount
               : order.professionalProposedAmount ?? 0;
+            const badgeLabel = isExpressInvitation
+              ? 'Novo'
+              : isAwaitingClientChoice
+                ? 'Proposta enviada'
+                : isExpressPending
+                  ? 'Express'
+                  : 'Pendente';
+            const badgeVariant = isExpressInvitation
+              ? 'warning'
+              : isAwaitingClientChoice
+                ? 'info'
+                : isExpressPending
+                  ? 'info'
+                  : 'warning';
+            const helperText = isExpressInvitation
+              ? 'Enviar proposta'
+              : isAwaitingClientChoice
+                ? 'Aguardando escolha do cliente'
+                : isExpressPending
+                  ? 'Pedido Express pendente'
+                  : 'Aguardando resposta';
+
             return (
               <Pressable
                 key={order.id}
                 onPress={() => router.push(`/(professional)/(orders)/${order.id}` as any)}
-                style={({ pressed }) => [styles.orderCard, pressed && styles.pressed]}
+                style={({ pressed }) => [
+                  isExpressInvitation ? styles.invitationCard : styles.orderCard,
+                  pressed && styles.pressed,
+                ]}
               >
                 <View style={styles.orderTop}>
-                  <View style={styles.orderCategoryIcon}>
-                    <Text variant="titleSm" color={colors.primary.default}>
-                      {categoryName.charAt(0)}
-                    </Text>
+                  <View
+                    style={[
+                      styles.orderCategoryIcon,
+                      isExpressInvitation
+                        ? [styles.invitationIcon, { backgroundColor: '#FFFFFF' }]
+                        : { backgroundColor: categoryVisual.bgColor },
+                    ]}
+                  >
+                    <CategoryIcon color={categoryVisual.color} size={18} />
                   </View>
                   <View style={styles.orderText}>
                     <Text variant="titleSm">{categoryName}</Text>
@@ -243,11 +235,8 @@ export default function ProfessionalDashboardScreen() {
                       {order.description}
                     </Text>
                   </View>
-                  {isAwaitingClientChoice ? (
-                    <Badge label="Proposta enviada" variant="info" />
-                  ) : (
-                    <Badge label="Pendente" variant="warning" />
-                  )}
+                  <Badge label={badgeLabel} variant={badgeVariant} />
+                  <ChevronRight color={colors.neutral[400]} size={18} />
                 </View>
                 <View style={styles.orderMeta}>
                   <View style={styles.metaItem}>
@@ -260,6 +249,70 @@ export default function ProfessionalDashboardScreen() {
                     <Text variant="titleSm" color={colors.primary.default}>
                       {formatMoney(displayAmount)}
                     </Text>
+                  ) : (
+                    <Text
+                      variant="labelLg"
+                      color={isExpressInvitation ? colors.warning : colors.neutral[500]}
+                    >
+                      {helperText}
+                    </Text>
+                  )}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {activeOrders.length > 0 ? (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text variant="titleMd">Em atividade</Text>
+            <Pressable onPress={() => router.push('/(professional)/(orders)' as any)}>
+              <Text variant="labelLg" color={colors.primary.default}>Ver todos</Text>
+            </Pressable>
+          </View>
+
+          {activeOrders.map((order) => {
+            const categoryName = categories.find((c) => c.id === order.categoryId)?.name ?? 'Servico';
+            const snapshot = order.addressSnapshot;
+            const categoryVisual = getCategoryVisual(categoryName);
+            const CategoryIcon = categoryVisual.Icon;
+            const isWaitingClient = order.status === OrderStatus.COMPLETED_BY_PRO;
+
+            return (
+              <Pressable
+                key={order.id}
+                onPress={() => router.push(`/(professional)/(orders)/${order.id}` as any)}
+                style={({ pressed }) => [styles.orderCard, pressed && styles.pressed]}
+              >
+                <View style={styles.orderTop}>
+                  <View style={[styles.orderCategoryIcon, { backgroundColor: categoryVisual.bgColor }]}>
+                    <CategoryIcon color={categoryVisual.color} size={18} />
+                  </View>
+                  <View style={styles.orderText}>
+                    <Text variant="titleSm">{categoryName}</Text>
+                    <Text variant="bodySm" color={colors.neutral[500]} numberOfLines={1}>
+                      {order.description}
+                    </Text>
+                  </View>
+                  <Badge
+                    label={isWaitingClient ? 'Aguardando cliente' : 'Em andamento'}
+                    variant={isWaitingClient ? 'default' : 'info'}
+                  />
+                  <ChevronRight color={colors.neutral[400]} size={18} />
+                </View>
+                <View style={styles.orderMeta}>
+                  <View style={styles.metaItem}>
+                    <MapPin color={colors.neutral[400]} size={14} />
+                    <Text variant="labelLg" color={colors.neutral[600]} numberOfLines={1}>
+                      {snapshot ? `${snapshot.street}, ${snapshot.number}` : 'Endereco'}
+                    </Text>
+                  </View>
+                  {order.totalAmount > 0 ? (
+                    <Text variant="titleSm" color={colors.primary.default}>
+                      {formatMoney(order.totalAmount)}
+                    </Text>
                   ) : null}
                 </View>
               </Pressable>
@@ -268,33 +321,15 @@ export default function ProfessionalDashboardScreen() {
         </View>
       ) : null}
 
-      {pendingOrders.length === 0 ? (
+      {pendingDisplayOrders.length === 0 && activeOrders.length === 0 ? (
         <View style={styles.section}>
-          <Text variant="titleMd">Pedidos pendentes</Text>
+          <Text variant="titleMd">Pedidos</Text>
           <EmptyState
             icon={ClipboardList}
-            title="Nenhum pedido pendente"
-            description="Novos pedidos Express aparecerao aqui quando clientes proximos solicitarem servicos."
+            title="Nenhum pedido em aberto"
+            description="Novos pedidos pendentes ou em atividade aparecerao aqui."
           />
         </View>
-      ) : null}
-
-      {/* Active orders */}
-      {activeOrders.length > 0 ? (
-        <Pressable
-          onPress={() => router.push('/(professional)/(orders)' as any)}
-          style={styles.ctaCard}
-        >
-          <View style={styles.ctaContent}>
-            <Text variant="titleSm" color="#FFFFFF">
-              {activeOrders.length} {activeOrders.length === 1 ? 'pedido ativo' : 'pedidos ativos'}
-            </Text>
-            <Text variant="labelLg" color="rgba(255,255,255,0.8)">
-              Acompanhe seus servicos em andamento
-            </Text>
-          </View>
-          <ArrowRight color="#FFFFFF" size={20} />
-        </Pressable>
       ) : null}
     </Screen>
   );
@@ -307,7 +342,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  greetingLeft: { flex: 1, gap: spacing[1] },
+  greetingLeft: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+  },
   bellBtn: {
     width: 44,
     height: 44,
@@ -329,36 +372,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 4,
   },
-  statsRow: {
+  metricsRow: {
     flexDirection: 'row',
-    gap: spacing[3],
-  },
-  statCard: {
-    flex: 1,
-    alignItems: 'center',
-    gap: spacing[1],
-    backgroundColor: colors.neutral[50],
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    padding: spacing[4],
-  },
-  statIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ratingCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: spacing[2],
-    backgroundColor: colors.neutral[50],
-    borderRadius: radius.xl,
+  },
+  metricChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1.5],
+    borderRadius: radius.full,
     borderWidth: 1,
     borderColor: colors.neutral[200],
-    padding: spacing[4],
+    backgroundColor: colors.neutral[100],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    minWidth: 0,
+    overflow: 'hidden',
+  },
+  metricValue: {
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  metricLabel: {
+    flexShrink: 0,
   },
   section: { gap: spacing[3] },
   sectionHeader: {
@@ -381,16 +418,16 @@ const styles = StyleSheet.create({
   },
   invitationCard: {
     borderRadius: radius.xl,
-    backgroundColor: '#FFF7E6',
+    backgroundColor: '#FFFBEB',
     borderWidth: 1,
-    borderColor: colors.warning,
+    borderColor: '#FCD34D',
     padding: spacing[4],
     gap: spacing[3],
   },
   invitationIcon: {
     backgroundColor: '#FFFFFF',
   },
-  pressed: { backgroundColor: colors.neutral[100] },
+  pressed: { opacity: 0.85 },
   orderTop: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -400,7 +437,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.primary.light,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -416,13 +452,4 @@ const styles = StyleSheet.create({
     gap: spacing[2],
     flex: 1,
   },
-  ctaCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-    backgroundColor: colors.primary.default,
-    borderRadius: radius.xl,
-    padding: spacing[4],
-  },
-  ctaContent: { flex: 1, gap: spacing[1] },
 });
