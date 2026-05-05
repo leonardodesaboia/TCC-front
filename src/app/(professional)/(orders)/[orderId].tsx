@@ -428,7 +428,12 @@ export default function ProfessionalOrderDetailScreen() {
                 size="sm"
                 fullWidth={false}
                 leftIcon={<MessageCircle color={colors.primary.default} size={16} />}
-                onPress={() => router.push({ pathname: '/(professional)/conversations', params: { orderId } } as any)}
+                onPress={() =>
+                  router.push({
+                    pathname: '/(professional)/conversations',
+                    params: { orderId, from: 'order' },
+                  } as any)
+                }
               >
                 Conversar com cliente
               </Button>
@@ -452,21 +457,21 @@ export default function ProfessionalOrderDetailScreen() {
           ) : null}
         </View>
 
+        {order.status === OrderStatus.ACCEPTED ? (
+          <View style={styles.cancelAction}>
+            <Button
+              variant="dangerOutline"
+              size="md"
+              onPress={handleCancel}
+              loading={cancelOrder.isPending}
+            >
+              Cancelar pedido
+            </Button>
+          </View>
+        ) : null}
+
         <View style={{ height: spacing[4] }} />
       </ScrollView>
-
-      {order.status === OrderStatus.ACCEPTED ? (
-        <View style={styles.bottomBar}>
-          <Button
-            variant="secondary"
-            size="lg"
-            onPress={handleCancel}
-            loading={cancelOrder.isPending}
-          >
-            Cancelar pedido
-          </Button>
-        </View>
-      ) : null}
     </Screen>
   );
 }
@@ -529,7 +534,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing[4],
   },
-  bottomBar: {
+  cancelAction: {
     paddingTop: spacing[3],
     borderTopWidth: 1,
     borderTopColor: colors.neutral[200],

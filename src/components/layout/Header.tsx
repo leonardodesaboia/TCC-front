@@ -1,22 +1,24 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
 import { Text } from '@/components/ui';
+import { useGoBack } from '@/lib/navigation/back-history';
 import { colors, spacing } from '@/theme';
 
 interface HeaderProps {
   title: string;
   showBack?: boolean;
   rightAction?: React.ReactNode;
+  onBackPress?: () => void;
 }
 
-export function Header({ title, showBack = false, rightAction }: HeaderProps) {
-  const router = useRouter();
+export function Header({ title, showBack = false, rightAction, onBackPress }: HeaderProps) {
+  const defaultGoBack = useGoBack();
+  const goBack = onBackPress ?? defaultGoBack;
 
   return (
     <View style={styles.container}>
       {showBack ? (
-        <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={8}>
+        <Pressable onPress={goBack} style={styles.backButton} hitSlop={8}>
           <ArrowLeft color={colors.neutral[900]} size={22} />
         </Pressable>
       ) : (

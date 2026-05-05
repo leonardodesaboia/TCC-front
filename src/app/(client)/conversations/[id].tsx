@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Send } from 'lucide-react-native';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
@@ -21,7 +21,8 @@ function formatDate(value: string) {
 }
 
 export default function ConversationDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
   const { user } = useAuth();
   const conversationQuery = useConversation(id);
   const messagesQuery = useConversationMessages(id);
@@ -79,9 +80,19 @@ export default function ConversationDetailScreen() {
     return <ErrorState message="Conversa não encontrada." />;
   }
 
+  const handleBack = () => {
+    if (from === 'order') {
+      router.replace(`/(client)/(orders)/${conversation.orderId}` as never);
+    }
+  };
+
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
-      <Header title={`Conversa ${conversation.orderId.slice(0, 8)}`} showBack />
+      <Header
+        title={`Conversa ${conversation.orderId.slice(0, 8)}`}
+        showBack
+        onBackPress={from === 'order' ? handleBack : undefined}
+      />
 
       <ScrollView
         ref={scrollRef}

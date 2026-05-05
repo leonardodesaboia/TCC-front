@@ -159,7 +159,12 @@ function AcceptedProfessionalCard({ professionalId, orderId }: { professionalId:
           size="sm"
           fullWidth={false}
           leftIcon={<MessageCircle color={colors.primary.default} size={16} />}
-          onPress={() => router.push({ pathname: '/(client)/conversations', params: { orderId } } as never)}
+          onPress={() =>
+            router.push({
+              pathname: '/(client)/conversations',
+              params: { orderId, from: 'order' },
+            } as never)
+          }
         >
           Conversar
         </Button>
@@ -478,21 +483,21 @@ export default function OrderDetailScreen() {
           </View>
         </View>
 
+        {order.status !== OrderStatus.CANCELLED && order.status !== OrderStatus.COMPLETED ? (
+          <View style={styles.cancelAction}>
+            <Button
+              variant="dangerOutline"
+              size="md"
+              onPress={handleCancel}
+              loading={cancelOrder.isPending}
+            >
+              Cancelar pedido
+            </Button>
+          </View>
+        ) : null}
+
         <View style={{ height: spacing[4] }} />
       </ScrollView>
-
-      {order.status !== OrderStatus.CANCELLED && order.status !== OrderStatus.COMPLETED ? (
-        <View style={styles.bottomBar}>
-          <Button
-            variant="secondary"
-            size="lg"
-            onPress={handleCancel}
-            loading={cancelOrder.isPending}
-          >
-            Cancelar pedido
-          </Button>
-        </View>
-      ) : null}
     </Screen>
   );
 }
@@ -600,7 +605,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
-  bottomBar: {
+  cancelAction: {
     paddingTop: spacing[3],
     borderTopWidth: 1,
     borderTopColor: colors.neutral[200],

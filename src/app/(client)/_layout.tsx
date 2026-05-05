@@ -6,6 +6,7 @@ import { Screen } from '@/components/layout/Screen';
 import { ClientTabBar } from '@/components/layout/ClientTabBar';
 import { useLogout } from '@/lib/hooks/useAuth';
 import { usePushNotifications } from '@/lib/hooks/usePushNotifications';
+import { useTrackNavigationHistory } from '@/lib/navigation/back-history';
 import { UserRole } from '@/types/user';
 import { colors, spacing } from '@/theme';
 import { useAuth } from '@/providers/AuthProvider';
@@ -31,6 +32,7 @@ function UnsupportedRoleState() {
 export default function ClientLayout() {
   const { isAuthenticated, isInitialized, isLoading, user } = useAuth();
   usePushNotifications();
+  useTrackNavigationHistory();
 
   if (!isInitialized || isLoading) return <LoadingScreen />;
   if (!isAuthenticated) return <Redirect href="/(auth)/login" />;

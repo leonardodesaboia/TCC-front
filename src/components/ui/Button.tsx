@@ -3,7 +3,7 @@ import { Pressable, ActivityIndicator, StyleSheet, ViewStyle, type PressableProp
 import { Text } from './Text';
 import { colors, radius, spacing } from '@/theme';
 
-type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'dangerOutline' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps {
@@ -30,7 +30,12 @@ export function Button({
   fullWidth = true,
 }: ButtonProps) {
   const isDisabled = disabled || loading;
-  const textColor = variant === 'primary' || variant === 'danger' ? '#FFFFFF' : colors.primary.default;
+  const textColor =
+    variant === 'primary' || variant === 'danger'
+      ? '#FFFFFF'
+      : variant === 'dangerOutline'
+        ? colors.error
+        : colors.primary.default;
 
   return (
     <Pressable
@@ -81,6 +86,11 @@ const variantStyles: Record<ButtonVariant, ViewStyle> = {
     borderColor: colors.neutral[300],
   },
   danger: { backgroundColor: colors.error },
+  dangerOutline: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: colors.error,
+  },
   ghost: { backgroundColor: 'transparent' },
 };
 

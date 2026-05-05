@@ -9,6 +9,7 @@ import { ExpressAvailabilityProvider } from '@/lib/availability/ExpressAvailabil
 import { useLogout } from '@/lib/hooks/useAuth';
 import { useMyProfessionalProfile } from '@/lib/hooks/useProfessionalArea';
 import { usePushNotifications } from '@/lib/hooks/usePushNotifications';
+import { useTrackNavigationHistory } from '@/lib/navigation/back-history';
 import { UserRole } from '@/types/user';
 import { colors, spacing } from '@/theme';
 import { useAuth } from '@/providers/AuthProvider';
@@ -35,6 +36,7 @@ export default function ProfessionalLayout() {
   const { isAuthenticated, isInitialized, isLoading, user } = useAuth();
   const profileQuery = useMyProfessionalProfile();
   usePushNotifications();
+  useTrackNavigationHistory();
 
   if (!isInitialized || isLoading) return <LoadingScreen />;
   if (!isAuthenticated) return <Redirect href="/(auth)/login" />;
@@ -57,7 +59,7 @@ export default function ProfessionalLayout() {
           <Tabs.Screen name="notifications" options={{ href: null }} />
           <Tabs.Screen name="(dashboard)" options={{ title: 'Inicio' }} />
           <Tabs.Screen name="(orders)" options={{ title: 'Pedidos' }} />
-          <Tabs.Screen name="conversations" options={{ title: 'Conversas' }} />
+          <Tabs.Screen name="conversations" options={{ href: null }} />
           <Tabs.Screen name="(profile)" options={{ title: 'Perfil' }} />
         </Tabs>
       </View>

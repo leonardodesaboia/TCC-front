@@ -50,16 +50,19 @@ function ConversationCard({ conversation, onPress }: { conversation: Conversatio
 
 export default function ConversationsScreen() {
   const router = useRouter();
-  const { orderId } = useLocalSearchParams<{ orderId?: string }>();
+  const { orderId, from } = useLocalSearchParams<{ orderId?: string; from?: string }>();
   const conversationsQuery = useConversations();
 
   useEffect(() => {
     if (!orderId || !conversationsQuery.data?.length) return;
     const match = conversationsQuery.data.find((item) => item.orderId === orderId);
     if (match) {
-      router.replace(`/(client)/conversations/${match.id}` as never);
+      router.replace({
+        pathname: '/(client)/conversations/[id]',
+        params: { id: match.id, from },
+      } as never);
     }
-  }, [conversationsQuery.data, orderId, router]);
+  }, [conversationsQuery.data, from, orderId, router]);
 
   if (conversationsQuery.isLoading) {
     return <LoadingScreen message="Carregando conversas..." />;
