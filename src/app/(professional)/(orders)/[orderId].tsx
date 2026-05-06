@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Camera, DollarSign, MapPin, MessageCircle } from 'lucide-react-native';
+import { Camera, Clock, DollarSign, MapPin, MessageCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
@@ -26,6 +26,13 @@ function formatDateTime(value?: string | null) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value));
+}
+
+function formatDuration(minutes: number) {
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return remainder > 0 ? `${hours}h ${remainder}min` : `${hours}h`;
 }
 
 const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'error' | 'info' | 'muted' }> = {
@@ -89,6 +96,9 @@ export default function ProfessionalOrderDetailScreen() {
   const badge = STATUS_BADGE[order.status] ?? STATUS_BADGE[OrderStatus.PENDING];
   const completionPhotos = order.photos.filter((p) => p.type === 'completion_proof');
   const isOnDemand = order.mode === OrderMode.ON_DEMAND;
+  const hasProfessionalActions =
+    order.status !== OrderStatus.CANCELLED &&
+    order.status !== OrderStatus.DISPUTED;
   const isExpressQueueEntry = order.mode === OrderMode.EXPRESS && !order.professionalId;
   const isExpressInvitation =
     isExpressQueueEntry &&
@@ -240,6 +250,13 @@ export default function ProfessionalOrderDetailScreen() {
             label="Criado em"
             value={formatDateTime(order.createdAt)}
           />
+          {order.estimatedDurationMinutes ? (
+            <InfoRow
+              icon={<Clock color={colors.neutral[400]} size={18} />}
+              label="Duração estimada"
+              value={formatDuration(order.estimatedDurationMinutes)}
+            />
+          ) : null}
         </View>
 
         {/* Payment info */}
@@ -252,10 +269,6 @@ export default function ProfessionalOrderDetailScreen() {
                 <View style={styles.paymentRow}>
                   <Text variant="bodySm" color={colors.neutral[600]}>Valor base</Text>
                   <Text variant="bodySm">{formatMoney(order.baseAmount)}</Text>
-                </View>
-                <View style={styles.paymentRow}>
-                  <Text variant="bodySm" color={colors.neutral[600]}>Taxa da plataforma</Text>
-                  <Text variant="bodySm">{formatMoney(order.platformFee)}</Text>
                 </View>
                 {order.urgencyFee > 0 ? (
                   <View style={styles.paymentRow}>
@@ -299,9 +312,10 @@ export default function ProfessionalOrderDetailScreen() {
           </>
         ) : null}
 
-        <Divider />
+        {hasProfessionalActions ? <Divider /> : null}
 
         {/* Actions based on status */}
+        {hasProfessionalActions ? (
         <View style={styles.section}>
           <Text variant="titleSm">Acoes</Text>
 
@@ -456,6 +470,7 @@ export default function ProfessionalOrderDetailScreen() {
             </View>
           ) : null}
         </View>
+        ) : null}
 
         {order.status === OrderStatus.ACCEPTED ? (
           <View style={styles.cancelAction}>

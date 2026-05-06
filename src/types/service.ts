@@ -6,6 +6,7 @@ export interface ServiceSummary {
   effectivePrice: number;
   durationInMinutes?: number;
   professionId?: string;
+  pricingType?: 'hourly' | 'fixed';
 }
 
 export interface ServiceDto {
@@ -16,6 +17,7 @@ export interface ServiceDto {
   effectivePrice?: number | string | null;
   durationInMinutes?: number | null;
   professionId?: string | null;
+  pricingType?: 'hourly' | 'fixed' | null;
 }
 
 export interface ServiceDetails extends ServiceSummary {

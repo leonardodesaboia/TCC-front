@@ -48,6 +48,7 @@ function mapProfessionalOffering(dto: ProfessionalOfferingDto): ServiceSummary {
     effectivePrice,
     durationInMinutes: dto.estimatedDurationMinutes != null ? toNumber(dto.estimatedDurationMinutes) : undefined,
     professionId: dto.categoryId,
+    pricingType: dto.pricingType,
   };
 }
 

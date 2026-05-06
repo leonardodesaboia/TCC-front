@@ -42,7 +42,7 @@ export default function NewProfessionalServiceScreen() {
     !!categoryId &&
     title.trim().length > 0 &&
     description.trim().length > 0 &&
-    parsedDuration > 0 &&
+    (pricingType === 'hourly' || parsedDuration > 0) &&
     (pricingType === 'hourly' || (parsedPrice !== null && !Number.isNaN(parsedPrice) && parsedPrice > 0));
 
   async function handleSubmit() {
@@ -54,7 +54,7 @@ export default function NewProfessionalServiceScreen() {
         description: description.trim(),
         pricingType,
         price: parsedPrice ?? null,
-        estimatedDurationMinutes: parsedDuration,
+        estimatedDurationMinutes: pricingType === 'hourly' ? null : parsedDuration,
       });
       router.back();
     } catch {
@@ -148,9 +148,11 @@ export default function NewProfessionalServiceScreen() {
           ) : null}
         </FormField>
 
-        <FormField label="Duração estimada (minutos)">
-          <Input value={duration} onChangeText={setDuration} placeholder="Ex: 60" keyboardType="numeric" />
-        </FormField>
+        {pricingType !== 'hourly' ? (
+          <FormField label="Duração estimada (minutos)">
+            <Input value={duration} onChangeText={setDuration} placeholder="Ex: 60" keyboardType="numeric" />
+          </FormField>
+        ) : null}
 
         <View style={{ height: spacing[4] }} />
       </ScrollView>

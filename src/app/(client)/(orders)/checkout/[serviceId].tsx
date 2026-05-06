@@ -73,6 +73,7 @@ export default function CheckoutScreen() {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [description, setDescription] = useState('');
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
+  const [selectedMinutes, setSelectedMinutes] = useState(60);
 
   const addresses = addressesQuery.data ?? [];
 
@@ -110,6 +111,13 @@ export default function CheckoutScreen() {
     return <ErrorState message="Serviço ou profissional não encontrado." />;
   }
 
+  const isHourlyWithoutDuration =
+    service.pricingType === 'hourly' && !service.durationInMinutes;
+
+  const totalPrice = isHourlyWithoutDuration
+    ? service.effectivePrice * (selectedMinutes / 60)
+    : service.effectivePrice;
+
   const canSubmit = !!selectedAddress && description.trim().length > 0 && scheduledDate > new Date();
 
   function handleWebDateChange(value: string) {
@@ -138,6 +146,7 @@ export default function CheckoutScreen() {
       description: description.trim(),
       addressId: selectedAddress,
       scheduledAt: scheduledDate.toISOString(),
+      ...(isHourlyWithoutDuration && { estimatedDurationMinutes: selectedMinutes }),
     });
   }
 
@@ -172,6 +181,40 @@ export default function CheckoutScreen() {
             {description.length}/2000
           </Text>
         </View>
+
+        {isHourlyWithoutDuration ? (
+          <>
+            <Divider />
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Clock color={colors.neutral[700]} size={18} />
+                <Text variant="titleSm">Duração do serviço</Text>
+              </View>
+              <View style={styles.durationStepper}>
+                <Pressable
+                  style={[styles.stepperButton, selectedMinutes <= 60 && styles.stepperButtonDisabled]}
+                  onPress={() => setSelectedMinutes((m) => Math.max(60, m - 30))}
+                  disabled={selectedMinutes <= 60}
+                >
+                  <Text variant="titleSm" color={selectedMinutes <= 60 ? colors.neutral[300] : colors.primary.default}>−</Text>
+                </Pressable>
+                <Text variant="titleSm" style={styles.stepperValue}>
+                  {formatDuration(selectedMinutes)}
+                </Text>
+                <Pressable
+                  style={[styles.stepperButton, selectedMinutes >= 600 && styles.stepperButtonDisabled]}
+                  onPress={() => setSelectedMinutes((m) => Math.min(600, m + 30))}
+                  disabled={selectedMinutes >= 600}
+                >
+                  <Text variant="titleSm" color={selectedMinutes >= 600 ? colors.neutral[300] : colors.primary.default}>+</Text>
+                </Pressable>
+              </View>
+              <Text variant="labelSm" color={colors.neutral[400]} style={styles.centered}>
+                Mínimo 1h · Máximo 10h · Passos de 30 min
+              </Text>
+            </View>
+          </>
+        ) : null}
 
         <Divider />
 
@@ -308,7 +351,7 @@ export default function CheckoutScreen() {
       <View style={styles.bottomBar}>
         <View style={styles.bottomPrice}>
           <Text variant="labelLg" color={colors.neutral[500]}>Total</Text>
-          <Text variant="titleLg" color={colors.primary.default}>{formatMoney(service.effectivePrice)}</Text>
+          <Text variant="titleLg" color={colors.primary.default}>{formatMoney(totalPrice)}</Text>
         </View>
         <View style={styles.ctaBtn}>
           <Button
@@ -412,4 +455,29 @@ const styles = StyleSheet.create({
   },
   bottomPrice: { gap: 2 },
   ctaBtn: { flex: 1 },
+  durationStepper: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: spacing[6],
+  },
+  stepperButton: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.primary.default,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  stepperButtonDisabled: {
+    borderColor: colors.neutral[200],
+  },
+  stepperValue: {
+    minWidth: 80,
+    textAlign: 'center' as const,
+  },
+  centered: {
+    textAlign: 'center' as const,
+  },
 });

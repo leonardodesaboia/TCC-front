@@ -51,6 +51,9 @@ function mapOrderSummary(dto: OrderSummaryDto): OrderSummary {
     baseAmount: toNumber(dto.baseAmount),
     platformFee: toNumber(dto.platformFee),
     totalAmount: toNumber(dto.totalAmount),
+    estimatedDurationMinutes: dto.estimatedDurationMinutes != null
+      ? toNumber(dto.estimatedDurationMinutes)
+      : undefined,
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
   };

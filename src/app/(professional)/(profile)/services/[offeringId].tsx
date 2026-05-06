@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Trash2 } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
@@ -64,7 +64,7 @@ export default function EditProfessionalServiceScreen() {
   const canSubmit =
     title.trim().length > 0 &&
     description.trim().length > 0 &&
-    parsedDuration > 0 &&
+    (pricingType === 'hourly' || parsedDuration > 0) &&
     (clearPrice || pricingType === 'hourly' || (parsedPrice !== null && !Number.isNaN(parsedPrice) && parsedPrice > 0));
 
   async function handleSubmit() {
@@ -76,7 +76,7 @@ export default function EditProfessionalServiceScreen() {
         pricingType,
         price: clearPrice ? null : parsedPrice,
         clearPrice,
-        estimatedDurationMinutes: parsedDuration,
+        estimatedDurationMinutes: pricingType === 'hourly' ? null : parsedDuration,
       });
       router.back();
     } catch {
@@ -85,23 +85,28 @@ export default function EditProfessionalServiceScreen() {
   }
 
   function handleDelete() {
+    const confirmDelete = async () => {
+      try {
+        await deleteOffering.mutateAsync(offeringId);
+        router.back();
+      } catch {
+        // toast já exibido
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Tem certeza que deseja remover este serviço? Esta ação não pode ser desfeita.')) {
+        void confirmDelete();
+      }
+      return;
+    }
+
     Alert.alert(
       'Remover serviço',
       'Tem certeza que deseja remover este serviço? Esta ação não pode ser desfeita.',
       [
         { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Remover',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteOffering.mutateAsync(offeringId);
-              router.back();
-            } catch {
-              // toast já exibido
-            }
-          },
-        },
+        { text: 'Remover', style: 'destructive', onPress: () => void confirmDelete() },
       ],
     );
   }
@@ -175,9 +180,11 @@ export default function EditProfessionalServiceScreen() {
           ) : null}
         </FormField>
 
-        <FormField label="Duração estimada (minutos)">
-          <Input value={duration} onChangeText={setDuration} placeholder="Ex: 60" keyboardType="numeric" />
-        </FormField>
+        {pricingType !== 'hourly' ? (
+          <FormField label="Duração estimada (minutos)">
+            <Input value={duration} onChangeText={setDuration} placeholder="Ex: 60" keyboardType="numeric" />
+          </FormField>
+        ) : null}
 
         <Pressable
           onPress={handleDelete}

@@ -127,7 +127,7 @@ export interface CreateProfessionalOfferingRequest {
   description: string;
   pricingType: PricingType;
   price?: number | null;
-  estimatedDurationMinutes: number;
+  estimatedDurationMinutes?: number | null;
 }
 
 export interface UpdateProfessionalOfferingRequest extends Partial<CreateProfessionalOfferingRequest> {

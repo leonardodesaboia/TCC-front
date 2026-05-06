@@ -51,6 +51,7 @@ export interface OrderSummary {
   baseAmount: number;
   platformFee: number;
   totalAmount: number;
+  estimatedDurationMinutes?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -89,6 +90,7 @@ export interface CreateOnDemandOrderRequestDto {
   description: string;
   addressId: string;
   scheduledAt: string;
+  estimatedDurationMinutes?: number;
 }
 
 export interface ExpressProposal {
@@ -119,6 +121,7 @@ export interface OrderSummaryDto {
   baseAmount?: number | string | null;
   platformFee?: number | string | null;
   totalAmount?: number | string | null;
+  estimatedDurationMinutes?: number | null;
   searchRadiusKm?: number | string | null;
   searchAttempts?: number | string | null;
   proCompletedAt?: string | null;
