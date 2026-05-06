@@ -186,8 +186,9 @@ export default function OrderDetailScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const orderQuery = useOrder(orderId);
   const shouldLoadProposals =
-    orderQuery.data?.mode === OrderMode.EXPRESS &&
-    orderQuery.data?.status === OrderStatus.PENDING;
+    orderQuery.data !== undefined &&
+    orderQuery.data.mode === OrderMode.EXPRESS &&
+    orderQuery.data.status === OrderStatus.PENDING;
   const proposalsQuery = useOrderProposals(orderId, shouldLoadProposals);
   const chooseProposal = useChooseOrderProposal(orderId);
   const cancelOrder = useCancelOrder(orderId);
@@ -231,6 +232,10 @@ export default function OrderDetailScreen() {
   const proposals = isOnDemand ? [] : (proposalsQuery.data ?? []);
   const hasReview = (reviewsQuery.data ?? []).some((review) => !!review.comment);
   const completionPhotos = order.photos.filter((photo) => photo.type === 'completion_proof');
+  const hasActions =
+    order.status === OrderStatus.COMPLETED_BY_PRO ||
+    order.status === OrderStatus.COMPLETED ||
+    (order.status === OrderStatus.CANCELLED && order.mode === OrderMode.EXPRESS && !!areaName);
 
   function handleCancel() {
     const confirmCancel = () => cancelOrder.mutate('Cancelado pelo cliente no app');
@@ -404,10 +409,6 @@ export default function OrderDetailScreen() {
                   <Text variant="bodySm">{formatMoney(order.baseAmount)}</Text>
                 </View>
                 <View style={styles.paymentRow}>
-                  <Text variant="bodySm" color={colors.neutral[600]}>Taxa da plataforma</Text>
-                  <Text variant="bodySm">{formatMoney(order.platformFee)}</Text>
-                </View>
-                <View style={styles.paymentRow}>
                   <Text variant="bodySm" color={colors.neutral[600]}>Urgência</Text>
                   <Text variant="bodySm">{formatMoney(order.urgencyFee)}</Text>
                 </View>
@@ -421,64 +422,67 @@ export default function OrderDetailScreen() {
           </>
         ) : null}
 
-        <Divider />
-
-        <View style={styles.section}>
-          <Text variant="titleSm">Ações</Text>
-          <View style={styles.actions}>
-            {order.status === OrderStatus.COMPLETED_BY_PRO ? (
-              <>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  fullWidth={false}
-                  onPress={() => confirmOrder.mutate()}
-                  loading={confirmOrder.isPending}
-                >
-                  Confirmar serviço
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  fullWidth={false}
-                  onPress={() => router.push(`/(client)/(orders)/dispute/${orderId}` as never)}
-                >
-                  Abrir disputa
-                </Button>
-              </>
-            ) : null}
-            {order.status === OrderStatus.COMPLETED ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                fullWidth={false}
-                onPress={() => router.push(`/(client)/(orders)/review/${orderId}` as never)}
-              >
-                {hasReview ? 'Ver avaliação' : 'Avaliar pedido'}
-              </Button>
-            ) : null}
-            {order.status === OrderStatus.CANCELLED && order.mode === OrderMode.EXPRESS && areaName ? (
-              <Button
-                variant="primary"
-                size="sm"
-                fullWidth={false}
-                onPress={() =>
-                  router.push({
-                    pathname: '/(client)/(orders)/express',
-                    params: {
-                      areaId: order.areaId ?? '',
-                      categoryId: order.categoryId,
-                      areaName: areaName ?? '',
-                      categoryName,
-                    },
-                  } as never)
-                }
-              >
-                Refazer pedido
-              </Button>
-            ) : null}
-          </View>
-        </View>
+        {hasActions ? (
+          <>
+            <Divider />
+            <View style={styles.section}>
+              <Text variant="titleSm">Ações</Text>
+              <View style={styles.actions}>
+                {order.status === OrderStatus.COMPLETED_BY_PRO ? (
+                  <>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      fullWidth={false}
+                      onPress={() => confirmOrder.mutate()}
+                      loading={confirmOrder.isPending}
+                    >
+                      Confirmar serviço
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      fullWidth={false}
+                      onPress={() => router.push(`/(client)/(orders)/dispute/${orderId}` as never)}
+                    >
+                      Abrir disputa
+                    </Button>
+                  </>
+                ) : null}
+                {order.status === OrderStatus.COMPLETED ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    fullWidth={false}
+                    onPress={() => router.push(`/(client)/(orders)/review/${orderId}` as never)}
+                  >
+                    {hasReview ? 'Ver avaliação' : 'Avaliar pedido'}
+                  </Button>
+                ) : null}
+                {order.status === OrderStatus.CANCELLED && order.mode === OrderMode.EXPRESS && areaName ? (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    fullWidth={false}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/(client)/(orders)/express',
+                        params: {
+                          areaId: order.areaId ?? '',
+                          categoryId: order.categoryId,
+                          areaName: areaName ?? '',
+                          categoryName,
+                        },
+                      } as never)
+                    }
+                  >
+                    Refazer pedido
+                  </Button>
+                ) : null}
+              </View>
+            </View>
+          </>
+        ) : null}
 
         {order.status !== OrderStatus.CANCELLED && order.status !== OrderStatus.COMPLETED ? (
           <View style={styles.cancelAction}>

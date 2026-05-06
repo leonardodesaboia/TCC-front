@@ -35,7 +35,7 @@ export function useOrderProposals(id: string, enabled = true) {
     queryKey: queryKeys.orders.proposals(id),
     queryFn: () => clientIntegration.orders.getExpressProposals(id),
     enabled: enabled && !!id,
-    refetchInterval: enabled ? ACTIVE_ORDER_POLL_MS : false,
+    refetchInterval: (query) => (enabled && !!id && !query.state.error ? ACTIVE_ORDER_POLL_MS : false),
   });
 }
 
