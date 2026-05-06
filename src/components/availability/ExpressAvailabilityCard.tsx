@@ -103,7 +103,6 @@ export function ExpressAvailabilityCard({ variant = 'default' }: ExpressAvailabi
         <Switch
           value={geoActive}
           onValueChange={toggle}
-          disabled={busy}
           accessibilityRole="switch"
           accessibilityState={{ checked: geoActive, busy }}
           accessibilityLabel={`Express ${geoActive ? 'ativo' : 'desligado'}`}
@@ -126,7 +125,6 @@ export function ExpressAvailabilityCard({ variant = 'default' }: ExpressAvailabi
         <Switch
           value={geoActive}
           onValueChange={toggle}
-          disabled={busy}
           accessibilityRole="switch"
           accessibilityState={{ checked: geoActive, busy }}
           trackColor={{ false: colors.neutral[300], true: colors.success }}

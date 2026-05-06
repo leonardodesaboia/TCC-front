@@ -203,6 +203,88 @@ describe('ExpressAvailabilityProvider', () => {
     expect(remove).toHaveBeenCalled();
   });
 
+  it('toggle OFF during an in-flight capture cancels activation before it reaches the backend', async () => {
+    requestForegroundPermissionsAsync.mockResolvedValue({ status: 'granted' });
+
+    let resolvePosition: ((value: any) => void) | null = null;
+    getCurrentPositionAsync.mockImplementation(() => new Promise((resolve) => {
+      resolvePosition = resolve;
+    }));
+
+    const { result } = renderHook(() => useExpressAvailability(), {
+      wrapper: createWrapper(),
+    });
+
+    let enablePromise: Promise<void> | null = null;
+    await act(async () => {
+      enablePromise = result.current.toggle(true);
+      await Promise.resolve();
+    });
+
+    expect(result.current.status).toBe('capturing');
+
+    await act(async () => {
+      await result.current.toggle(false);
+    });
+
+    await act(async () => {
+      resolvePosition?.({
+        coords: { latitude: -3.73, longitude: -38.52, accuracy: 10 },
+        timestamp: Date.now(),
+      });
+      await enablePromise;
+    });
+
+    expect(result.current.status).toBe('idle');
+    expect(result.current.geoActive).toBe(false);
+    expect(updateGeo).toHaveBeenCalledTimes(1);
+    expect(updateGeo).toHaveBeenCalledWith(PRO_ID, expect.objectContaining({ geoActive: false }));
+  });
+
+  it('rolls back a stale activation response when the user toggles OFF mid-request', async () => {
+    requestForegroundPermissionsAsync.mockResolvedValue({ status: 'granted' });
+    getCurrentPositionAsync.mockResolvedValue({
+      coords: { latitude: -3.73, longitude: -38.52, accuracy: 10 },
+      timestamp: Date.now(),
+    });
+
+    let resolveActivation: (() => void) | null = null;
+    updateGeo.mockImplementation((_professionalId, payload) => {
+      if (payload.geoActive) {
+        return new Promise((resolve) => {
+          resolveActivation = () => resolve({});
+        });
+      }
+      return Promise.resolve({});
+    });
+
+    const { result } = renderHook(() => useExpressAvailability(), {
+      wrapper: createWrapper(),
+    });
+
+    let enablePromise: Promise<void> | null = null;
+    await act(async () => {
+      enablePromise = result.current.toggle(true);
+      await Promise.resolve();
+    });
+
+    expect(updateGeo).toHaveBeenCalledWith(PRO_ID, expect.objectContaining({ geoActive: true }));
+
+    await act(async () => {
+      await result.current.toggle(false);
+    });
+
+    await act(async () => {
+      resolveActivation?.();
+      await enablePromise;
+    });
+
+    expect(result.current.status).toBe('idle');
+    expect(result.current.geoActive).toBe(false);
+    expect(updateGeo).toHaveBeenCalledTimes(3);
+    expect(updateGeo.mock.calls.at(-1)?.[1]).toEqual(expect.objectContaining({ geoActive: false }));
+  });
+
   it('debounces watch updates: 3 events within 60s and <50m yield only the initial backend call', async () => {
     requestForegroundPermissionsAsync.mockResolvedValue({ status: 'granted' });
     getCurrentPositionAsync.mockResolvedValue({

@@ -6,6 +6,7 @@ import {
   HelpCircle,
   LogOut,
   MapPin,
+  MessageCircle,
   Settings,
   Shield,
 } from 'lucide-react-native';
@@ -84,6 +85,12 @@ export default function ProfileScreen() {
           icon={<Bell color={colors.neutral[600]} size={20} />}
           label="Notificações"
           onPress={() => router.push('/(client)/(home)/notifications')}
+        />
+        <Divider />
+        <MenuItem
+          icon={<MessageCircle color={colors.neutral[600]} size={20} />}
+          label="Conversas"
+          onPress={() => router.push('/(client)/conversations')}
         />
         <Divider />
         <MenuItem

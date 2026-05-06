@@ -85,6 +85,8 @@ export function ExpressAvailabilityProvider({
   const consecutiveFailuresRef = useRef(0);
   const hydratedProfessionalIdRef = useRef<string | null>(null);
   const autoResumeStartedForRef = useRef<string | null>(null);
+  const desiredGeoActiveRef = useRef(initialGeoActive);
+  const trackingTokenRef = useRef(0);
 
   const invalidateProfileQueries = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.professionals.myProfile });
@@ -104,6 +106,16 @@ export function ExpressAvailabilityProvider({
     subscriptionRef.current = null;
   }, []);
 
+  const beginTrackingTransition = useCallback((nextActive: boolean) => {
+    desiredGeoActiveRef.current = nextActive;
+    trackingTokenRef.current += 1;
+    return trackingTokenRef.current;
+  }, []);
+
+  const isTrackingTokenCurrent = useCallback((token: number) => {
+    return desiredGeoActiveRef.current && trackingTokenRef.current === token;
+  }, []);
+
   const applyInactiveState = useCallback((nextStatus: ExpressAvailabilityStatus = 'idle') => {
     setGeoActive(false);
     setStatus(nextStatus);
@@ -113,8 +125,14 @@ export function ExpressAvailabilityProvider({
     consecutiveFailuresRef.current = 0;
   }, []);
 
-  const flushIfNeeded = useCallback(async (coords: Coords, force = false, capturedAtMs = Date.now()) => {
+  const flushIfNeeded = useCallback(async (
+    coords: Coords,
+    force = false,
+    capturedAtMs = Date.now(),
+    trackingToken = trackingTokenRef.current,
+  ) => {
     if (!professionalId) return false;
+    if (!isTrackingTokenCurrent(trackingToken)) return false;
 
     const last = lastFlushRef.current;
     const elapsed = last ? capturedAtMs - last.at : Infinity;
@@ -133,6 +151,17 @@ export function ExpressAvailabilityProvider({
       source: SOURCE,
     });
 
+    if (!isTrackingTokenCurrent(trackingToken)) {
+      stopWatch();
+      try {
+        await professionalManagementApi.updateGeo(professionalId, { geoActive: false });
+      } catch (error) {
+        console.warn('[express-availability] failed to rollback stale activation', error);
+      }
+      invalidateProfileQueries();
+      return false;
+    }
+
     lastFlushRef.current = { at: capturedAtMs, coords };
     setGeoActive(true);
     setStatus('active');
@@ -141,7 +170,7 @@ export function ExpressAvailabilityProvider({
     consecutiveFailuresRef.current = 0;
     invalidateProfileQueries();
     return true;
-  }, [invalidateProfileQueries, professionalId]);
+  }, [invalidateProfileQueries, isTrackingTokenCurrent, professionalId, stopWatch]);
 
   const handleCaptureFailure = useCallback((error: unknown) => {
     consecutiveFailuresRef.current += 1;
@@ -151,22 +180,25 @@ export function ExpressAvailabilityProvider({
     console.warn('[express-availability] capture failed', error);
   }, []);
 
-  const captureOnce = useCallback(async (force = false) => {
+  const captureOnce = useCallback(async (force = false, trackingToken = trackingTokenRef.current) => {
     try {
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
+      if (!isTrackingTokenCurrent(trackingToken)) {
+        return null;
+      }
       const coords = toCoords(position);
-      await flushIfNeeded(coords, force, position.timestamp ?? Date.now());
+      await flushIfNeeded(coords, force, position.timestamp ?? Date.now(), trackingToken);
       return coords;
     } catch (error) {
       handleCaptureFailure(error);
       return null;
     }
-  }, [flushIfNeeded, handleCaptureFailure]);
+  }, [flushIfNeeded, handleCaptureFailure, isTrackingTokenCurrent]);
 
-  const startWatch = useCallback(async () => {
-    if (subscriptionRef.current) return;
+  const startWatch = useCallback(async (trackingToken = trackingTokenRef.current) => {
+    if (subscriptionRef.current || !isTrackingTokenCurrent(trackingToken)) return;
     subscriptionRef.current = await Location.watchPositionAsync(
       {
         accuracy: Location.Accuracy.Balanced,
@@ -174,13 +206,18 @@ export function ExpressAvailabilityProvider({
         distanceInterval: WATCH_DISTANCE_INTERVAL_M,
       },
       (location) => {
+        if (!isTrackingTokenCurrent(trackingToken)) {
+          stopWatch();
+          return;
+        }
         const coords = toCoords(location);
-        void flushIfNeeded(coords, false, location.timestamp ?? Date.now()).catch(handleCaptureFailure);
+        void flushIfNeeded(coords, false, location.timestamp ?? Date.now(), trackingToken).catch(handleCaptureFailure);
       },
     );
-  }, [flushIfNeeded, handleCaptureFailure]);
+  }, [flushIfNeeded, handleCaptureFailure, isTrackingTokenCurrent, stopWatch]);
 
   const disableOnPermissionLoss = useCallback(async () => {
+    beginTrackingTransition(false);
     stopWatch();
 
     if (professionalId) {
@@ -193,10 +230,11 @@ export function ExpressAvailabilityProvider({
     }
 
     applyInactiveState('permission-denied');
-  }, [applyInactiveState, invalidateProfileQueries, professionalId, stopWatch]);
+  }, [applyInactiveState, beginTrackingTransition, invalidateProfileQueries, professionalId, stopWatch]);
 
   const resumeTracking = useCallback(async () => {
     if (!geoActive || !professionalId) return;
+    const trackingToken = trackingTokenRef.current;
 
     const permission = await Location.getForegroundPermissionsAsync();
     if (permission.status !== 'granted') {
@@ -210,15 +248,17 @@ export function ExpressAvailabilityProvider({
       setStatus('capturing');
     }
 
-    const coords = await captureOnce(true);
+    const coords = await captureOnce(true, trackingToken);
+    if (!isTrackingTokenCurrent(trackingToken)) return;
     if (!coords) return;
-    await startWatch();
-  }, [captureOnce, disableOnPermissionLoss, geoActive, lastCapturedAt, professionalId, startWatch]);
+    await startWatch(trackingToken);
+  }, [captureOnce, disableOnPermissionLoss, geoActive, isTrackingTokenCurrent, lastCapturedAt, professionalId, startWatch]);
 
   const toggle = useCallback(async (next: boolean) => {
     if (!professionalId) return;
 
     if (!next) {
+      beginTrackingTransition(false);
       stopWatch();
 
       let lastError: unknown = null;
@@ -244,28 +284,34 @@ export function ExpressAvailabilityProvider({
       return;
     }
 
+    const trackingToken = beginTrackingTransition(true);
     setStatus('requesting-permission');
     const permission = await Location.requestForegroundPermissionsAsync();
+    if (trackingTokenRef.current !== trackingToken) return;
     if (permission.status !== 'granted') {
+      desiredGeoActiveRef.current = false;
       setStatus('permission-denied');
       setGeoActive(false);
       return;
     }
 
     setStatus('capturing');
-    const coords = await captureOnce(true);
+    const coords = await captureOnce(true, trackingToken);
+    if (!isTrackingTokenCurrent(trackingToken)) return;
     if (!coords) return;
 
-    await startWatch();
-  }, [applyInactiveState, captureOnce, invalidateProfileQueries, professionalId, startWatch, stopWatch]);
+    await startWatch(trackingToken);
+  }, [applyInactiveState, beginTrackingTransition, captureOnce, invalidateProfileQueries, isTrackingTokenCurrent, professionalId, startWatch, stopWatch]);
 
   const forceCapture = useCallback(async () => {
     if (!geoActive || !professionalId) return;
+    const trackingToken = trackingTokenRef.current;
     setStatus('capturing');
-    const coords = await captureOnce(true);
+    const coords = await captureOnce(true, trackingToken);
+    if (!isTrackingTokenCurrent(trackingToken)) return;
     if (!coords) return;
-    await startWatch();
-  }, [captureOnce, geoActive, professionalId, startWatch]);
+    await startWatch(trackingToken);
+  }, [captureOnce, geoActive, isTrackingTokenCurrent, professionalId, startWatch]);
 
   const openSettings = useCallback(async () => {
     await Linking.openSettings();
@@ -276,6 +322,8 @@ export function ExpressAvailabilityProvider({
 
     hydratedProfessionalIdRef.current = professionalId;
     const capturedDate = initialGeoCapturedAt ? new Date(initialGeoCapturedAt) : null;
+    desiredGeoActiveRef.current = initialGeoActive;
+    trackingTokenRef.current += 1;
 
     setGeoActive(initialGeoActive);
     setLastCapturedAt(capturedDate);

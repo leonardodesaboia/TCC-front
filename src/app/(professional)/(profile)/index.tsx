@@ -7,6 +7,7 @@ import {
   HelpCircle,
   LogOut,
   MapPin,
+  MessageCircle,
   Settings,
   Star,
   Wrench,
@@ -118,6 +119,12 @@ export default function ProfessionalProfileScreen() {
           icon={<Bell color={colors.neutral[600]} size={20} />}
           label="Notificacoes"
           onPress={() => router.push('/(professional)/notifications' as any)}
+        />
+        <Divider />
+        <MenuItem
+          icon={<MessageCircle color={colors.neutral[600]} size={20} />}
+          label="Conversas"
+          onPress={() => router.push('/(professional)/conversations' as any)}
         />
       </View>
 
