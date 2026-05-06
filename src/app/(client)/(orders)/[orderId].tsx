@@ -9,7 +9,6 @@ import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { OrderStatusBadge } from '@/components/client/orders/OrderStatusBadge';
 import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
-import { useOrderDispute } from '@/lib/hooks/useDisputes';
 import { useCancelOrder, useChooseOrderProposal, useConfirmOrder, useOrder, useOrderProposals } from '@/lib/hooks/useOrders';
 import { useProfessional } from '@/lib/hooks/useProfessionals';
 import { useOrderReviews } from '@/lib/hooks/useReviews';
@@ -196,7 +195,6 @@ export default function OrderDetailScreen() {
   const areasQuery = useServiceAreas();
   const categoriesQuery = useServiceCategories();
   const reviewsQuery = useOrderReviews(orderId);
-  const disputeQuery = useOrderDispute(orderId);
 
   if (orderQuery.isLoading || areasQuery.isLoading || categoriesQuery.isLoading || reviewsQuery.isLoading) {
     return <LoadingScreen message="Carregando pedido..." />;
@@ -232,7 +230,6 @@ export default function OrderDetailScreen() {
   const timeline = buildTimeline(order.status, order.mode);
   const proposals = isOnDemand ? [] : (proposalsQuery.data ?? []);
   const hasReview = (reviewsQuery.data ?? []).some((review) => !!review.comment);
-  const hasDispute = !!disputeQuery.data;
   const completionPhotos = order.photos.filter((photo) => photo.type === 'completion_proof');
 
   function handleCancel() {
@@ -446,7 +443,7 @@ export default function OrderDetailScreen() {
                   fullWidth={false}
                   onPress={() => router.push(`/(client)/(orders)/dispute/${orderId}` as never)}
                 >
-                  {hasDispute ? 'Ver disputa' : 'Abrir disputa'}
+                  Abrir disputa
                 </Button>
               </>
             ) : null}

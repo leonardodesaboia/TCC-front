@@ -1,7 +1,6 @@
 import { apiClient } from './client';
 import { professionalManagementApi } from './professional-management';
 import { toNumber, unwrapItem, unwrapList } from './utils';
-import { usersApi } from './users';
 import type {
   GetProfessionalsByCategoryParamsDto,
   ProfessionalProfile,
@@ -14,7 +13,6 @@ import type {
   ProfessionalProfileRecordDto,
   SubscriptionPlan,
 } from '@/types/professional-management';
-import type { User } from '@/types/user';
 
 function mapProfessionalProfileRecord(dto: ProfessionalProfileRecordDto): ProfessionalProfileRecord {
   return {
@@ -90,7 +88,6 @@ function getSpecialties(record: ProfessionalProfileRecord) {
 
 function mapProfessionalSummary(
   record: ProfessionalProfileRecord,
-  user?: User,
   badgeLabel?: string,
 ): ProfessionalSummary {
   const professions = getProfessions(record);
@@ -98,16 +95,16 @@ function mapProfessionalSummary(
 
   return {
     id: record.id,
-    name: user?.name ?? 'Profissional',
-    avatarUrl: user?.profileImage ?? undefined,
+    name: record.name ?? 'Profissional',
+    avatarUrl: record.avatar?.downloadUrl ?? undefined,
     profession: professions[0]?.name ?? 'Profissional',
     professions,
     areas,
     specialties: getSpecialties(record),
     neighborhood: undefined,
     city: undefined,
-    rating: user?.averageRating ?? record.averageRating ?? 0,
-    reviewCount: user?.reviewCount ?? record.reviewCount ?? 0,
+    rating: record.averageRating ?? 0,
+    reviewCount: record.reviewCount ?? 0,
     availabilityLabel: record.geoActive ? 'Disponivel agora' : undefined,
     badgeLabel,
   };
@@ -115,11 +112,10 @@ function mapProfessionalSummary(
 
 function mapProfessionalProfile(
   record: ProfessionalProfileRecord,
-  user?: User,
   badgeLabel?: string,
 ): ProfessionalProfile {
   return {
-    ...mapProfessionalSummary(record, user, badgeLabel),
+    ...mapProfessionalSummary(record, badgeLabel),
     bio: record.bio ?? undefined,
     services: [],
     yearsOfExperience: record.yearsOfExperience ?? undefined,
@@ -138,18 +134,6 @@ async function fetchApprovedProfessionalRecords(limit?: number, page?: number): 
   });
 
   return unwrapList<ProfessionalProfileRecordDto>(response.data).map(mapProfessionalProfileRecord);
-}
-
-async function buildUsersById(records: ProfessionalProfileRecord[]): Promise<Map<string, User>> {
-  const uniqueUserIds = uniqueStrings(records.map((record) => record.userId));
-  const results = await Promise.allSettled(uniqueUserIds.map((userId) => usersApi.getById(userId)));
-
-  return results.reduce((acc, result, index) => {
-    if (result.status === 'fulfilled') {
-      acc.set(uniqueUserIds[index], result.value);
-    }
-    return acc;
-  }, new Map<string, User>());
 }
 
 async function buildBadgeLabelsByPlanId(records: ProfessionalProfileRecord[]): Promise<Map<string, string>> {
@@ -177,15 +161,11 @@ async function buildBadgeLabelsByPlanId(records: ProfessionalProfileRecord[]): P
 }
 
 async function enrichProfessionalSummaries(records: ProfessionalProfileRecord[]): Promise<ProfessionalSummary[]> {
-  const [usersById, badgeLabelsByPlanId] = await Promise.all([
-    buildUsersById(records),
-    buildBadgeLabelsByPlanId(records),
-  ]);
+  const badgeLabelsByPlanId = await buildBadgeLabelsByPlanId(records);
 
   return records.map((record) =>
     mapProfessionalSummary(
       record,
-      usersById.get(record.userId),
       record.subscriptionPlanId ? badgeLabelsByPlanId.get(record.subscriptionPlanId) : undefined,
     ),
   );
@@ -241,14 +221,10 @@ export const professionalsApi = {
     );
     const record = mapProfessionalProfileRecord(unwrapItem(response.data));
 
-    const [userResult, badgeLabelsByPlanId] = await Promise.all([
-      usersApi.getById(record.userId).catch(() => undefined),
-      buildBadgeLabelsByPlanId([record]),
-    ]);
+    const badgeLabelsByPlanId = await buildBadgeLabelsByPlanId([record]);
 
     return mapProfessionalProfile(
       record,
-      userResult,
       record.subscriptionPlanId ? badgeLabelsByPlanId.get(record.subscriptionPlanId) : undefined,
     );
   },

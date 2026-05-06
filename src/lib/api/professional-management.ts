@@ -54,6 +54,8 @@ function mapProfessionalProfileRecord(dto: ProfessionalProfileRecordDto): Profes
   return {
     id: dto.id,
     userId: dto.userId,
+    name: dto.name ?? undefined,
+    avatar: dto.avatar ?? null,
     bio: dto.bio ?? undefined,
     yearsOfExperience: dto.yearsOfExperience ?? undefined,
     baseHourlyRate: dto.baseHourlyRate != null ? toNumber(dto.baseHourlyRate) : undefined,

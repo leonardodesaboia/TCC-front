@@ -80,6 +80,8 @@ export interface UploadProfessionalDocumentRequest {
 export interface ProfessionalProfileRecord {
   id: string;
   userId: string;
+  name?: string;
+  avatar?: StorageRef | null;
   bio?: string;
   yearsOfExperience?: number;
   baseHourlyRate?: number;
@@ -100,6 +102,8 @@ export interface ProfessionalProfileRecord {
 export interface ProfessionalProfileRecordDto {
   id: string;
   userId: string;
+  name?: string | null;
+  avatar?: StorageRef | null;
   bio?: string | null;
   yearsOfExperience?: number | null;
   baseHourlyRate?: number | string | null;
