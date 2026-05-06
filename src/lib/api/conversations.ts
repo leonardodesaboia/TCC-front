@@ -36,6 +36,7 @@ function mapConversation(dto: ConversationDto): Conversation {
     clientId: dto.clientId,
     professionalUserId: dto.professionalUserId,
     createdAt: dto.createdAt,
+    orderStatus: dto.orderStatus ?? undefined,
   };
 }
 

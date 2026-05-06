@@ -24,6 +24,7 @@ export interface Conversation {
   clientId: string;
   professionalUserId: string;
   createdAt: string;
+  orderStatus?: string | null;
 }
 
 export interface ConversationDto {
@@ -32,6 +33,7 @@ export interface ConversationDto {
   clientId: string;
   professionalUserId: string;
   createdAt: string;
+  orderStatus?: string | null;
 }
 
 export interface Message {

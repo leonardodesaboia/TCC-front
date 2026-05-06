@@ -77,6 +77,10 @@ export default function ProfessionalConversationDetailScreen() {
   const conversation = conversationQuery.data;
   if (!conversation) return <ErrorState message="Conversa nao encontrada." />;
 
+  const isClosed = conversation.orderStatus === 'completed'
+    || conversation.orderStatus === 'cancelled'
+    || conversation.orderStatus === 'disputed';
+
   const handleBack = () => {
     if (from === 'order') {
       router.replace(`/(professional)/(orders)/${conversation.orderId}` as never);
@@ -128,34 +132,42 @@ export default function ProfessionalConversationDetailScreen() {
         })}
       </ScrollView>
 
-      <View style={styles.composer}>
-        <TextInput
-          value={content}
-          onChangeText={setContent}
-          placeholder="Digite uma mensagem..."
-          placeholderTextColor={colors.neutral[400]}
-          style={styles.input}
-          returnKeyType="send"
-          onSubmitEditing={() => {
-            const trimmed = content.trim();
-            if (!trimmed) return;
-            sendMessage.mutate(trimmed);
-            setContent('');
-          }}
-        />
-        <Pressable
-          style={[styles.sendBtn, !content.trim() && styles.sendBtnDisabled]}
-          onPress={() => {
-            const trimmed = content.trim();
-            if (!trimmed) return;
-            sendMessage.mutate(trimmed);
-            setContent('');
-          }}
-          disabled={!content.trim()}
-        >
-          <Send color="#FFFFFF" size={18} />
-        </Pressable>
-      </View>
+      {isClosed ? (
+        <View style={styles.closedBanner}>
+          <Text variant="bodySm" color={colors.neutral[500]}>
+            Esta conversa foi encerrada.
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.composer}>
+          <TextInput
+            value={content}
+            onChangeText={setContent}
+            placeholder="Digite uma mensagem..."
+            placeholderTextColor={colors.neutral[400]}
+            style={styles.input}
+            returnKeyType="send"
+            onSubmitEditing={() => {
+              const trimmed = content.trim();
+              if (!trimmed) return;
+              sendMessage.mutate(trimmed);
+              setContent('');
+            }}
+          />
+          <Pressable
+            style={[styles.sendBtn, !content.trim() && styles.sendBtnDisabled]}
+            onPress={() => {
+              const trimmed = content.trim();
+              if (!trimmed) return;
+              sendMessage.mutate(trimmed);
+              setContent('');
+            }}
+            disabled={!content.trim()}
+          >
+            <Send color="#FFFFFF" size={18} />
+          </Pressable>
+        </View>
+      )}
     </Screen>
   );
 }
@@ -210,4 +222,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary.default,
   },
   sendBtnDisabled: { opacity: 0.5 },
+  closedBanner: {
+    paddingVertical: spacing[4],
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral[200],
+    alignItems: 'center',
+    backgroundColor: colors.neutral[50],
+  },
 });
