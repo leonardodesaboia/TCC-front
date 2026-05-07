@@ -9,19 +9,8 @@ import { Header } from '@/components/layout/Header';
 import { Avatar, Badge, Button, Divider, Text } from '@/components/ui';
 import { useProfessional } from '@/lib/hooks/useProfessionals';
 import { useProfessionalService } from '@/lib/hooks/useServices';
+import { formatMoney, formatDuration } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-}
-
-function formatDuration(minutes?: number) {
-  if (!minutes) return 'Duração sob consulta';
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const remainder = minutes % 60;
-  return remainder > 0 ? `${hours}h ${remainder}min` : `${hours}h`;
-}
 
 export default function ServiceDetailScreen() {
   const { id, professionalId } = useLocalSearchParams<{ id: string; professionalId?: string }>();
@@ -201,6 +190,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.neutral[200],
   },
-  bottomPrice: { gap: 2 },
+  bottomPrice: { gap: spacing[0.5] },
   ctaBtn: { flex: 1 },
 });

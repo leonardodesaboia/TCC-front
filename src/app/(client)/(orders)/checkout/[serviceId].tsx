@@ -13,34 +13,8 @@ import { useAddresses } from '@/lib/hooks/useAddresses';
 import { useCreateOnDemandOrder } from '@/lib/hooks/useOrders';
 import { useProfessional } from '@/lib/hooks/useProfessionals';
 import { useProfessionalService } from '@/lib/hooks/useServices';
+import { formatMoney, formatDateFull, formatTime, formatDuration } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-}
-
-function formatDuration(minutes?: number) {
-  if (!minutes) return 'Sob consulta';
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const remainder = minutes % 60;
-  return remainder > 0 ? `${hours}h ${remainder}min` : `${hours}h`;
-}
-
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(date);
-}
-
-function formatTime(date: Date) {
-  return new Intl.DateTimeFormat('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
-}
 
 function formatDateInputValue(date: Date) {
   const year = date.getFullYear();
@@ -139,7 +113,7 @@ export default function CheckoutScreen() {
   }
 
   function handleSubmit() {
-    if (!selectedAddress || !description.trim()) return;
+    if (!selectedAddress || !description.trim() || scheduledDate <= new Date()) return;
 
     createOnDemand.mutate({
       serviceId,
@@ -248,7 +222,7 @@ export default function CheckoutScreen() {
                 <Pressable style={styles.dateTimeChip} onPress={() => setShowDatePicker(true)}>
                   <Calendar color={colors.primary.default} size={16} />
                   <Text variant="labelLg" color={colors.neutral[700]}>
-                    {formatDate(scheduledDate)}
+                    {formatDateFull(scheduledDate)}
                   </Text>
                 </Pressable>
 
@@ -382,7 +356,7 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral[200],
     padding: spacing[3],
   },
-  serviceInfo: { flex: 1, gap: 2 },
+  serviceInfo: { flex: 1, gap: spacing[0.5] },
   section: { gap: spacing[3] },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
   descriptionInput: {
@@ -453,7 +427,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.neutral[200],
   },
-  bottomPrice: { gap: 2 },
+  bottomPrice: { gap: spacing[0.5] },
   ctaBtn: { flex: 1 },
   durationStepper: {
     flexDirection: 'row' as const,

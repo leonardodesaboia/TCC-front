@@ -31,11 +31,8 @@ import { useMyOrders } from '@/lib/hooks/useOrders';
 import { useProfessional, useSearchProfessionals } from '@/lib/hooks/useProfessionals';
 import { useAuth } from '@/providers/AuthProvider';
 import { OrderStatus } from '@/types/order';
+import { sortByNewest } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
-
-function sortByNewest<T extends { createdAt: string }>(items: T[]) {
-  return [...items].sort((left, right) => +new Date(right.createdAt) - +new Date(left.createdAt));
-}
 
 export default function ClientHomeScreen() {
   const router = useRouter();
@@ -137,11 +134,14 @@ export default function ClientHomeScreen() {
         <Pressable
           onPress={() => router.push('/(client)/(home)/notifications')}
           style={styles.bellBtn}
+          hitSlop={8}
+          accessibilityLabel="Notificações"
+          accessibilityRole="button"
         >
           <Bell color={colors.neutral[700]} size={22} />
           {unreadNotifications > 0 ? (
             <View style={styles.badgeDot}>
-              <Text variant="labelSm" color="#FFFFFF">{unreadNotifications > 9 ? '9+' : String(unreadNotifications)}</Text>
+              <Text variant="labelSm" color={colors.neutral[50]}>{unreadNotifications > 9 ? '9+' : String(unreadNotifications)}</Text>
             </View>
           ) : null}
         </Pressable>
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   categoryLabel: {
     textAlign: 'center',
   },
-  pressed: { opacity: 0.7 },
+  pressed: { opacity: 0.85 },
   alertCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -434,8 +434,8 @@ const styles = StyleSheet.create({
     padding: spacing[3],
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
-    backgroundColor: '#ECFDF5',
+    borderColor: colors.successBorder,
+    backgroundColor: colors.successLight,
   },
   alertIcon: {
     width: 40,
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#D1FAE5',
+    backgroundColor: colors.successMid,
   },
   alertText: {
     flex: 1,
@@ -497,8 +497,8 @@ const styles = StyleSheet.create({
     padding: spacing[3],
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: '#FCD34D',
-    backgroundColor: '#FFFBEB',
+    borderColor: colors.warningBorder,
+    backgroundColor: colors.warningLight,
   },
   expressIcon: {
     width: 40,
@@ -506,7 +506,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.warningMid,
   },
   expressText: {
     flex: 1,

@@ -11,19 +11,8 @@ import { useProfessional } from '@/lib/hooks/useProfessionals';
 import { useProfessionalReviews } from '@/lib/hooks/useReviews';
 import { useProfessionalServices } from '@/lib/hooks/useServices';
 import type { ServiceSummary } from '@/types/service';
+import { formatMoney, formatDuration } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-}
-
-function formatDuration(minutes?: number) {
-  if (!minutes) return 'Sob consulta';
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const remainder = minutes % 60;
-  return remainder > 0 ? `${hours}h ${remainder}min` : `${hours}h`;
-}
 
 function formatRelativeDate(value: string) {
   return new Intl.DateTimeFormat('pt-BR', {

@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/feedback/EmptyState';
 import { useServiceCategories } from '@/lib/hooks/useCatalog';
 import { useMyOrders } from '@/lib/hooks/useOrders';
 import { OrderStatus } from '@/types/order';
+import { formatMoney, formatDateShort, sortByNewest } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 
 const FILTERS = ['Todos', 'Buscando', 'Aceito', 'Aguardando', 'Concluído', 'Cancelado'];
@@ -23,23 +24,6 @@ const STATUS_MAP: Record<string, OrderStatus | undefined> = {
   Concluído: OrderStatus.COMPLETED,
   Cancelado: OrderStatus.CANCELLED,
 };
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
-}
-
-function sortByNewest<T extends { createdAt: string }>(items: T[]) {
-  return [...items].sort((left, right) => +new Date(right.createdAt) - +new Date(left.createdAt));
-}
 
 export default function OrdersScreen() {
   const router = useRouter();
@@ -73,7 +57,7 @@ export default function OrdersScreen() {
       description: order.description,
       status: order.status,
       mode: order.mode,
-      createdAt: formatDate(order.createdAt),
+      createdAt: formatDateShort(order.createdAt),
       address: snapshot
         ? `${snapshot.street}, ${snapshot.number} - ${snapshot.district}`
         : 'Endereço indisponível',

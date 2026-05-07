@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Check, DollarSign, MapPin, Shield } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
@@ -7,7 +7,7 @@ import { Header } from '@/components/layout/Header';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
-import { Badge, Button, Divider, Text } from '@/components/ui';
+import { Badge, Button, Divider, Input, Text } from '@/components/ui';
 import { useAddresses } from '@/lib/hooks/useAddresses';
 import { useCreateOrder } from '@/lib/hooks/useOrders';
 import { colors, radius, spacing } from '@/theme';
@@ -90,11 +90,10 @@ export default function ExpressCreateScreen() {
           <Text variant="labelLg" color={colors.neutral[500]}>
             Quanto mais detalhes, melhores propostas você receberá
           </Text>
-          <TextInput
+          <Input
             value={description}
             onChangeText={setDescription}
             placeholder="Ex: Preciso trocar duas tomadas na sala e uma na cozinha. A fiação já está pronta."
-            placeholderTextColor={colors.neutral[400]}
             multiline
             numberOfLines={5}
             textAlignVertical="top"
@@ -244,14 +243,7 @@ const styles = StyleSheet.create({
   section: { gap: spacing[3] },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
   textArea: {
-    borderWidth: 1,
-    borderColor: colors.neutral[300],
-    borderRadius: radius.md,
-    padding: spacing[3],
     minHeight: 120,
-    fontSize: 14,
-    color: colors.neutral[900],
-    backgroundColor: colors.neutral[50],
   },
   addressCard: {
     flexDirection: 'row',

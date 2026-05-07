@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pressed: { opacity: 0.7 },
+  pressed: { opacity: 0.85 },
   categoryList: { gap: spacing[1] },
   categoryItem: {
     flexDirection: 'row',

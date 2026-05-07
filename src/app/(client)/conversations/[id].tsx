@@ -9,16 +9,8 @@ import { Screen } from '@/components/layout/Screen';
 import { Text } from '@/components/ui';
 import { useConversation, useConversationMessages, useMarkConversationRead, useSendMessage } from '@/lib/hooks/useConversations';
 import { useAuth } from '@/providers/AuthProvider';
+import { formatDateShort } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
-}
 
 export default function ConversationDetailScreen() {
   const router = useRouter();
@@ -59,7 +51,8 @@ export default function ConversationDetailScreen() {
 
   useEffect(() => {
     if (messageCount > 0) {
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+      const timeoutId = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+      return () => clearTimeout(timeoutId);
     }
   }, [messageCount]);
 
@@ -121,11 +114,11 @@ export default function ConversationDetailScreen() {
                   </Text>
                 ) : (
                   <>
-                    <Text variant="bodySm" color={isMine ? '#FFFFFF' : colors.neutral[900]}>
+                    <Text variant="bodySm" color={isMine ? colors.neutral[50] : colors.neutral[900]}>
                       {message.content ?? '[mensagem sem texto]'}
                     </Text>
                     <Text variant="labelSm" color={isMine ? 'rgba(255,255,255,0.75)' : colors.neutral[400]}>
-                      {formatDate(message.sentAt)}
+                      {formatDateShort(message.sentAt)}
                     </Text>
                   </>
                 )}
@@ -191,11 +184,11 @@ const styles = StyleSheet.create({
   },
   mineBubble: {
     backgroundColor: colors.primary.default,
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: radius.xs,
   },
   otherBubble: {
     backgroundColor: colors.neutral[100],
-    borderBottomLeftRadius: 4,
+    borderBottomLeftRadius: radius.xs,
   },
   systemText: { textAlign: 'center' },
   composer: {
@@ -219,7 +212,7 @@ const styles = StyleSheet.create({
   sendBtn: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.primary.default,

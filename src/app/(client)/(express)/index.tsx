@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   areaRowText: { flex: 1, gap: 2 },
-  pressed: { opacity: 0.7 },
+  pressed: { opacity: 0.85 },
   categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',

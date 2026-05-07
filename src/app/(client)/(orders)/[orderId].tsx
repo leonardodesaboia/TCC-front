@@ -12,6 +12,7 @@ import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
 import { useCancelOrder, useChooseOrderProposal, useConfirmOrder, useOrder, useOrderProposals } from '@/lib/hooks/useOrders';
 import { useProfessional } from '@/lib/hooks/useProfessionals';
 import { useOrderReviews } from '@/lib/hooks/useReviews';
+import { formatMoney, formatDateTime } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 import { OrderMode, OrderStatus } from '@/types/order';
 
@@ -19,20 +20,6 @@ interface TimelineStep {
   label: string;
   completed: boolean;
   active: boolean;
-}
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-}
-
-function formatDateTime(value?: string | null) {
-  if (!value) return 'Ainda não definido';
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
 }
 
 function buildTimeline(status: OrderStatus, mode?: OrderMode): TimelineStep[] {
@@ -67,7 +54,7 @@ function buildTimeline(status: OrderStatus, mode?: OrderMode): TimelineStep[] {
       active: status === OrderStatus.COMPLETED_BY_PRO,
     },
     {
-      label: isOnDemand ? 'Confirmado pelo cliente' : 'Confirmado pelo cliente',
+      label: isOnDemand ? 'Confirmado pelo cliente' : 'Proposta confirmada pelo cliente',
       completed: status === OrderStatus.COMPLETED,
       active: false,
     },
@@ -555,9 +542,9 @@ const styles = StyleSheet.create({
     gap: spacing[3],
   },
   proposalTop: { flexDirection: 'row', alignItems: 'center', gap: spacing[3] },
-  proposalInfo: { flex: 1, gap: 2 },
+  proposalInfo: { flex: 1, gap: spacing[0.5] },
   proposalRating: { flexDirection: 'row', alignItems: 'center', gap: spacing[1] },
-  proposalPrice: { alignItems: 'flex-end', gap: 2 },
+  proposalPrice: { alignItems: 'flex-end', gap: spacing[0.5] },
   professionalCard: {
     flexDirection: 'row',
     gap: spacing[3],
@@ -585,7 +572,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   infoRow: { flexDirection: 'row', gap: spacing[3], alignItems: 'flex-start' },
-  infoText: { flex: 1, gap: 2 },
+  infoText: { flex: 1, gap: spacing[0.5] },
   paymentCard: {
     backgroundColor: colors.neutral[50],
     borderRadius: radius.lg,

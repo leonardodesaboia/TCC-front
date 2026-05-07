@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Star } from 'lucide-react-native';
 import { EmptyState } from '@/components/feedback/EmptyState';
@@ -7,7 +7,7 @@ import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Header } from '@/components/layout/Header';
 import { Screen } from '@/components/layout/Screen';
-import { Button, Text } from '@/components/ui';
+import { Button, Input, Text } from '@/components/ui';
 import { useOrderReviews, useCreateOrderReview } from '@/lib/hooks/useReviews';
 import { colors, radius, spacing } from '@/theme';
 
@@ -66,11 +66,10 @@ export default function OrderReviewScreen() {
 
       <View style={styles.section}>
         <Text variant="titleSm">Comentário</Text>
-        <TextInput
+        <Input
           value={comment}
           onChangeText={setComment}
           placeholder="Conte como foi sua experiência..."
-          placeholderTextColor={colors.neutral[400]}
           multiline
           textAlignVertical="top"
           style={styles.textArea}
@@ -97,13 +96,7 @@ const styles = StyleSheet.create({
   section: { gap: spacing[3] },
   starRow: { flexDirection: 'row', gap: spacing[2] },
   textArea: {
-    borderWidth: 1,
-    borderColor: colors.neutral[300],
-    borderRadius: radius.md,
-    backgroundColor: colors.neutral[50],
     minHeight: 140,
-    padding: spacing[4],
-    color: colors.neutral[900],
   },
   footer: { paddingTop: spacing[6] },
 });
