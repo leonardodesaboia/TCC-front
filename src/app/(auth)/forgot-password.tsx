@@ -86,6 +86,7 @@ export default function ForgotPasswordScreen() {
     { label: '1 maiúscula', met: /[A-Z]/.test(pw) },
     { label: '1 minúscula', met: /[a-z]/.test(pw) },
     { label: '1 número', met: /[0-9]/.test(pw) },
+    { label: '1 caractere especial', met: /[^A-Za-z0-9]/.test(pw) },
   ], [pw]);
 
   const goBack = () => {

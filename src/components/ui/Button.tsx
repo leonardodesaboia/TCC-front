@@ -32,7 +32,7 @@ export function Button({
   const isDisabled = disabled || loading;
   const textColor =
     variant === 'primary' || variant === 'danger'
-      ? '#FFFFFF'
+      ? colors.neutral[50]
       : variant === 'dangerOutline'
         ? colors.error
         : colors.primary.default;
@@ -87,7 +87,7 @@ const variantStyles: Record<ButtonVariant, ViewStyle> = {
   },
   danger: { backgroundColor: colors.error },
   dangerOutline: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral[50],
     borderWidth: 1.5,
     borderColor: colors.error,
   },

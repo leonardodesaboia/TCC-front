@@ -3,7 +3,7 @@ import { validateCPF } from '@/lib/utils/masks';
 
 export const loginSchema = z.object({
   email: z.string().min(1, 'E-mail é obrigatório').email('E-mail inválido'),
-  password: z.string().min(1, 'Senha é obrigatória').min(6, 'Mínimo 6 caracteres'),
+  password: z.string().min(1, 'Senha é obrigatória'),
 });
 
 export const clientRegisterStep1Schema = z.object({

@@ -54,7 +54,7 @@ function PasswordRule({ label, met }: { label: string; met: boolean }) {
   return (
     <View style={styles.ruleRow}>
       <View style={[styles.ruleIcon, met && styles.ruleIconMet]}>
-        <Check color={met ? '#FFFFFF' : colors.neutral[400]} size={10} />
+        <Check color={met ? colors.neutral[50] : colors.neutral[400]} size={10} />
       </View>
       <Text variant="labelLg" color={met ? colors.neutral[800] : colors.neutral[400]}>
         {label}
@@ -188,7 +188,7 @@ function CredentialsStep({
           >
             <Text
               variant="labelLg"
-              color={selectedDocType === option.value ? '#FFFFFF' : colors.neutral[700]}
+              color={selectedDocType === option.value ? colors.neutral[50] : colors.neutral[700]}
             >
               {option.label}
             </Text>
@@ -565,7 +565,7 @@ export default function RegisterProfessionalScreen() {
                 onPress={() => setSelectedAreaId(area.id)}
                 style={[styles.chip, selectedAreaId === area.id && styles.chipSelected]}
               >
-                <Text variant="labelLg" color={selectedAreaId === area.id ? '#FFFFFF' : colors.neutral[700]}>
+                <Text variant="labelLg" color={selectedAreaId === area.id ? colors.neutral[50] : colors.neutral[700]}>
                   {area.name}
                 </Text>
               </Pressable>
@@ -802,7 +802,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoryIconSelected: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral[50],
   },
   categoryCardSelected: {
     borderColor: colors.primary.default,

@@ -12,6 +12,7 @@ const conversationKeys = {
 
 const CONVERSATION_LIST_POLL_MS = 15000;
 const CONVERSATION_MESSAGES_POLL_MS = 4000;
+const CONVERSATION_DETAIL_POLL_MS = 10000;
 
 export function useConversations() {
   return useQuery({
@@ -26,6 +27,7 @@ export function useConversation(id: string) {
     queryKey: conversationKeys.detail(id),
     queryFn: () => conversationsApi.getById(id),
     enabled: !!id,
+    refetchInterval: CONVERSATION_DETAIL_POLL_MS,
   });
 }
 

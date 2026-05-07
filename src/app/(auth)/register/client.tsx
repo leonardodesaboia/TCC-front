@@ -38,7 +38,7 @@ function PasswordRule({ label, met }: { label: string; met: boolean }) {
   return (
     <View style={styles.ruleRow}>
       <View style={[styles.ruleIcon, met && styles.ruleIconMet]}>
-        <Check color={met ? '#FFFFFF' : colors.neutral[400]} size={10} />
+        <Check color={met ? colors.neutral[50] : colors.neutral[400]} size={10} />
       </View>
       <Text variant="labelLg" color={met ? colors.neutral[800] : colors.neutral[400]}>
         {label}

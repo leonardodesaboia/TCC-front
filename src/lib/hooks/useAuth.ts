@@ -6,6 +6,7 @@ import { createBypassUser, useAuthStore } from '@/lib/stores/auth-store';
 import { toast } from '@/lib/utils/toast';
 import { getApiErrorMessage } from '@/lib/utils/errors';
 import { queryKeys } from '@/lib/constants/query-keys';
+import { resetNavigationHistory } from '@/lib/navigation/back-history';
 import { UserRole } from '@/types/user';
 import type { LoginRequest, RegisterClientRequest, RegisterProfessionalRequest, User } from '@/types/user';
 
@@ -108,6 +109,7 @@ export function useLogout() {
     mutationFn: logout,
     onSuccess: () => {
       queryClient.clear();
+      resetNavigationHistory();
       router.replace('/(auth)/login');
       toast.info('Até logo!', 'Você saiu da sua conta');
     },

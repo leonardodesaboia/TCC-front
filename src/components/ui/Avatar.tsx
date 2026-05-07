@@ -35,7 +35,7 @@ export function Avatar({ uri, name, size = 'md', backgroundColor }: AvatarProps)
 
   return (
     <View style={{ width: dim, height: dim, borderRadius: dim / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-      <Text variant={FONT_MAP[size]} color="#FFFFFF">{initial}</Text>
+      <Text variant={FONT_MAP[size]} color={colors.neutral[50]}>{initial}</Text>
     </View>
   );
 }
