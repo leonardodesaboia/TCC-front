@@ -9,11 +9,8 @@ import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { useMyProfessionalProfile } from '@/lib/hooks/useProfessionalArea';
 import { useProfessionalOfferings } from '@/lib/hooks/useProfessionalManagement';
+import { formatMoney } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-}
 
 export default function ProfessionalServicesScreen() {
   const router = useRouter();
@@ -121,7 +118,7 @@ const styles = StyleSheet.create({
     padding: spacing[4],
     gap: spacing[2],
   },
-  pressed: { opacity: 0.7 },
+  pressed: { opacity: 0.85 },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

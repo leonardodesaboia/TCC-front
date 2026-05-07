@@ -11,6 +11,7 @@ import { useServiceCategories } from '@/lib/hooks/useCatalog';
 import { useProfessionalOrders } from '@/lib/hooks/useProfessionalArea';
 import { OrderMode, OrderStatus, type OrderSummary } from '@/types/order';
 import type { ServiceCategory } from '@/types/catalog';
+import { formatMoney, formatDateShort } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 
 const FILTERS = ['Todos', 'Pendente', 'Aceito', 'Aguardando', 'Concluido', 'Cancelado'];
@@ -32,19 +33,6 @@ const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'succes
   [OrderStatus.CANCELLED]: { label: 'Cancelado', variant: 'muted' },
   [OrderStatus.DISPUTED]: { label: 'Em disputa', variant: 'error' },
 };
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
-}
 
 function isExpressInvitationOrder(order: OrderSummary): boolean {
   return (
@@ -125,7 +113,7 @@ function OrderCard({
         <View style={styles.metaItem}>
           <Clock color={colors.neutral[400]} size={14} />
           <Text variant="labelLg" color={colors.neutral[600]}>
-            {formatDate(order.createdAt)}
+            {formatDateShort(order.createdAt)}
           </Text>
         </View>
         <View style={styles.metaItem}>
@@ -321,7 +309,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     },
   topContent: { flex: 1, gap: spacing[2], minWidth: 0 },
-  topText: { gap: 2, minWidth: 0 },
+  topText: { gap: spacing[0.5], minWidth: 0 },
   categoryTitle: { flexShrink: 1 },
   meta: { gap: spacing[2], paddingLeft: spacing[1] },
   metaItem: {

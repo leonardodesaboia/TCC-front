@@ -334,13 +334,13 @@ export function ExpressAvailabilityProvider({
   useEffect(() => {
     if (!geoActive) return;
 
-    const intervalId = window.setInterval(() => {
+    const intervalId = setInterval(() => {
       if (!isStale(lastCapturedAt)) return;
       setStatus((current) => (current === 'active' ? 'stale' : current));
       void captureOnce(true);
     }, RECENCY_CHECK_INTERVAL_MS);
 
-    return () => window.clearInterval(intervalId);
+    return () => clearInterval(intervalId);
   }, [captureOnce, geoActive, lastCapturedAt]);
 
   useEffect(() => {

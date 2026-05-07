@@ -22,15 +22,8 @@ import { useNotifications } from '@/lib/hooks/useNotifications';
 import { useMyProfessionalProfile, useProfessionalOrders } from '@/lib/hooks/useProfessionalArea';
 import { useAuth } from '@/providers/AuthProvider';
 import { OrderMode, OrderStatus } from '@/types/order';
+import { formatMoney, sortByNewest } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-}
-
-function sortByNewest<T extends { createdAt: string }>(items: T[]) {
-  return [...items].sort((left, right) => +new Date(right.createdAt) - +new Date(left.createdAt));
-}
 
 export default function ProfessionalDashboardScreen() {
   const router = useRouter();
@@ -54,7 +47,7 @@ export default function ProfessionalDashboardScreen() {
   if (profileQuery.isError || ordersQuery.isError) {
     return (
       <ErrorState
-        message="Nao foi possivel carregar o dashboard."
+        message="Não foi possível carregar o dashboard."
         onRetry={() => {
           void profileQuery.refetch();
           void ordersQuery.refetch();
@@ -117,7 +110,7 @@ export default function ProfessionalDashboardScreen() {
           <Bell color={colors.neutral[700]} size={22} />
           {unreadNotifications > 0 ? (
             <View style={styles.badgeDot}>
-              <Text variant="labelSm" color="#FFFFFF">
+              <Text variant="labelSm" color={colors.neutral[50]}>
                 {unreadNotifications > 9 ? '9+' : String(unreadNotifications)}
               </Text>
             </View>
@@ -164,13 +157,13 @@ export default function ProfessionalDashboardScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text variant="titleMd">Pendentes</Text>
-            <Pressable onPress={() => router.push('/(professional)/(orders)' as any)}>
+            <Pressable onPress={() => router.push('/(professional)/(orders)' as any)} hitSlop={8} accessibilityRole="button">
               <Text variant="labelLg" color={colors.primary.default}>Ver todos</Text>
             </Pressable>
           </View>
 
           {pendingDisplayOrders.map((order) => {
-            const categoryName = categories.find((c) => c.id === order.categoryId)?.name ?? 'Servico';
+            const categoryName = categories.find((c) => c.id === order.categoryId)?.name ?? 'Serviço';
             const snapshot = order.addressSnapshot;
             const categoryVisual = getCategoryVisual(categoryName);
             const CategoryIcon = categoryVisual.Icon;
@@ -223,7 +216,7 @@ export default function ProfessionalDashboardScreen() {
                     style={[
                       styles.orderCategoryIcon,
                       isExpressInvitation
-                        ? [styles.invitationIcon, { backgroundColor: '#FFFFFF' }]
+                        ? [styles.invitationIcon, { backgroundColor: colors.neutral[50] }]
                         : { backgroundColor: categoryVisual.bgColor },
                     ]}
                   >
@@ -242,7 +235,7 @@ export default function ProfessionalDashboardScreen() {
                   <View style={styles.metaItem}>
                     <MapPin color={colors.neutral[400]} size={14} />
                     <Text variant="labelLg" color={colors.neutral[600]} numberOfLines={1}>
-                      {snapshot ? `${snapshot.street}, ${snapshot.number}` : 'Endereco'}
+                      {snapshot ? `${snapshot.street}, ${snapshot.number}` : 'Endereço'}
                     </Text>
                   </View>
                   {displayAmount > 0 ? (
@@ -268,13 +261,13 @@ export default function ProfessionalDashboardScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text variant="titleMd">Em atividade</Text>
-            <Pressable onPress={() => router.push('/(professional)/(orders)' as any)}>
+            <Pressable onPress={() => router.push('/(professional)/(orders)' as any)} hitSlop={8} accessibilityRole="button">
               <Text variant="labelLg" color={colors.primary.default}>Ver todos</Text>
             </Pressable>
           </View>
 
           {activeOrders.map((order) => {
-            const categoryName = categories.find((c) => c.id === order.categoryId)?.name ?? 'Servico';
+            const categoryName = categories.find((c) => c.id === order.categoryId)?.name ?? 'Serviço';
             const snapshot = order.addressSnapshot;
             const categoryVisual = getCategoryVisual(categoryName);
             const CategoryIcon = categoryVisual.Icon;
@@ -306,7 +299,7 @@ export default function ProfessionalDashboardScreen() {
                   <View style={styles.metaItem}>
                     <MapPin color={colors.neutral[400]} size={14} />
                     <Text variant="labelLg" color={colors.neutral[600]} numberOfLines={1}>
-                      {snapshot ? `${snapshot.street}, ${snapshot.number}` : 'Endereco'}
+                      {snapshot ? `${snapshot.street}, ${snapshot.number}` : 'Endereço'}
                     </Text>
                   </View>
                   {order.totalAmount > 0 ? (
@@ -327,7 +320,7 @@ export default function ProfessionalDashboardScreen() {
           <EmptyState
             icon={ClipboardList}
             title="Nenhum pedido em aberto"
-            description="Novos pedidos pendentes ou em atividade aparecerao aqui."
+            description="Novos pedidos pendentes ou em atividade aparecerão aqui."
           />
         </View>
       ) : null}
@@ -366,7 +359,7 @@ const styles = StyleSheet.create({
     right: -4,
     minWidth: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: radius.lg,
     backgroundColor: colors.error,
     alignItems: 'center',
     justifyContent: 'center',
@@ -418,14 +411,14 @@ const styles = StyleSheet.create({
   },
   invitationCard: {
     borderRadius: radius.xl,
-    backgroundColor: '#FFFBEB',
+    backgroundColor: colors.warningLight,
     borderWidth: 1,
-    borderColor: '#FCD34D',
+    borderColor: colors.warningBorder,
     padding: spacing[4],
     gap: spacing[3],
   },
   invitationIcon: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.neutral[50],
   },
   pressed: { opacity: 0.85 },
   orderTop: {
@@ -436,11 +429,11 @@ const styles = StyleSheet.create({
   orderCategoryIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  orderText: { flex: 1, gap: 2 },
+  orderText: { flex: 1, gap: spacing[0.5] },
   orderMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',

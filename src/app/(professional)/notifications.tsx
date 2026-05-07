@@ -9,6 +9,7 @@ import { Header } from '@/components/layout/Header';
 import { Button, Text } from '@/components/ui';
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from '@/lib/hooks/useNotifications';
 import type { NotificationType } from '@/types/notification';
+import { formatDateShort } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 
 const ICON_BY_TYPE: Record<NotificationType, typeof Bell> = {
@@ -22,16 +23,6 @@ const ICON_BY_TYPE: Record<NotificationType, typeof Bell> = {
   dispute_resolved: ShieldAlert,
   verification_result: Star,
 };
-
-function formatDate(value?: string) {
-  if (!value) return '';
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
-}
 
 export default function ProfessionalNotificationsScreen() {
   const router = useRouter();
@@ -106,7 +97,7 @@ export default function ProfessionalNotificationsScreen() {
                   <View style={styles.cardTitleRow}>
                     <Text variant="titleSm" style={styles.cardTitle}>{item.title}</Text>
                     <Text variant="labelSm" color={colors.neutral[400]}>
-                      {formatDate(item.sentAt ?? item.createdAt)}
+                      {formatDateShort(item.sentAt ?? item.createdAt)}
                     </Text>
                   </View>
                   <Text variant="bodySm" color={colors.neutral[500]}>{item.body}</Text>
@@ -148,7 +139,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary.light,
     borderColor: colors.primary.light,
   },
-  pressed: { opacity: 0.7 },
+  pressed: { opacity: 0.85 },
   iconWrap: {
     width: 40,
     height: 40,

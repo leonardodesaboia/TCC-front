@@ -1,45 +1,25 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera, Clock, DollarSign, MapPin, MessageCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
-import { Badge, Button, Divider, Text } from '@/components/ui';
+import { Badge, Button, Divider, Input, Text } from '@/components/ui';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
 import { useProfessionalOrder, useRespondToOrder, useRespondOnDemandOrder, useProCompleteOrder, useProCancelOrder } from '@/lib/hooks/useProfessionalArea';
+import { formatMoney, formatDateTime, formatDuration } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 import { OrderMode, OrderStatus } from '@/types/order';
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-}
-
-function formatDateTime(value?: string | null) {
-  if (!value) return 'Ainda nao definido';
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
-}
-
-function formatDuration(minutes: number) {
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const remainder = minutes % 60;
-  return remainder > 0 ? `${hours}h ${remainder}min` : `${hours}h`;
-}
 
 const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'error' | 'info' | 'muted' }> = {
   [OrderStatus.PENDING]: { label: 'Pendente', variant: 'warning' },
   [OrderStatus.ACCEPTED]: { label: 'Aceito', variant: 'info' },
   [OrderStatus.COMPLETED_BY_PRO]: { label: 'Aguardando cliente', variant: 'default' },
-  [OrderStatus.COMPLETED]: { label: 'Concluido', variant: 'success' },
+  [OrderStatus.COMPLETED]: { label: 'Concluído', variant: 'success' },
   [OrderStatus.CANCELLED]: { label: 'Cancelado', variant: 'muted' },
   [OrderStatus.DISPUTED]: { label: 'Em disputa', variant: 'error' },
 };
@@ -76,7 +56,7 @@ export default function ProfessionalOrderDetailScreen() {
   if (orderQuery.isError || areasQuery.isError || categoriesQuery.isError) {
     return (
       <ErrorState
-        message="Nao foi possivel carregar esse pedido."
+        message="Não foi possível carregar esse pedido."
         onRetry={() => {
           void orderQuery.refetch();
           void areasQuery.refetch();
@@ -87,12 +67,12 @@ export default function ProfessionalOrderDetailScreen() {
   }
 
   const order = orderQuery.data;
-  if (!order) return <ErrorState message="Pedido nao encontrado." />;
+  if (!order) return <ErrorState message="Pedido não encontrado." />;
 
   const areaName = order.areaId
     ? areasQuery.data?.find((a) => a.id === order.areaId)?.name
     : undefined;
-  const categoryName = categoriesQuery.data?.find((c) => c.id === order.categoryId)?.name ?? 'Servico';
+  const categoryName = categoriesQuery.data?.find((c) => c.id === order.categoryId)?.name ?? 'Serviço';
   const badge = STATUS_BADGE[order.status] ?? STATUS_BADGE[OrderStatus.PENDING];
   const completionPhotos = order.photos.filter((p) => p.type === 'completion_proof');
   const isOnDemand = order.mode === OrderMode.ON_DEMAND;
@@ -121,19 +101,32 @@ export default function ProfessionalOrderDetailScreen() {
   function handleAccept() {
     const amount = parseFloat(proposedAmount.replace(',', '.'));
     if (!amount || amount <= 0) {
-      Alert.alert('Valor invalido', 'Informe o valor proposto para o servico.');
+      if (Platform.OS === 'web') {
+        window.alert('Valor inválido. Informe o valor proposto para o serviço.');
+      } else {
+        Alert.alert('Valor inválido', 'Informe o valor proposto para o serviço.');
+      }
       return;
     }
     respondToOrder.mutate({ response: 'accepted', proposedAmount: amount });
   }
 
   function handleReject() {
+    const confirmReject = () => respondToOrder.mutate({ response: 'rejected' });
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Tem certeza que deseja recusar este pedido?')) {
+        confirmReject();
+      }
+      return;
+    }
+
     Alert.alert(
       'Recusar pedido',
       'Tem certeza que deseja recusar este pedido?',
       [
-        { text: 'Nao', style: 'cancel' },
-        { text: 'Sim, recusar', style: 'destructive', onPress: () => respondToOrder.mutate({ response: 'rejected' }) },
+        { text: 'Não', style: 'cancel' },
+        { text: 'Sim, recusar', style: 'destructive', onPress: confirmReject },
       ],
     );
   }
@@ -143,17 +136,36 @@ export default function ProfessionalOrderDetailScreen() {
   }
 
   function handleRejectOnDemand() {
+    const confirmReject = () => respondOnDemand.mutate(false);
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Tem certeza que deseja recusar este pedido?')) {
+        confirmReject();
+      }
+      return;
+    }
+
     Alert.alert(
       'Recusar pedido',
       'Tem certeza que deseja recusar este pedido?',
       [
-        { text: 'Nao', style: 'cancel' },
-        { text: 'Sim, recusar', style: 'destructive', onPress: () => respondOnDemand.mutate(false) },
+        { text: 'Não', style: 'cancel' },
+        { text: 'Sim, recusar', style: 'destructive', onPress: confirmReject },
       ],
     );
   }
 
   async function handleComplete() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      if (Platform.OS === 'web') {
+        window.alert('Permissão necessária. Libere acesso à galeria para enviar a foto.');
+      } else {
+        Alert.alert('Permissão necessária', 'Libere acesso à galeria para enviar a foto.');
+      }
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.8,
@@ -192,7 +204,7 @@ export default function ProfessionalOrderDetailScreen() {
       'Cancelar pedido',
       'Tem certeza que deseja cancelar este pedido?',
       [
-        { text: 'Nao', style: 'cancel' },
+        { text: 'Não', style: 'cancel' },
         { text: 'Sim, cancelar', style: 'destructive', onPress: confirmCancel },
       ],
     );
@@ -240,10 +252,10 @@ export default function ProfessionalOrderDetailScreen() {
           <Text variant="titleSm">Detalhes</Text>
           <InfoRow
             icon={<MapPin color={colors.neutral[400]} size={18} />}
-            label="Endereco"
+            label="Endereço"
             value={order.addressSnapshot
               ? `${order.addressSnapshot.street}, ${order.addressSnapshot.number}${order.addressSnapshot.complement ? `, ${order.addressSnapshot.complement}` : ''} - ${order.addressSnapshot.district}, ${order.addressSnapshot.city}`
-              : 'Endereco indisponivel'}
+              : 'Endereço indisponível'}
           />
           <InfoRow
             icon={<DollarSign color={colors.neutral[400]} size={18} />}
@@ -272,7 +284,7 @@ export default function ProfessionalOrderDetailScreen() {
                 </View>
                 {order.urgencyFee > 0 ? (
                   <View style={styles.paymentRow}>
-                    <Text variant="bodySm" color={colors.neutral[600]}>Urgencia</Text>
+                    <Text variant="bodySm" color={colors.neutral[600]}>Urgência</Text>
                     <Text variant="bodySm">{formatMoney(order.urgencyFee)}</Text>
                   </View>
                 ) : null}
@@ -293,7 +305,7 @@ export default function ProfessionalOrderDetailScreen() {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Camera color={colors.neutral[700]} size={18} />
-                <Text variant="titleSm">Fotos de conclusao</Text>
+                <Text variant="titleSm">Fotos de conclusão</Text>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photosScroll}>
                 {completionPhotos.map((photo) => (
@@ -317,7 +329,7 @@ export default function ProfessionalOrderDetailScreen() {
         {/* Actions based on status */}
         {hasProfessionalActions ? (
         <View style={styles.section}>
-          <Text variant="titleSm">Acoes</Text>
+          <Text variant="titleSm">Ações</Text>
 
           {order.status === OrderStatus.PENDING && isOnDemand ? (
             <View style={styles.actionsColumn}>
@@ -357,13 +369,11 @@ export default function ProfessionalOrderDetailScreen() {
               <Text variant="bodySm" color={colors.neutral[500]}>
                 Informe seu valor para aceitar o pedido:
               </Text>
-              <TextInput
+              <Input
                 value={proposedAmount}
                 onChangeText={setProposedAmount}
                 placeholder="Valor proposto (R$)"
-                placeholderTextColor={colors.neutral[400]}
                 keyboardType="numeric"
-                style={styles.amountInput}
               />
               <View style={styles.actionsRow}>
                 <Button
@@ -465,7 +475,7 @@ export default function ProfessionalOrderDetailScreen() {
           {order.status === OrderStatus.COMPLETED ? (
             <View style={styles.completedCard}>
               <Text variant="bodySm" color={colors.success}>
-                Servico concluido com sucesso!
+                Serviço concluído com sucesso!
               </Text>
             </View>
           ) : null}
@@ -527,16 +537,6 @@ const styles = StyleSheet.create({
   },
   actionsColumn: { gap: spacing[3] },
   actionsRow: { flexDirection: 'row', gap: spacing[2] },
-  amountInput: {
-    borderWidth: 1,
-    borderColor: colors.neutral[300],
-    borderRadius: radius.md,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.neutral[50],
-    color: colors.neutral[900],
-    fontSize: 16,
-  },
   waitingCard: {
     backgroundColor: colors.neutral[50],
     borderRadius: radius.lg,
@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
     padding: spacing[6],
   },
   completedCard: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: colors.successMid,
     borderRadius: radius.lg,
     padding: spacing[4],
   },

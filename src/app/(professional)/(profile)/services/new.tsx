@@ -86,9 +86,9 @@ export default function NewProfessionalServiceScreen() {
                         active ? styles.chipIconActive : { backgroundColor: visual.bgColor },
                       ]}
                     >
-                      <Icon size={14} color={active ? '#FFFFFF' : visual.color} />
+                      <Icon size={14} color={active ? colors.neutral[50] : visual.color} />
                     </View>
-                    <Text variant="labelLg" color={active ? '#FFFFFF' : colors.neutral[700]}>
+                    <Text variant="labelLg" color={active ? colors.neutral[50] : colors.neutral[700]}>
                       {category.name}
                     </Text>
                   </View>
@@ -119,7 +119,7 @@ export default function NewProfessionalServiceScreen() {
               onPress={() => setPricingType('fixed')}
               style={[styles.chip, pricingType === 'fixed' && styles.chipActive]}
             >
-              <Text variant="labelLg" color={pricingType === 'fixed' ? '#FFFFFF' : colors.neutral[700]}>
+              <Text variant="labelLg" color={pricingType === 'fixed' ? colors.neutral[50] : colors.neutral[700]}>
                 Valor fixo
               </Text>
             </Pressable>
@@ -127,7 +127,7 @@ export default function NewProfessionalServiceScreen() {
               onPress={() => setPricingType('hourly')}
               style={[styles.chip, pricingType === 'hourly' && styles.chipActive]}
             >
-              <Text variant="labelLg" color={pricingType === 'hourly' ? '#FFFFFF' : colors.neutral[700]}>
+              <Text variant="labelLg" color={pricingType === 'hourly' ? colors.neutral[50] : colors.neutral[700]}>
                 Por hora
               </Text>
             </Pressable>

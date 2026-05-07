@@ -12,16 +12,6 @@ import { useConversations } from '@/lib/hooks/useConversations';
 import type { ConversationSummary } from '@/types/conversation';
 import { colors, radius, spacing } from '@/theme';
 
-function formatDate(value?: string) {
-  if (!value) return '';
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
-}
-
 function ConversationCard({ conversation, onPress }: { conversation: ConversationSummary; onPress: () => void }) {
   const displayName = `Pedido ${conversation.orderId.slice(0, 8)}`;
 
@@ -111,7 +101,7 @@ const styles = StyleSheet.create({
     padding: spacing[4],
     alignItems: 'center',
   },
-  pressed: { opacity: 0.7 },
+  pressed: { opacity: 0.85 },
   textWrap: { flex: 1, gap: spacing[1] },
   titleRow: {
     flexDirection: 'row',

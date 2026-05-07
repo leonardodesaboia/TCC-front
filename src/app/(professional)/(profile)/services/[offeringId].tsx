@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF2F2',
     justifyContent: 'center',
   },
-  pressed: { opacity: 0.7 },
+  pressed: { opacity: 0.85 },
   bottomBar: {
     paddingTop: spacing[3],
     borderTopWidth: 1,
