@@ -1,6 +1,6 @@
 import { Pressable, SectionList, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Calendar, Plus, Trash2 } from 'lucide-react-native';
+import { Calendar, Trash2 } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Button, Text } from '@/components/ui';
