@@ -222,9 +222,14 @@ export interface BlockedPeriod {
   id: string;
   professionalId: string;
   blockType: BlockType;
-  startAt?: string;
-  endAt?: string;
   weekday?: number;
+  specificDate?: string;
+  startsAt?: string;
+  endsAt?: string;
+  orderId?: string;
+  orderStartsAt?: string;
+  orderEndsAt?: string;
+  reason?: string;
   createdAt?: string;
 }
 
@@ -232,15 +237,32 @@ export interface BlockedPeriodDto {
   id: string;
   professionalId: string;
   blockType: BlockType;
-  startAt?: string | null;
-  endAt?: string | null;
   weekday?: number | null;
+  specificDate?: string | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  orderId?: string | null;
+  orderStartsAt?: string | null;
+  orderEndsAt?: string | null;
+  reason?: string | null;
   createdAt?: string | null;
 }
 
 export interface CreateBlockedPeriodRequest {
   blockType: BlockType;
-  startAt?: string;
-  endAt?: string;
   weekday?: number;
+  specificDate?: string;
+  startsAt?: string;
+  endsAt?: string;
+  reason?: string;
+}
+
+export interface UpdateBlockedPeriodRequest {
+  weekday?: number;
+  specificDate?: string;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  orderStartsAt?: string;
+  orderEndsAt?: string;
+  reason?: string | null;
 }
