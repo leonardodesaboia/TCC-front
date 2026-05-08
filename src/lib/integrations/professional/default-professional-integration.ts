@@ -5,6 +5,15 @@ import type { ApiResponse } from '@/types/api';
 import { OrderStatus } from '@/types/order';
 import type { ProfessionalIntegration, ProfessionalProfileData } from './contracts';
 
+interface ProfessionalSpecialtyDto {
+  categoryId: string;
+  categoryName?: string | null;
+  areaId?: string | null;
+  areaName?: string | null;
+  yearsOfExperience?: number | string | null;
+  hourlyRate?: number | string | null;
+}
+
 interface ProfessionalResponseDto {
   id: string;
   userId: string;
@@ -18,6 +27,7 @@ interface ProfessionalResponseDto {
   averageRating?: number | string | null;
   reviewCount?: number | string | null;
   createdAt: string;
+  specialties?: ProfessionalSpecialtyDto[] | null;
 }
 
 function mapProfileData(dto: ProfessionalResponseDto): ProfessionalProfileData {
@@ -34,6 +44,14 @@ function mapProfileData(dto: ProfessionalResponseDto): ProfessionalProfileData {
     averageRating: toNumber(dto.averageRating),
     reviewCount: toNumber(dto.reviewCount),
     createdAt: dto.createdAt,
+    specialties: (dto.specialties ?? []).map((s) => ({
+      categoryId: s.categoryId,
+      categoryName: s.categoryName ?? undefined,
+      areaId: s.areaId ?? undefined,
+      areaName: s.areaName ?? undefined,
+      yearsOfExperience: s.yearsOfExperience != null ? toNumber(s.yearsOfExperience) : 0,
+      hourlyRate: s.hourlyRate != null ? toNumber(s.hourlyRate) : undefined,
+    })),
   };
 }
 

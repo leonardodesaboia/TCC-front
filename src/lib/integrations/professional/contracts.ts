@@ -4,6 +4,7 @@ import type {
   OrderSummary,
   ProRespondRequest,
 } from '@/types/order';
+import type { ProfessionalSpecialty } from '@/types/professional-management';
 
 export interface ProfessionalProfileData {
   id: string;
@@ -18,6 +19,7 @@ export interface ProfessionalProfileData {
   averageRating: number;
   reviewCount: number;
   createdAt: string;
+  specialties: ProfessionalSpecialty[];
 }
 
 export interface ProfessionalOrdersIntegration {
