@@ -8,6 +8,7 @@ import type {
   CreateBlockedPeriodRequest,
   CreateProfessionalOfferingRequest,
   CreateProfessionalRequest,
+  UpdateBlockedPeriodRequest,
   UpdateGeoRequest,
   UpdateProfessionalOfferingRequest,
   UpdateProfessionalRequest,
@@ -143,6 +144,19 @@ export function useCreateProfessionalCalendarBlock(professionalId: string) {
       toast.success('Bloqueio criado.');
     },
     onError: (error: unknown) => toast.error('Erro ao criar bloqueio', getApiErrorMessage(error)),
+  });
+}
+
+export function useUpdateProfessionalCalendarBlock(professionalId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ blockId, payload }: { blockId: string; payload: UpdateBlockedPeriodRequest }) =>
+      professionalManagementApi.updateCalendarBlock(professionalId, blockId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['professionals', professionalId, 'calendar-blocks'] });
+      toast.success('Bloqueio atualizado.');
+    },
+    onError: (error: unknown) => toast.error('Erro ao atualizar bloqueio', getApiErrorMessage(error)),
   });
 }
 
