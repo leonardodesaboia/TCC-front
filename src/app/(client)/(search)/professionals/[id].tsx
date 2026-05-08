@@ -134,21 +134,6 @@ export default function ProfessionalProfileScreen() {
           </View>
         </View>
 
-        <View style={styles.infoRow}>
-          <View style={styles.infoItem}>
-            <MapPin color={colors.neutral[400]} size={16} />
-            <Text variant="bodySm" color={colors.neutral[600]}>
-              {[professional.neighborhood, professional.city].filter(Boolean).join(', ') || 'Localização não informada'}
-            </Text>
-          </View>
-          {professional.availabilityLabel ? (
-            <View style={styles.infoItem}>
-              <Clock color={colors.primary.default} size={16} />
-              <Text variant="bodySm" color={colors.primary.default}>{professional.availabilityLabel}</Text>
-            </View>
-          ) : null}
-        </View>
-
         {professional.bio ? (
           <View style={styles.section}>
             <Text variant="titleSm">Sobre</Text>
