@@ -8,17 +8,33 @@ import { FormField } from '@/components/forms/FormField';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { getCategoryVisual } from '@/lib/catalog/category-visuals';
-import { useServiceCategories } from '@/lib/hooks/useCatalog';
 import { useMyProfessionalProfile } from '@/lib/hooks/useProfessionalArea';
 import { useCreateProfessionalOffering } from '@/lib/hooks/useProfessionalManagement';
 import type { PricingType } from '@/types/service-meta';
+import type { ProfessionalSpecialty } from '@/types/professional-management';
 import { colors, radius, spacing } from '@/theme';
+
+function formatMoneyInput(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return '';
+  const integer = digits.slice(0, -2) || '0';
+  const decimal = digits.slice(-2).padStart(2, '0');
+  return `${String(Number(integer))},${decimal}`;
+}
+
+function parseMoneyInput(value: string): number | null {
+  const parsed = Number.parseFloat(value.replace(',', '.'));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function numberToMoneyInput(value: number): string {
+  return formatMoneyInput(Math.round(value * 100).toString());
+}
 
 export default function NewProfessionalServiceScreen() {
   const router = useRouter();
   const profileQuery = useMyProfessionalProfile();
   const profile = profileQuery.data;
-  const categoriesQuery = useServiceCategories();
   const createOffering = useCreateProfessionalOffering(profile?.id ?? '');
 
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -28,15 +44,33 @@ export default function NewProfessionalServiceScreen() {
   const [price, setPrice] = useState('');
   const [duration, setDuration] = useState('');
 
-  if (profileQuery.isLoading || categoriesQuery.isLoading) {
+  if (profileQuery.isLoading) {
     return <LoadingScreen message="Carregando..." />;
   }
-  if (profileQuery.isError || categoriesQuery.isError || !profile) {
+  if (profileQuery.isError || !profile) {
     return <ErrorState message="Não foi possível carregar o formulário." />;
   }
 
-  const categories = categoriesQuery.data ?? [];
-  const parsedPrice = price ? Number(price.replace(',', '.')) : null;
+  const specialties: ProfessionalSpecialty[] = profile.specialties ?? [];
+
+  function handleSelectCategory(specialty: ProfessionalSpecialty) {
+    setCategoryId(specialty.categoryId);
+    if (pricingType === 'hourly' && specialty.hourlyRate != null) {
+      setPrice(numberToMoneyInput(specialty.hourlyRate));
+    }
+  }
+
+  function handleSelectPricingType(type: PricingType) {
+    setPricingType(type);
+    if (type === 'hourly' && categoryId) {
+      const specialty = specialties.find((s) => s.categoryId === categoryId);
+      if (specialty?.hourlyRate != null) {
+        setPrice(numberToMoneyInput(specialty.hourlyRate));
+      }
+    }
+  }
+
+  const parsedPrice = parseMoneyInput(price);
   const parsedDuration = duration ? parseInt(duration, 10) : 0;
   const canSubmit =
     !!categoryId &&
@@ -67,35 +101,42 @@ export default function NewProfessionalServiceScreen() {
       <Header title="Novo servico" showBack />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <FormField label="Categoria">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
-            {categories.map((category) => {
-              const active = category.id === categoryId;
-              const visual = getCategoryVisual(category.name);
-              const Icon = visual.Icon;
-              return (
-                <Pressable
-                  key={category.id}
-                  onPress={() => setCategoryId(category.id)}
-                  style={[styles.chip, active && styles.chipActive]}
-                >
-                  <View style={styles.chipContent}>
-                    <View
-                      style={[
-                        styles.chipIcon,
-                        active ? styles.chipIconActive : { backgroundColor: visual.bgColor },
-                      ]}
-                    >
-                      <Icon size={14} color={active ? colors.neutral[50] : visual.color} />
+        <FormField label="Profissão">
+          {specialties.length === 0 ? (
+            <Text variant="bodySm" color={colors.neutral[500]}>
+              Nenhuma profissão cadastrada no seu perfil.
+            </Text>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+              {specialties.map((specialty) => {
+                const active = specialty.categoryId === categoryId;
+                const name = specialty.categoryName ?? specialty.categoryId;
+                const visual = getCategoryVisual(name);
+                const Icon = visual.Icon;
+                return (
+                  <Pressable
+                    key={specialty.categoryId}
+                    onPress={() => handleSelectCategory(specialty)}
+                    style={[styles.chip, active && styles.chipActive]}
+                  >
+                    <View style={styles.chipContent}>
+                      <View
+                        style={[
+                          styles.chipIcon,
+                          active ? styles.chipIconActive : { backgroundColor: visual.bgColor },
+                        ]}
+                      >
+                        <Icon size={14} color={active ? colors.neutral[50] : visual.color} />
+                      </View>
+                      <Text variant="labelLg" color={active ? colors.neutral[50] : colors.neutral[700]}>
+                        {name}
+                      </Text>
                     </View>
-                    <Text variant="labelLg" color={active ? colors.neutral[50] : colors.neutral[700]}>
-                      {category.name}
-                    </Text>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
         </FormField>
 
         <FormField label="Título">
@@ -116,7 +157,7 @@ export default function NewProfessionalServiceScreen() {
         <FormField label="Tipo de cobrança">
           <View style={styles.chipsRow}>
             <Pressable
-              onPress={() => setPricingType('fixed')}
+              onPress={() => handleSelectPricingType('fixed')}
               style={[styles.chip, pricingType === 'fixed' && styles.chipActive]}
             >
               <Text variant="labelLg" color={pricingType === 'fixed' ? colors.neutral[50] : colors.neutral[700]}>
@@ -124,7 +165,7 @@ export default function NewProfessionalServiceScreen() {
               </Text>
             </Pressable>
             <Pressable
-              onPress={() => setPricingType('hourly')}
+              onPress={() => handleSelectPricingType('hourly')}
               style={[styles.chip, pricingType === 'hourly' && styles.chipActive]}
             >
               <Text variant="labelLg" color={pricingType === 'hourly' ? colors.neutral[50] : colors.neutral[700]}>
@@ -134,16 +175,16 @@ export default function NewProfessionalServiceScreen() {
           </View>
         </FormField>
 
-        <FormField label={pricingType === 'hourly' ? 'Valor por hora (opcional)' : 'Valor (R$)'}>
+        <FormField label={pricingType === 'hourly' ? 'Valor por hora (R$)' : 'Valor (R$)'}>
           <Input
             value={price}
-            onChangeText={setPrice}
-            placeholder="Ex: 80"
-            keyboardType="decimal-pad"
+            onChangeText={(v) => setPrice(formatMoneyInput(v))}
+            placeholder="Ex: 80,00"
+            keyboardType="numeric"
           />
           {pricingType === 'hourly' ? (
             <Text variant="labelSm" color={colors.neutral[500]}>
-              Se vazio, será usado o valor/hora da especialidade.
+              Preenchido automaticamente com o valor da profissão selecionada.
             </Text>
           ) : null}
         </FormField>
