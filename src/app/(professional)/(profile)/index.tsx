@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   Bell,
+  CalendarDays,
   ChevronRight,
   FileText,
   HelpCircle,
@@ -95,6 +96,12 @@ export default function ProfessionalProfileScreen() {
           icon={<Wrench color={colors.neutral[600]} size={20} />}
           label="Meus servicos"
           onPress={() => router.push('/(professional)/(profile)/services' as any)}
+        />
+        <Divider />
+        <MenuItem
+          icon={<CalendarDays color={colors.neutral[600]} size={20} />}
+          label="Agenda e bloqueios"
+          onPress={() => router.push('/(professional)/(profile)/calendar' as any)}
         />
         <Divider />
         <MenuItem
