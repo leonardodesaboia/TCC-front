@@ -24,13 +24,23 @@ function maskTime(value: string): string {
 
 function maskDate(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 8);
-  if (digits.length <= 4) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
-  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
 }
 
 function isValidTime(value: string) {
   return /^\d{2}:\d{2}$/.test(value);
+}
+
+function apiToDisplay(value: string): string {
+  const [yyyy, mm, dd] = value.split('-');
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function dateToApi(value: string): string {
+  const [dd, mm, yyyy] = value.split('/');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 const BLOCK_TYPE_LABEL: Record<string, string> = {
@@ -58,7 +68,7 @@ export default function EditCalendarBlockScreen() {
   useEffect(() => {
     if (!block) return;
     setWeekday(block.weekday ?? null);
-    setSpecificDate(block.specificDate ?? '');
+    setSpecificDate(block.specificDate ? apiToDisplay(block.specificDate) : '');
     setStartsAt(block.startsAt ?? '');
     setEndsAt(block.endsAt ?? '');
     setReason(block.reason ?? '');
@@ -74,7 +84,7 @@ export default function EditCalendarBlockScreen() {
         blockId: block.id,
         payload: {
           weekday: block.blockType === 'recurring' && weekday != null ? weekday : undefined,
-          specificDate: block.blockType === 'specific_date' ? specificDate : undefined,
+          specificDate: block.blockType === 'specific_date' ? dateToApi(specificDate) : undefined,
           startsAt: isValidTime(startsAt) ? startsAt : null,
           endsAt: isValidTime(endsAt) ? endsAt : null,
           reason: reason.trim() || null,
@@ -119,11 +129,11 @@ export default function EditCalendarBlockScreen() {
             </View>
           </FormField>
         ) : block.blockType === 'specific_date' ? (
-          <FormField label="Data (AAAA-MM-DD)">
+          <FormField label="Data">
             <Input
               value={specificDate}
               onChangeText={(v) => setSpecificDate(maskDate(v))}
-              placeholder="2025-12-31"
+              placeholder="31/12/2025"
               keyboardType="numeric"
               maxLength={10}
             />

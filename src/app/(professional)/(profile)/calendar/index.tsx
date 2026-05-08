@@ -12,6 +12,7 @@ import {
   useDeleteProfessionalCalendarBlock,
 } from '@/lib/hooks/useProfessionalManagement';
 import type { BlockedPeriod } from '@/types/professional-management';
+import { formatDateFull } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 
 const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -27,7 +28,10 @@ function blockSummary(block: BlockedPeriod): string {
     return `${day} • ${formatTime(block.startsAt)} – ${formatTime(block.endsAt)}`;
   }
   if (block.blockType === 'specific_date') {
-    return `${block.specificDate} • ${formatTime(block.startsAt)} – ${formatTime(block.endsAt)}`;
+    const date = block.specificDate
+      ? formatDateFull(new Date(`${block.specificDate}T12:00:00`))
+      : '?';
+    return `${date} • ${formatTime(block.startsAt)} – ${formatTime(block.endsAt)}`;
   }
   if (block.orderStartsAt) {
     return new Date(block.orderStartsAt).toLocaleString('pt-BR', {

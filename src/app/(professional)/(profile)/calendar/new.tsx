@@ -19,7 +19,7 @@ function isValidTime(value: string) {
 }
 
 function isValidDate(value: string) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+  return /^\d{2}\/\d{2}\/\d{4}$/.test(value);
 }
 
 function maskTime(value: string): string {
@@ -30,9 +30,14 @@ function maskTime(value: string): string {
 
 function maskDate(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 8);
-  if (digits.length <= 4) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
-  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function dateToApi(value: string): string {
+  const [dd, mm, yyyy] = value.split('/');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 export default function NewCalendarBlockScreen() {
@@ -61,7 +66,7 @@ export default function NewCalendarBlockScreen() {
       await createBlock.mutateAsync({
         blockType,
         weekday: blockType === 'recurring' ? weekday! : undefined,
-        specificDate: blockType === 'specific_date' ? specificDate : undefined,
+        specificDate: blockType === 'specific_date' ? dateToApi(specificDate) : undefined,
         startsAt: isValidTime(startsAt) ? startsAt : undefined,
         endsAt: isValidTime(endsAt) ? endsAt : undefined,
         reason: reason.trim() || undefined,
@@ -116,11 +121,11 @@ export default function NewCalendarBlockScreen() {
             </View>
           </FormField>
         ) : (
-          <FormField label="Data (AAAA-MM-DD)">
+          <FormField label="Data">
             <Input
               value={specificDate}
               onChangeText={(v) => setSpecificDate(maskDate(v))}
-              placeholder="2025-12-31"
+              placeholder="31/12/2025"
               keyboardType="numeric"
               maxLength={10}
             />
