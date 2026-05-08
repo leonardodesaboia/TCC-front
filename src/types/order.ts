@@ -54,6 +54,8 @@ export interface OrderSummary {
   estimatedDurationMinutes?: number;
   createdAt: string;
   updatedAt: string;
+  professionalName?: string | null;
+  serviceName?: string | null;
 }
 
 export interface OrderDetails extends OrderSummary {
@@ -133,6 +135,8 @@ export interface OrderSummaryDto {
   createdAt: string;
   updatedAt: string;
   photos?: OrderPhotoDto[] | null;
+  professionalName?: string | null;
+  serviceName?: string | null;
 }
 
 export interface OrderPhotoDto {

@@ -56,6 +56,8 @@ function mapOrderSummary(dto: OrderSummaryDto): OrderSummary {
       : undefined,
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
+    professionalName: dto.professionalName ?? undefined,
+    serviceName: dto.serviceName ?? undefined,
   };
 }
 
