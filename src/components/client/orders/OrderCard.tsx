@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Calendar, Clock, MapPin, Zap } from 'lucide-react-native';
 import { Avatar, Text } from '@/components/ui';
 import { OrderStatusBadge, type OrderStatus } from './OrderStatusBadge';
+import { formatDateFull, formatTime } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 import { OrderMode } from '@/types/order';
 
@@ -10,9 +11,12 @@ export interface OrderCardItem {
   categoryName: string;
   description: string;
   professionalName?: string;
+  serviceName?: string;
   status: OrderStatus;
   mode?: OrderMode;
   createdAt: string;
+  scheduledAt?: string | null;
+  estimatedDurationMinutes?: number;
   address: string;
   totalAmount?: string;
   proposalCount?: number;
@@ -23,7 +27,16 @@ interface OrderCardProps {
   onPress?: () => void;
 }
 
+function formatScheduledRange(scheduledAt: string, estimatedDurationMinutes?: number): string {
+  const start = new Date(scheduledAt);
+  const startStr = `${formatDateFull(start)} ${formatTime(start)}`;
+  if (!estimatedDurationMinutes) return startStr;
+  const end = new Date(start.getTime() + estimatedDurationMinutes * 60000);
+  return `${startStr} → ${formatTime(end)}`;
+}
+
 export function OrderCard({ order, onPress }: OrderCardProps) {
+  const isOnDemand = order.mode === OrderMode.ON_DEMAND;
   const showProfessional = order.professionalName && order.status !== 'pending';
 
   return (
@@ -42,9 +55,13 @@ export function OrderCard({ order, onPress }: OrderCardProps) {
           </View>
         )}
         <View style={styles.topText}>
-          <Text variant="titleSm">{order.categoryName}</Text>
+          <Text variant="titleSm">
+            {isOnDemand && showProfessional ? order.professionalName : order.categoryName}
+          </Text>
           <Text variant="bodySm" color={colors.neutral[500]} numberOfLines={1}>
-            {showProfessional ? order.professionalName : order.description}
+            {isOnDemand
+              ? (order.serviceName ?? order.categoryName)
+              : (showProfessional ? order.professionalName : order.description)}
           </Text>
         </View>
         <View style={styles.badgesCol}>
@@ -67,7 +84,9 @@ export function OrderCard({ order, onPress }: OrderCardProps) {
         <View style={styles.metaItem}>
           <Clock color={colors.neutral[400]} size={14} />
           <Text variant="labelLg" color={colors.neutral[600]}>
-            {order.createdAt}
+            {isOnDemand && order.scheduledAt
+              ? formatScheduledRange(order.scheduledAt, order.estimatedDurationMinutes)
+              : order.createdAt}
           </Text>
         </View>
         <View style={styles.metaItem}>
