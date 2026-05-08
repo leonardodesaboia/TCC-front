@@ -1,5 +1,7 @@
 import { apiClient } from './client';
 import { toNumber, unwrapItem, unwrapList } from './utils';
+import { API_URL } from '@/lib/constants/config';
+import { ACCESS_TOKEN_KEY, getStoredValue } from '@/lib/utils/token-storage';
 import type { ApiResponse, SpringPage } from '@/types/api';
 import type {
   AssignSubscriptionPlanRequest,
@@ -20,6 +22,7 @@ import type {
   ProfessionalSubscriptionDto,
   SubscriptionPlan,
   SubscriptionPlanDto,
+  UpdateBlockedPeriodRequest,
   UpdateGeoRequest,
   UpdateProfessionalOfferingRequest,
   UpdateProfessionalRequest,
@@ -127,9 +130,14 @@ function mapBlockedPeriod(dto: BlockedPeriodDto): BlockedPeriod {
     id: dto.id,
     professionalId: dto.professionalId,
     blockType: dto.blockType,
-    startAt: dto.startAt ?? undefined,
-    endAt: dto.endAt ?? undefined,
     weekday: dto.weekday ?? undefined,
+    specificDate: dto.specificDate ?? undefined,
+    startsAt: dto.startsAt ?? undefined,
+    endsAt: dto.endsAt ?? undefined,
+    orderId: dto.orderId ?? undefined,
+    orderStartsAt: dto.orderStartsAt ?? undefined,
+    orderEndsAt: dto.orderEndsAt ?? undefined,
+    reason: dto.reason ?? undefined,
     createdAt: dto.createdAt ?? undefined,
   };
 }
@@ -178,14 +186,21 @@ export const professionalManagementApi = {
     professionalId: string,
     payload: UploadProfessionalDocumentRequest,
   ): Promise<ProfessionalDocument> {
-    const response = await apiClient.post<ApiResponse<ProfessionalDocumentDto> | ProfessionalDocumentDto>(
-      `/api/v1/professionals/${professionalId}/documents`,
-      payload.formData,
-      {
-        params: { docType: payload.docType, docSide: payload.docSide },
-      },
-    );
-    return mapDocument(unwrapItem(response.data));
+    const token = await getStoredValue(ACCESS_TOKEN_KEY);
+    const url = `${API_URL}/api/v1/professionals/${professionalId}/documents?docType=${payload.docType}&docSide=${payload.docSide}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: payload.formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.status}`);
+    }
+
+    const data: ApiResponse<ProfessionalDocumentDto> | ProfessionalDocumentDto = await response.json();
+    return mapDocument(unwrapItem(data));
   },
 
   async deleteDocument(professionalId: string, documentId: string): Promise<void> {
@@ -260,6 +275,18 @@ export const professionalManagementApi = {
   async createCalendarBlock(professionalId: string, payload: CreateBlockedPeriodRequest): Promise<BlockedPeriod> {
     const response = await apiClient.post<ApiResponse<BlockedPeriodDto> | BlockedPeriodDto>(
       `/api/v1/professionals/${professionalId}/calendar/blocks`,
+      payload,
+    );
+    return mapBlockedPeriod(unwrapItem(response.data));
+  },
+
+  async updateCalendarBlock(
+    professionalId: string,
+    blockId: string,
+    payload: UpdateBlockedPeriodRequest,
+  ): Promise<BlockedPeriod> {
+    const response = await apiClient.put<ApiResponse<BlockedPeriodDto> | BlockedPeriodDto>(
+      `/api/v1/professionals/${professionalId}/calendar/blocks/${blockId}`,
       payload,
     );
     return mapBlockedPeriod(unwrapItem(response.data));
