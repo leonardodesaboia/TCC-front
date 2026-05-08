@@ -88,7 +88,7 @@ export default function ClientHomeScreen() {
     .map((p) => ({
       id: p.id,
       name: p.name,
-      profession: p.profession,
+      profession: p.areas[0]?.name ?? p.profession,
       highlight: p.specialties[0] ?? '',
       rating: (p.rating ?? 0).toFixed(1),
       badge: p.badgeLabel ?? '',
@@ -114,9 +114,13 @@ export default function ClientHomeScreen() {
         id: order.id,
         categoryName,
         description: order.description,
+        professionalName: order.professionalName ?? undefined,
+        serviceName: order.serviceName ?? undefined,
         status: order.status,
         mode: order.mode,
         createdAt: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(order.createdAt)),
+        scheduledAt: order.scheduledAt,
+        estimatedDurationMinutes: order.estimatedDurationMinutes,
         address: snapshot ? `${snapshot.street}, ${snapshot.number} - ${snapshot.district}` : '',
       };
     });

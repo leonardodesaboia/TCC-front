@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Camera, DollarSign, MapPin, MessageCircle, Phone, Star } from 'lucide-react-native';
+import { Camera, ChevronRight, DollarSign, MapPin, MessageCircle, Star } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Avatar, Badge, Button, Divider, Text } from '@/components/ui';
@@ -115,30 +115,36 @@ function ProposalCard({ professionalId, proposedAmount, respondedAt, onAccept, i
   );
 }
 
-function AcceptedProfessionalCard({ professionalId, orderId }: { professionalId: string; orderId: string }) {
+function AcceptedProfessionalCard({ professionalId, orderId, professionalName }: { professionalId: string; orderId: string; professionalName?: string }) {
   const router = useRouter();
   const proQuery = useProfessional(professionalId);
   const pro = proQuery.data;
-
-  if (proQuery.isLoading) return null;
-  if (!pro) return null;
+  const displayName = professionalName ?? pro?.name ?? 'Profissional';
 
   return (
     <View style={styles.section}>
       <Text variant="titleSm">Profissional</Text>
-      <View style={styles.professionalCard}>
-        <Avatar name={pro.name} size="lg" backgroundColor={colors.primary.default} />
+      <Pressable
+        style={styles.professionalCard}
+        onPress={() => router.push({ pathname: '/(client)/(search)/professionals/[id]', params: { id: professionalId } } as never)}
+      >
+        <Avatar name={displayName} size="lg" backgroundColor={colors.primary.default} />
         <View style={styles.professionalInfo}>
-          <Text variant="titleSm">{pro.name}</Text>
-          <Text variant="bodySm" color={colors.neutral[500]}>{pro.profession}</Text>
-          <View style={styles.proposalRating}>
-            <Star color={colors.warning} fill={colors.warning} size={12} />
-            <Text variant="labelLg" color={colors.neutral[500]}>
-              {pro.rating.toFixed(1)} ({pro.reviewCount} avaliações)
-            </Text>
-          </View>
+          <Text variant="titleSm">{displayName}</Text>
+          {pro ? (
+            <>
+              <Text variant="bodySm" color={colors.neutral[500]}>{pro.areas.map(a => a.name).join(', ') || pro.profession}</Text>
+              <View style={styles.proposalRating}>
+                <Star color={colors.warning} fill={colors.warning} size={12} />
+                <Text variant="labelLg" color={colors.neutral[500]}>
+                  {pro.rating.toFixed(1)} ({pro.reviewCount} avaliações)
+                </Text>
+              </View>
+            </>
+          ) : null}
         </View>
-      </View>
+        <ChevronRight color={colors.neutral[400]} size={20} />
+      </Pressable>
       <View style={styles.professionalActions}>
         <Button
           variant="secondary"
@@ -153,15 +159,6 @@ function AcceptedProfessionalCard({ professionalId, orderId }: { professionalId:
           }
         >
           Conversar
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          fullWidth={false}
-          leftIcon={<Phone color={colors.primary.default} size={16} />}
-          onPress={() => router.push({ pathname: '/(client)/(search)/professionals/[id]', params: { id: professionalId } } as never)}
-        >
-          Ver perfil
         </Button>
       </View>
     </View>
@@ -255,6 +252,14 @@ export default function OrderDetailScreen() {
           </View>
           <Text variant="titleLg">{categoryName}</Text>
           {areaName ? <Text variant="labelLg" color={colors.neutral[500]}>{areaName}</Text> : null}
+          {order.professionalName && order.status !== OrderStatus.PENDING ? (
+            <Text variant="labelLg" color={colors.neutral[600]}>
+              {isOnDemand ? 'Para' : 'Profissional'}: {order.professionalName}
+            </Text>
+          ) : null}
+          {isOnDemand && order.professionalName && order.status === OrderStatus.PENDING ? (
+            <Text variant="labelLg" color={colors.neutral[600]}>Para: {order.professionalName}</Text>
+          ) : null}
           <Text variant="bodySm" color={colors.neutral[500]}>{order.description}</Text>
           {order.scheduledAt ? (
             <Text variant="labelLg" color={colors.neutral[600]}>
@@ -334,15 +339,17 @@ export default function OrderDetailScreen() {
           <View style={styles.section}>
             <View style={styles.waitingCard}>
               <Text variant="bodySm" color={colors.neutral[500]} style={styles.centered}>
-                Aguardando resposta do profissional...
+                {order.professionalName
+                  ? `Aguardando resposta de ${order.professionalName}...`
+                  : 'Aguardando resposta do profissional...'}
               </Text>
             </View>
           </View>
         ) : null}
 
-        {order.professionalId && order.status !== OrderStatus.PENDING ? (
+        {order.professionalId && (isOnDemand || order.status !== OrderStatus.PENDING) ? (
           <>
-            <AcceptedProfessionalCard professionalId={order.professionalId} orderId={orderId} />
+            <AcceptedProfessionalCard professionalId={order.professionalId} orderId={orderId} professionalName={order.professionalName ?? undefined} />
             <Divider />
           </>
         ) : null}
@@ -547,6 +554,7 @@ const styles = StyleSheet.create({
   proposalPrice: { alignItems: 'flex-end', gap: spacing[0.5] },
   professionalCard: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing[3],
     backgroundColor: colors.neutral[50],
     borderRadius: radius.lg,

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Camera, Clock, DollarSign, MapPin, MessageCircle } from 'lucide-react-native';
+import { Camera, Clock, MapPin, MessageCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
@@ -99,7 +99,8 @@ export default function ProfessionalOrderDetailScreen() {
     order.professionalClientResponse === 'rejected';
 
   function handleAccept() {
-    const amount = parseFloat(proposedAmount.replace(',', '.'));
+    const digits = proposedAmount.replace(/\D/g, '');
+    const amount = parseInt(digits || '0', 10) / 100;
     if (!amount || amount <= 0) {
       if (Platform.OS === 'web') {
         window.alert('Valor inválido. Informe o valor proposto para o serviço.');
@@ -257,11 +258,17 @@ export default function ProfessionalOrderDetailScreen() {
               ? `${order.addressSnapshot.street}, ${order.addressSnapshot.number}${order.addressSnapshot.complement ? `, ${order.addressSnapshot.complement}` : ''} - ${order.addressSnapshot.district}, ${order.addressSnapshot.city}`
               : 'Endereço indisponível'}
           />
-          <InfoRow
-            icon={<DollarSign color={colors.neutral[400]} size={18} />}
-            label="Criado em"
-            value={formatDateTime(order.createdAt)}
-          />
+          {order.scheduledAt ? (
+            <InfoRow
+              icon={<Clock color={colors.neutral[400]} size={18} />}
+              label="Horário estimado"
+              value={
+                order.estimatedDurationMinutes
+                  ? `${formatDateTime(order.scheduledAt)} → ${formatDateTime(new Date(new Date(order.scheduledAt).getTime() + order.estimatedDurationMinutes * 60000).toISOString())}`
+                  : formatDateTime(order.scheduledAt)
+              }
+            />
+          ) : null}
           {order.estimatedDurationMinutes ? (
             <InfoRow
               icon={<Clock color={colors.neutral[400]} size={18} />}
@@ -371,7 +378,10 @@ export default function ProfessionalOrderDetailScreen() {
               </Text>
               <Input
                 value={proposedAmount}
-                onChangeText={setProposedAmount}
+                onChangeText={(text) => {
+                  const digits = text.replace(/\D/g, '');
+                  setProposedAmount(digits ? formatMoney(parseInt(digits, 10) / 100) : '');
+                }}
                 placeholder="Valor proposto (R$)"
                 keyboardType="numeric"
               />

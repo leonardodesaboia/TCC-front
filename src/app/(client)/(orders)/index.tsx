@@ -55,9 +55,13 @@ export default function OrdersScreen() {
       id: order.id,
       categoryName,
       description: order.description,
+      professionalName: order.professionalName ?? undefined,
+      serviceName: order.serviceName ?? undefined,
       status: order.status,
       mode: order.mode,
       createdAt: formatDateShort(order.createdAt),
+      scheduledAt: order.scheduledAt,
+      estimatedDurationMinutes: order.estimatedDurationMinutes,
       address: snapshot
         ? `${snapshot.street}, ${snapshot.number} - ${snapshot.district}`
         : 'Endereço indisponível',
