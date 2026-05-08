@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Calendar, Check, Clock, MapPin, Shield } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -12,16 +12,10 @@ import { Avatar, Button, Divider, Input, Text } from '@/components/ui';
 import { useAddresses } from '@/lib/hooks/useAddresses';
 import { useCreateOnDemandOrder } from '@/lib/hooks/useOrders';
 import { useProfessional } from '@/lib/hooks/useProfessionals';
+import { useProfessionalCalendarBlocks } from '@/lib/hooks/useProfessionalManagement';
 import { useProfessionalService } from '@/lib/hooks/useServices';
 import { formatMoney, formatDateFull, formatTime, formatDuration } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
-
-function formatDateInputValue(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
 
 function formatTimeInputValue(date: Date) {
   const hours = String(date.getHours()).padStart(2, '0');
@@ -36,6 +30,7 @@ export default function CheckoutScreen() {
   const serviceQuery = useProfessionalService(professionalId ?? '', serviceId);
   const professionalQuery = useProfessional(professionalId ?? '');
   const addressesQuery = useAddresses();
+  const blocksQuery = useProfessionalCalendarBlocks(professionalId ?? '');
   const createOnDemand = useCreateOnDemandOrder();
 
   const tomorrow = new Date();
@@ -92,25 +87,33 @@ export default function CheckoutScreen() {
     ? service.effectivePrice * (selectedMinutes / 60)
     : service.effectivePrice;
 
-  const canSubmit = !!selectedAddress && description.trim().length > 0 && scheduledDate > new Date();
+  const activeBlock = (blocksQuery.data ?? []).find((block) => {
+    const date = scheduledDate;
+    const timeStr = formatTimeInputValue(date);
 
-  function handleWebDateChange(value: string) {
-    const [year, month, day] = value.split('-').map(Number);
-    if (!year || !month || !day) return;
+    if (block.blockType === 'recurring') {
+      if (block.weekday !== date.getDay()) return false;
+      if (!block.startsAt && !block.endsAt) return true;
+      return (!block.startsAt || timeStr >= block.startsAt) && (!block.endsAt || timeStr < block.endsAt);
+    }
 
-    const updated = new Date(scheduledDate);
-    updated.setFullYear(year, month - 1, day);
-    setScheduledDate(updated);
-  }
+    if (block.blockType === 'specific_date' && block.specificDate) {
+      const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      if (iso !== block.specificDate) return false;
+      if (!block.startsAt && !block.endsAt) return true;
+      return (!block.startsAt || timeStr >= block.startsAt) && (!block.endsAt || timeStr < block.endsAt);
+    }
 
-  function handleWebTimeChange(value: string) {
-    const [hours, minutes] = value.split(':').map(Number);
-    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return;
+    if (block.blockType === 'order' && block.orderStartsAt && block.orderEndsAt) {
+      return date >= new Date(block.orderStartsAt) && date < new Date(block.orderEndsAt);
+    }
 
-    const updated = new Date(scheduledDate);
-    updated.setHours(hours, minutes, 0, 0);
-    setScheduledDate(updated);
-  }
+    return false;
+  });
+
+  const canSubmit = !!selectedAddress && description.trim().length > 0 && scheduledDate > new Date() && !activeBlock;
+
+
 
   function handleSubmit() {
     if (!selectedAddress || !description.trim() || scheduledDate <= new Date()) return;
@@ -199,76 +202,63 @@ export default function CheckoutScreen() {
             <Text variant="titleSm">Data e horário</Text>
           </View>
 
-          {Platform.OS === 'web' ? (
-            <View style={styles.dateTimeRow}>
-              <Input
-                value={formatDateInputValue(scheduledDate)}
-                onChangeText={handleWebDateChange}
-                leftIcon={<Calendar color={colors.primary.default} size={16} />}
-                style={styles.webDateInput}
-                {...({ type: 'date', min: formatDateInputValue(new Date()) } as any)}
-              />
-              <Input
-                value={formatTimeInputValue(scheduledDate)}
-                onChangeText={handleWebTimeChange}
-                leftIcon={<Clock color={colors.primary.default} size={16} />}
-                style={styles.webDateInput}
-                {...({ type: 'time', step: 1800 } as any)}
-              />
-            </View>
-          ) : (
-            <>
-              <View style={styles.dateTimeRow}>
-                <Pressable style={styles.dateTimeChip} onPress={() => setShowDatePicker(true)}>
-                  <Calendar color={colors.primary.default} size={16} />
-                  <Text variant="labelLg" color={colors.neutral[700]}>
-                    {formatDateFull(scheduledDate)}
-                  </Text>
-                </Pressable>
+          <View style={styles.dateTimeRow}>
+            <Pressable style={styles.dateTimeChip} onPress={() => setShowDatePicker(true)}>
+              <Calendar color={colors.primary.default} size={16} />
+              <Text variant="labelLg" color={colors.neutral[700]}>
+                {formatDateFull(scheduledDate)}
+              </Text>
+            </Pressable>
 
-                <Pressable style={styles.dateTimeChip} onPress={() => setShowTimePicker(true)}>
-                  <Clock color={colors.primary.default} size={16} />
-                  <Text variant="labelLg" color={colors.neutral[700]}>
-                    {formatTime(scheduledDate)}
-                  </Text>
-                </Pressable>
-              </View>
+            <Pressable style={styles.dateTimeChip} onPress={() => setShowTimePicker(true)}>
+              <Clock color={colors.primary.default} size={16} />
+              <Text variant="labelLg" color={colors.neutral[700]}>
+                {formatTime(scheduledDate)}
+              </Text>
+            </Pressable>
+          </View>
 
-              {showDatePicker && (
-                <DateTimePicker
-                  value={scheduledDate}
-                  mode="date"
-                  minimumDate={new Date()}
-                  onChange={(_event, date) => {
-                    setShowDatePicker(false);
-                    if (date) {
-                      const updated = new Date(scheduledDate);
-                      updated.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-                      setScheduledDate(updated);
-                    }
-                  }}
-                />
-              )}
+          {showDatePicker && (
+            <DateTimePicker
+              value={scheduledDate}
+              mode="date"
+              minimumDate={new Date()}
+              onChange={(_event, date) => {
+                setShowDatePicker(false);
+                if (date) {
+                  const updated = new Date(scheduledDate);
+                  updated.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+                  setScheduledDate(updated);
+                }
+              }}
+            />
+          )}
 
-              {showTimePicker && (
-                <DateTimePicker
-                  value={scheduledDate}
-                  mode="time"
-                  is24Hour
-                  minuteInterval={30}
-                  onChange={(_event, date) => {
-                    setShowTimePicker(false);
-                    if (date) {
-                      const updated = new Date(scheduledDate);
-                      updated.setHours(date.getHours(), date.getMinutes(), 0, 0);
-                      setScheduledDate(updated);
-                    }
-                  }}
-                />
-              )}
-            </>
+          {showTimePicker && (
+            <DateTimePicker
+              value={scheduledDate}
+              mode="time"
+              is24Hour
+              minuteInterval={30}
+              onChange={(_event, date) => {
+                setShowTimePicker(false);
+                if (date) {
+                  const updated = new Date(scheduledDate);
+                  updated.setHours(date.getHours(), date.getMinutes(), 0, 0);
+                  setScheduledDate(updated);
+                }
+              }}
+            />
           )}
         </View>
+
+        {activeBlock ? (
+          <View style={styles.blockedWarning}>
+            <Text variant="labelLg" color={colors.error}>
+              O profissional está indisponível neste horário.{activeBlock.reason ? ` Motivo: ${activeBlock.reason}` : ''}
+            </Text>
+          </View>
+        ) : null}
 
         <Divider />
 
@@ -380,9 +370,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.neutral[200],
   },
-  webDateInput: {
-    textAlignVertical: 'center',
-  },
   addressCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -409,6 +396,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: colors.neutral[300],
+  },
+  blockedWarning: {
+    backgroundColor: colors.error + '18',
+    borderRadius: radius.md,
+    padding: spacing[3],
+    borderWidth: 1,
+    borderColor: colors.error + '40',
   },
   guaranteeCard: {
     flexDirection: 'row',
