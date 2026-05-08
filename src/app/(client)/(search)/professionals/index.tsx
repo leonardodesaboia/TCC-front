@@ -206,16 +206,11 @@ export default function ProfessionalsByCategoryScreen() {
           professionals={filteredProfessionals.map((professional) => ({
             id: professional.id,
             name: professional.name,
-            profession: professional.profession,
+            area: professional.areas[0]?.name ?? professional.profession,
             specialties: professional.specialties,
             rating: professional.rating.toFixed(1),
             reviewCount: String(professional.reviewCount),
-            neighborhood:
-              [professional.neighborhood, professional.city].filter(Boolean).join(', ') ||
-              'Localizacao nao informada',
-            availability: professional.availabilityLabel ?? 'Consulte disponibilidade',
             badge: professional.badgeLabel,
-            ctaLabel: 'Ver perfil',
           }))}
           onPressProfessional={(professionalId) =>
             router.push({

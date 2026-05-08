@@ -108,7 +108,22 @@ export default function ProfessionalProfileScreen() {
         <View style={styles.profileHeader}>
           <Avatar name={professional.name} size="xl" backgroundColor={colors.primary.default} />
           <Text variant="titleLg">{professional.name}</Text>
-          <Text variant="bodySm" color={colors.neutral[500]}>{professional.profession}</Text>
+          {professional.areas.length > 0 ? (
+            <Text variant="bodySm" color={colors.neutral[500]}>
+              {professional.areas.map((a) => a.name).join(' · ')}
+            </Text>
+          ) : null}
+          {professional.professions.length > 0 ? (
+            <View style={styles.professionsRow}>
+              {professional.professions.map((p) => (
+                <View key={p.id} style={styles.professionChip}>
+                  <Text variant="labelLg" color={colors.neutral[600]}>{p.name}</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text variant="bodySm" color={colors.neutral[500]}>{professional.profession}</Text>
+          )}
           <View style={styles.ratingRow}>
             <Star color={colors.warning} fill={colors.warning} size={16} />
             <Text variant="titleSm">{professional.rating.toFixed(1)}</Text>
@@ -239,6 +254,15 @@ const styles = StyleSheet.create({
   scrollContent: { gap: spacing[5], paddingBottom: spacing[4] },
   profileHeader: { alignItems: 'center', gap: spacing[2], paddingTop: spacing[2] },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[1] },
+  professionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2], justifyContent: 'center' },
+  professionChip: {
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[100],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+  },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
