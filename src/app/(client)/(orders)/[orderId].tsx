@@ -215,10 +215,12 @@ export default function OrderDetailScreen() {
   const timeline = buildTimeline(order.status, order.mode);
   const proposals = isOnDemand ? [] : (proposalsQuery.data ?? []);
   const hasReview = (reviewsQuery.data ?? []).some((review) => !!review.comment);
+  const requestPhotos = order.photos.filter((photo) => photo.type === 'request');
   const completionPhotos = order.photos.filter((photo) => photo.type === 'completion_proof');
   const hasActions =
     order.status === OrderStatus.COMPLETED_BY_PRO ||
     order.status === OrderStatus.COMPLETED ||
+    order.status === OrderStatus.DISPUTED ||
     (order.status === OrderStatus.CANCELLED && order.mode === OrderMode.EXPRESS && !!areaName);
 
   function handleCancel() {
@@ -275,6 +277,28 @@ export default function OrderDetailScreen() {
             </View>
           ) : null}
         </View>
+
+        {requestPhotos.length > 0 ? (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Camera color={colors.neutral[700]} size={18} />
+              <Text variant="titleSm">Foto do pedido</Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photosScroll}>
+              {requestPhotos.map((photo) => (
+                <View key={photo.id} style={styles.photoThumb}>
+                  {photo.downloadUrl ? (
+                    <Image source={{ uri: photo.downloadUrl }} style={styles.photoImage} />
+                  ) : (
+                    <View style={styles.photoPlaceholder}>
+                      <Camera color={colors.neutral[400]} size={24} />
+                    </View>
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
 
         <View style={styles.section}>
           <Text variant="titleSm">Acompanhamento</Text>
@@ -443,6 +467,16 @@ export default function OrderDetailScreen() {
                     </Button>
                   </>
                 ) : null}
+                {order.status === OrderStatus.DISPUTED ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    fullWidth={false}
+                    onPress={() => router.push(`/(client)/(orders)/dispute/${orderId}` as never)}
+                  >
+                    Ver disputa
+                  </Button>
+                ) : null}
                 {order.status === OrderStatus.COMPLETED ? (
                   <Button
                     variant="secondary"
@@ -478,7 +512,7 @@ export default function OrderDetailScreen() {
           </>
         ) : null}
 
-        {order.status !== OrderStatus.CANCELLED && order.status !== OrderStatus.COMPLETED ? (
+        {order.status !== OrderStatus.CANCELLED && order.status !== OrderStatus.COMPLETED && order.status !== OrderStatus.DISPUTED ? (
           <View style={styles.cancelAction}>
             <Button
               variant="dangerOutline"

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Check, DollarSign, MapPin, Shield } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Camera, Check, DollarSign, MapPin, Shield, X } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { EmptyState } from '@/components/feedback/EmptyState';
@@ -27,6 +28,7 @@ export default function ExpressCreateScreen() {
   const [description, setDescription] = useState('');
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [addUrgency, setAddUrgency] = useState(false);
+  const [imageUri, setImageUri] = useState<string | null>(null);
 
   const addresses = addressesQuery.data ?? [];
 
@@ -49,6 +51,17 @@ export default function ExpressCreateScreen() {
     Number.isFinite(selectedAddress.lat) &&
     Number.isFinite(selectedAddress.lng);
 
+  async function pickImage() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setImageUri(result.assets[0].uri);
+    }
+  }
+
   async function handleSubmit() {
     if (!canSubmit || !selectedAddressId || !areaId || !categoryId) return;
 
@@ -59,6 +72,7 @@ export default function ExpressCreateScreen() {
         description: description.trim(),
         addressId: selectedAddressId,
         urgencyFee: addUrgency ? 15 : undefined,
+        imageUri: imageUri ?? undefined,
       });
     } catch {
       // mutation já exibe o erro via toast
@@ -102,6 +116,20 @@ export default function ExpressCreateScreen() {
           <Text variant="labelSm" color={description.trim().length < 10 ? colors.neutral[400] : colors.success}>
             {description.trim().length}/10 caracteres mínimos
           </Text>
+
+          {imageUri ? (
+            <View style={styles.imagePreviewWrapper}>
+              <Image source={{ uri: imageUri }} style={styles.imagePreview} resizeMode="cover" />
+              <Pressable style={styles.removeImageBtn} onPress={() => setImageUri(null)}>
+                <X color="#FFFFFF" size={14} />
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable style={styles.imagePickerBtn} onPress={pickImage}>
+              <Camera color={colors.neutral[500]} size={18} />
+              <Text variant="labelLg" color={colors.neutral[500]}>Adicionar foto do problema (opcional)</Text>
+            </Pressable>
+          )}
         </View>
 
         <Divider />
@@ -244,6 +272,37 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
   textArea: {
     minHeight: 120,
+  },
+  imagePickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    borderStyle: 'dashed',
+    borderRadius: radius.lg,
+    padding: spacing[4],
+    backgroundColor: colors.neutral[50],
+  },
+  imagePreviewWrapper: {
+    position: 'relative',
+    alignSelf: 'flex-start',
+  },
+  imagePreview: {
+    width: 120,
+    height: 120,
+    borderRadius: radius.lg,
+  },
+  removeImageBtn: {
+    position: 'absolute',
+    top: spacing[1],
+    right: spacing[1],
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.neutral[700],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addressCard: {
     flexDirection: 'row',

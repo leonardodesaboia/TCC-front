@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Calendar, Check, Clock, MapPin, Shield } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Calendar, Camera, Check, Clock, MapPin, Shield, X } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorState } from '@/components/feedback/ErrorState';
@@ -43,6 +44,7 @@ export default function CheckoutScreen() {
   const [description, setDescription] = useState('');
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const [selectedMinutes, setSelectedMinutes] = useState(60);
+  const [imageUri, setImageUri] = useState<string | null>(null);
 
   const addresses = addressesQuery.data ?? [];
 
@@ -115,6 +117,17 @@ export default function CheckoutScreen() {
 
 
 
+  async function pickImage() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setImageUri(result.assets[0].uri);
+    }
+  }
+
   function handleSubmit() {
     if (!selectedAddress || !description.trim() || scheduledDate <= new Date()) return;
 
@@ -124,6 +137,7 @@ export default function CheckoutScreen() {
       addressId: selectedAddress,
       scheduledAt: scheduledDate.toISOString(),
       ...(isHourlyWithoutDuration && { estimatedDurationMinutes: selectedMinutes }),
+      imageUri: imageUri ?? undefined,
     });
   }
 
@@ -157,6 +171,20 @@ export default function CheckoutScreen() {
           <Text variant="labelSm" color={colors.neutral[400]}>
             {description.length}/2000
           </Text>
+
+          {imageUri ? (
+            <View style={styles.imagePreviewWrapper}>
+              <Image source={{ uri: imageUri }} style={styles.imagePreview} resizeMode="cover" />
+              <Pressable style={styles.removeImageBtn} onPress={() => setImageUri(null)}>
+                <X color="#FFFFFF" size={14} />
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable style={styles.imagePickerBtn} onPress={pickImage}>
+              <Camera color={colors.neutral[500]} size={18} />
+              <Text variant="labelLg" color={colors.neutral[500]}>Adicionar foto do problema (opcional)</Text>
+            </Pressable>
+          )}
         </View>
 
         {isHourlyWithoutDuration ? (
@@ -352,6 +380,37 @@ const styles = StyleSheet.create({
   descriptionInput: {
     minHeight: 100,
     textAlignVertical: 'top',
+  },
+  imagePickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    borderStyle: 'dashed',
+    borderRadius: radius.lg,
+    padding: spacing[4],
+    backgroundColor: colors.neutral[50],
+  },
+  imagePreviewWrapper: {
+    position: 'relative',
+    alignSelf: 'flex-start',
+  },
+  imagePreview: {
+    width: 120,
+    height: 120,
+    borderRadius: radius.lg,
+  },
+  removeImageBtn: {
+    position: 'absolute',
+    top: spacing[1],
+    right: spacing[1],
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.neutral[700],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   dateTimeRow: {
     flexDirection: 'row',

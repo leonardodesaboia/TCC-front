@@ -74,6 +74,7 @@ export default function ProfessionalOrderDetailScreen() {
     : undefined;
   const categoryName = categoriesQuery.data?.find((c) => c.id === order.categoryId)?.name ?? 'Serviço';
   const badge = STATUS_BADGE[order.status] ?? STATUS_BADGE[OrderStatus.PENDING];
+  const requestPhoto = order.photos.find((p) => p.type === 'request');
   const completionPhotos = order.photos.filter((p) => p.type === 'completion_proof');
   const isOnDemand = order.mode === OrderMode.ON_DEMAND;
   const hasProfessionalActions =
@@ -229,6 +230,9 @@ export default function ProfessionalOrderDetailScreen() {
           <Text variant="titleLg">{categoryName}</Text>
           {areaName ? <Text variant="labelLg" color={colors.neutral[500]}>{areaName}</Text> : null}
           <Text variant="bodySm" color={colors.neutral[500]}>{order.description}</Text>
+          {requestPhoto?.downloadUrl ? (
+            <Image source={{ uri: requestPhoto.downloadUrl }} style={styles.requestPhoto} resizeMode="cover" />
+          ) : null}
           {isExpressInvitation ? (
             <Text variant="labelLg" color={colors.neutral[600]} style={styles.centered}>
               Este cliente ainda está escolhendo profissionais. Envie sua proposta para participar da seleção.
@@ -482,14 +486,34 @@ export default function ProfessionalOrderDetailScreen() {
             </View>
           ) : null}
 
-          {order.status === OrderStatus.COMPLETED ? (
-            <View style={styles.completedCard}>
-              <Text variant="bodySm" color={colors.success}>
+        {order.status === OrderStatus.COMPLETED ? (
+          <View style={styles.completedCard}>
+            <Text variant="bodySm" color={colors.success}>
                 Serviço concluído com sucesso!
-              </Text>
-            </View>
-          ) : null}
+            </Text>
+          </View>
+        ) : null}
+
         </View>
+        ) : null}
+
+        {order.status === OrderStatus.DISPUTED ? (
+          <View style={styles.section}>
+            <Text variant="titleSm">Disputa</Text>
+            <View style={styles.actionsColumn}>
+              <Text variant="bodySm" color={colors.neutral[500]}>
+                Este pedido está em disputa. Acompanhe o andamento e os anexos visíveis.
+              </Text>
+              <Button
+                variant="secondary"
+                size="sm"
+                fullWidth={false}
+                onPress={() => router.push(`/(professional)/(orders)/dispute/${orderId}` as never)}
+              >
+                Ver disputa
+              </Button>
+            </View>
+          </View>
         ) : null}
 
         {order.status === OrderStatus.ACCEPTED ? (
@@ -530,6 +554,11 @@ const styles = StyleSheet.create({
     gap: spacing[3],
   },
   paymentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  requestPhoto: {
+    width: '100%',
+    height: 200,
+    borderRadius: radius.lg,
+  },
   photosScroll: { gap: spacing[2] },
   photoThumb: {
     width: 120,

@@ -1,10 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
+import { Platform } from 'react-native';
 import { queryKeys } from '@/lib/constants/query-keys';
 import { clientIntegration } from '@/lib/integrations/client';
 import { getApiErrorMessage } from '@/lib/utils/errors';
 import { toast } from '@/lib/utils/toast';
 import { OrderStatus, type CreateOnDemandOrderRequestDto, type CreateOrderRequestDto, type OrderDetails, type OrderFiltersDto } from '@/types/order';
+
+async function buildPhotoFormData(imageUri: string): Promise<FormData> {
+  const formData = new FormData();
+  if (Platform.OS === 'web') {
+    const response = await fetch(imageUri);
+    const blob = await response.blob();
+    formData.append('file', blob, 'photo.jpg');
+  } else {
+    formData.append('file', { uri: imageUri, type: 'image/jpeg', name: 'photo.jpg' } as unknown as Blob);
+  }
+  formData.append('type', 'request');
+  return formData;
+}
 
 const ACTIVE_ORDER_POLL_MS = 5000;
 
@@ -44,7 +58,18 @@ export function useCreateOrder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: CreateOrderRequestDto) => clientIntegration.orders.create(payload),
+    mutationFn: async ({ imageUri, ...payload }: CreateOrderRequestDto & { imageUri?: string }) => {
+      const order = await clientIntegration.orders.create(payload);
+      if (imageUri) {
+        try {
+          const formData = await buildPhotoFormData(imageUri);
+          await clientIntegration.orders.uploadPhoto(order.id, formData);
+        } catch {
+          toast.error('Foto não enviada', 'O pedido foi criado, mas a foto não pôde ser enviada.');
+        }
+      }
+      return order;
+    },
     onSuccess: (order) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
       toast.success('Pedido enviado!', 'O profissional será notificado');
@@ -61,7 +86,18 @@ export function useCreateOnDemandOrder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: CreateOnDemandOrderRequestDto) => clientIntegration.orders.createOnDemand(payload),
+    mutationFn: async ({ imageUri, ...payload }: CreateOnDemandOrderRequestDto & { imageUri?: string }) => {
+      const order = await clientIntegration.orders.createOnDemand(payload);
+      if (imageUri) {
+        try {
+          const formData = await buildPhotoFormData(imageUri);
+          await clientIntegration.orders.uploadPhoto(order.id, formData);
+        } catch {
+          toast.error('Foto não enviada', 'O pedido foi criado, mas a foto não pôde ser enviada.');
+        }
+      }
+      return order;
+    },
     onSuccess: (order) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
       toast.success('Pedido enviado!', 'O profissional será notificado');

@@ -40,14 +40,19 @@ export function useDisputeEvidences(disputeId: string) {
   });
 }
 
-export function useAddDisputeEvidence(disputeId: string) {
+export function useSubmitDisputeEvidence(disputeId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (content: string) => disputesApi.addTextEvidence(disputeId, { content }),
+    mutationFn: async ({ content, imageUri }: { content: string; imageUri?: string }) => {
+      if (imageUri) {
+        return disputesApi.addPhotoEvidence(disputeId, content, imageUri);
+      }
+      return disputesApi.addTextEvidence(disputeId, { content });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: disputeKeys.evidences(disputeId) });
-      toast.success('Evidência adicionada.');
+      toast.success('Evidência enviada.');
     },
     onError: (error: unknown) => {
       toast.error('Erro ao enviar evidência', getApiErrorMessage(error));

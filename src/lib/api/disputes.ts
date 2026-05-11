@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import { toNumber, unwrapItem, unwrapList } from './utils';
+import { Platform } from 'react-native';
 import type { ApiResponse } from '@/types/api';
 import { USE_MOCKS_ENABLED } from '@/lib/constants/config';
 import { mockDisputesApi } from '@/lib/mocks/runtime';
@@ -39,6 +40,24 @@ function mapEvidence(dto: DisputeEvidenceDto): DisputeEvidence {
     file: dto.file ?? null,
     sentAt: dto.sentAt,
   };
+}
+
+async function buildPhotoEvidenceFormData(caption: string, imageUri: string): Promise<FormData> {
+  const formData = new FormData();
+
+  if (Platform.OS === 'web') {
+    const response = await fetch(imageUri);
+    const blob = await response.blob();
+    formData.append('file', blob, 'evidence.jpg');
+  } else {
+    formData.append('file', { uri: imageUri, type: 'image/jpeg', name: 'evidence.jpg' } as unknown as Blob);
+  }
+
+  if (caption.trim()) {
+    formData.append('caption', caption.trim());
+  }
+
+  return formData;
 }
 
 export const disputesApi = {
@@ -84,6 +103,16 @@ export const disputesApi = {
     const response = await apiClient.post<ApiResponse<DisputeEvidenceDto> | DisputeEvidenceDto>(
       `/api/v1/disputes/${disputeId}/evidences`,
       payload,
+    );
+    return mapEvidence(unwrapItem(response.data));
+  },
+
+  async addPhotoEvidence(disputeId: string, caption: string, imageUri: string): Promise<DisputeEvidence> {
+    const formData = await buildPhotoEvidenceFormData(caption, imageUri);
+
+    const response = await apiClient.post<ApiResponse<DisputeEvidenceDto> | DisputeEvidenceDto>(
+      `/api/v1/disputes/${disputeId}/evidences/photo`,
+      formData,
     );
     return mapEvidence(unwrapItem(response.data));
   },
