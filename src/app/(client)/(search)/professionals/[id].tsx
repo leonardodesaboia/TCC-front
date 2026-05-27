@@ -70,7 +70,7 @@ function FavoriteButton({ professionalId }: { professionalId: string }) {
       <ActivityIndicator
         size="small"
         color={colors.neutral[600]}
-        style={{ width: 40, height: 40 }}
+        style={styles.favoriteButtonLoader}
       />
     );
   }
@@ -80,7 +80,7 @@ function FavoriteButton({ professionalId }: { professionalId: string }) {
       onPress={() => toggleMutation.mutate(isFavorited)}
       disabled={statusQuery.isLoading}
       hitSlop={8}
-      style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+      style={styles.favoriteButton}
     >
       <Heart
         size={22}
@@ -352,4 +352,14 @@ const styles = StyleSheet.create({
   reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
   reviewInfo: { flex: 1, gap: 2 },
   starRow: { flexDirection: 'row', gap: 2 },
+  favoriteButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  favoriteButtonLoader: {
+    width: 40,
+    height: 40,
+  },
 });
