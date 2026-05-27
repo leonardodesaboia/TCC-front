@@ -55,9 +55,17 @@ export interface ClientAddressesIntegration {
   setDefault(id: string): Promise<Address>;
 }
 
+export interface ClientFavoritesIntegration {
+  getStatus(professionalId: string): Promise<{ professionalId: string; favorite: boolean }>;
+  favorite(professionalId: string): Promise<void>;
+  unfavorite(professionalId: string): Promise<void>;
+  list(): Promise<ProfessionalSummary[]>;
+}
+
 export interface ClientIntegration {
   professionals: ClientProfessionalsIntegration;
   services: ClientServicesIntegration;
   orders: ClientOrdersIntegration;
   addresses: ClientAddressesIntegration;
+  favorites: ClientFavoritesIntegration;
 }

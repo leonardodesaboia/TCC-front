@@ -1,4 +1,5 @@
 import { addressesApi } from '@/lib/api/addresses';
+import { favoritesApi } from '@/lib/api/favorites';
 import { ordersApi } from '@/lib/api/orders';
 import { professionalsApi } from '@/lib/api/professionals';
 import { servicesApi } from '@/lib/api/services';
@@ -36,5 +37,11 @@ export const defaultClientIntegration: ClientIntegration = {
     update: (id, payload) => addressesApi.update(id, payload),
     remove: (id) => addressesApi.remove(id),
     setDefault: (id) => addressesApi.setDefault(id),
+  },
+  favorites: {
+    getStatus: (professionalId) => favoritesApi.getStatus(professionalId),
+    favorite: (professionalId) => favoritesApi.favorite(professionalId),
+    unfavorite: (professionalId) => favoritesApi.unfavorite(professionalId),
+    list: () => favoritesApi.list(),
   },
 };
