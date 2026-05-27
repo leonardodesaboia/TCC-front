@@ -98,7 +98,8 @@ export const clientIntegration = {
       favorites().favorite(...args),
     unfavorite: (...args: Parameters<ClientFavoritesIntegration['unfavorite']>) =>
       favorites().unfavorite(...args),
-    list: () => favorites().list(),
+    list: (...args: Parameters<ClientFavoritesIntegration['list']>) =>
+      favorites().list(...args),
   },
 };
 
