@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import {
   Bell,
   ChevronRight,
+  Heart,
   HelpCircle,
   LogOut,
   MapPin,
@@ -91,6 +92,12 @@ export default function ProfileScreen() {
           icon={<MessageCircle color={colors.neutral[600]} size={20} />}
           label="Conversas"
           onPress={() => router.push('/(client)/conversations')}
+        />
+        <Divider />
+        <MenuItem
+          icon={<Heart color={colors.neutral[600]} size={20} />}
+          label="Profissionais salvos"
+          onPress={() => router.push('/(client)/(profile)/favorites')}
         />
         <Divider />
         <MenuItem
