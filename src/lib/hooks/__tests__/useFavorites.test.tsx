@@ -81,6 +81,23 @@ describe('useToggleFavorite', () => {
     expect(clientIntegration.favorites.unfavorite).toHaveBeenCalledWith('pro-1');
     expect(clientIntegration.favorites.favorite).not.toHaveBeenCalled();
   });
+
+  it('mostra toast de erro quando a mutation falha', async () => {
+    vi.mocked(clientIntegration.favorites.favorite).mockRejectedValue(new Error('Network error'));
+
+    const { result } = renderHook(() => useToggleFavorite('pro-1'), {
+      wrapper: makeWrapper(),
+    });
+
+    await act(async () => {
+      result.current.mutate(false);
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    const { toast } = await import('@/lib/utils/toast');
+    expect(toast.error).toHaveBeenCalledWith('Não foi possível atualizar os favoritos.');
+  });
 });
 
 describe('useFavoriteProfessionals', () => {
