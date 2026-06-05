@@ -14,7 +14,7 @@ import type {
   SubscriptionPlan,
 } from '@/types/professional-management';
 
-function mapProfessionalProfileRecord(dto: ProfessionalProfileRecordDto): ProfessionalProfileRecord {
+export function mapProfessionalProfileRecord(dto: ProfessionalProfileRecordDto): ProfessionalProfileRecord {
   return {
     id: dto.id,
     userId: dto.userId,
@@ -87,7 +87,7 @@ function getSpecialties(record: ProfessionalProfileRecord) {
   );
 }
 
-function mapProfessionalSummary(
+export function mapProfessionalSummary(
   record: ProfessionalProfileRecord,
   badgeLabel?: string,
 ): ProfessionalSummary {

@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CheckCircle2, MapPin, Plus, Trash2 } from 'lucide-react-native';
+import { CheckCircle2, MapPin, Pencil, Plus, Trash2 } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Badge, Button, Divider, Text } from '@/components/ui';
@@ -66,10 +66,31 @@ export default function AddressesScreen() {
                 </View>
 
                 <View style={styles.actions}>
-                  <Pressable hitSlop={8} onPress={() => setDefaultAddress.mutate(address.id)}>
+                  <Pressable
+                    hitSlop={8}
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      router.push(`/(client)/(profile)/addresses/${address.id}`);
+                    }}
+                  >
+                    <Pencil color={colors.neutral[400]} size={18} />
+                  </Pressable>
+                  <Pressable
+                    hitSlop={8}
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      setDefaultAddress.mutate(address.id);
+                    }}
+                  >
                     <CheckCircle2 color={colors.neutral[400]} size={18} />
                   </Pressable>
-                  <Pressable hitSlop={8} onPress={() => deleteAddress.mutate(address.id)}>
+                  <Pressable
+                    hitSlop={8}
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      deleteAddress.mutate(address.id);
+                    }}
+                  >
                     <Trash2 color={colors.neutral[400]} size={18} />
                   </Pressable>
                 </View>

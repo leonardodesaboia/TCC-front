@@ -1,4 +1,10 @@
-import type { CreateAddressRequestDto, UpdateAddressRequestDto, Address } from '@/types/address';
+import type {
+  Address,
+  CreateAddressRequestDto,
+  GeocodeAddressRequestDto,
+  GeocodedAddress,
+  UpdateAddressRequestDto,
+} from '@/types/address';
 import type {
   CreateOnDemandOrderRequestDto,
   CreateOrderRequestDto,
@@ -48,6 +54,7 @@ export interface ClientOrdersIntegration {
 }
 
 export interface ClientAddressesIntegration {
+  lookup(payload: GeocodeAddressRequestDto): Promise<GeocodedAddress>;
   getAll(): Promise<Address[]>;
   create(payload: CreateAddressRequestDto): Promise<Address>;
   update(id: string, payload: UpdateAddressRequestDto): Promise<Address>;
@@ -55,9 +62,17 @@ export interface ClientAddressesIntegration {
   setDefault(id: string): Promise<Address>;
 }
 
+export interface ClientFavoritesIntegration {
+  getStatus(professionalId: string): Promise<{ professionalId: string; favorite: boolean }>;
+  favorite(professionalId: string): Promise<void>;
+  unfavorite(professionalId: string): Promise<void>;
+  list(): Promise<ProfessionalSummary[]>;
+}
+
 export interface ClientIntegration {
   professionals: ClientProfessionalsIntegration;
   services: ClientServicesIntegration;
   orders: ClientOrdersIntegration;
   addresses: ClientAddressesIntegration;
+  favorites: ClientFavoritesIntegration;
 }

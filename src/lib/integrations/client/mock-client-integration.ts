@@ -160,6 +160,8 @@ const MOCK_PROPOSALS_BY_ORDER: Record<string, ExpressProposal[]> = {
   ],
 };
 
+let mockFavoriteIds = new Set<string>();
+
 function toOrderSummary(order: OrderDetails): OrderSummary {
   return {
     id: order.id,
@@ -378,6 +380,22 @@ export const mockClientIntegration: ClientIntegration = {
     async uploadPhoto() {},
   },
   addresses: {
+    async lookup(payload) {
+      return {
+        lat: -3.731862,
+        lng: -38.526669,
+        displayName: [
+          payload.street,
+          payload.number,
+          payload.district,
+          payload.city,
+          payload.state,
+          payload.zipCode,
+        ].filter(Boolean).join(', '),
+        confidence: 'APPROXIMATE',
+        provider: 'mock',
+      };
+    },
     async getAll() {
       return mockAddresses;
     },
@@ -386,6 +404,8 @@ export const mockClientIntegration: ClientIntegration = {
         id: nextId('addr'),
         userId: 'dev-client',
         ...payload,
+        lat: payload.lat ?? null,
+        lng: payload.lng ?? null,
         isDefault: payload.isDefault ?? mockAddresses.length === 0,
       };
 
@@ -406,6 +426,20 @@ export const mockClientIntegration: ClientIntegration = {
     async setDefault(id: string) {
       mockAddresses = mockAddresses.map((item) => ({ ...item, isDefault: item.id === id }));
       return mockAddresses.find((item) => item.id === id) ?? mockAddresses[0];
+    },
+  },
+  favorites: {
+    async getStatus(professionalId) {
+      return { professionalId, favorite: mockFavoriteIds.has(professionalId) };
+    },
+    async favorite(professionalId) {
+      mockFavoriteIds.add(professionalId);
+    },
+    async unfavorite(professionalId) {
+      mockFavoriteIds.delete(professionalId);
+    },
+    async list() {
+      return MOCK_PROFESSIONALS.filter((p) => mockFavoriteIds.has(p.id));
     },
   },
 };

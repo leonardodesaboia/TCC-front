@@ -15,6 +15,7 @@ const mockProfile: ProfessionalProfileData = {
   averageRating: 4.7,
   reviewCount: 23,
   createdAt: '2026-01-15T00:00:00.000Z',
+  specialties: [],
 };
 
 let mockOrders: OrderSummary[] = [
