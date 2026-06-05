@@ -1,4 +1,10 @@
-import type { CreateAddressRequestDto, UpdateAddressRequestDto, Address } from '@/types/address';
+import type {
+  Address,
+  CreateAddressRequestDto,
+  GeocodeAddressRequestDto,
+  GeocodedAddress,
+  UpdateAddressRequestDto,
+} from '@/types/address';
 import type {
   CreateOnDemandOrderRequestDto,
   CreateOrderRequestDto,
@@ -48,6 +54,7 @@ export interface ClientOrdersIntegration {
 }
 
 export interface ClientAddressesIntegration {
+  lookup(payload: GeocodeAddressRequestDto): Promise<GeocodedAddress>;
   getAll(): Promise<Address[]>;
   create(payload: CreateAddressRequestDto): Promise<Address>;
   update(id: string, payload: UpdateAddressRequestDto): Promise<Address>;

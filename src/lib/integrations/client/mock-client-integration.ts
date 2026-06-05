@@ -380,6 +380,22 @@ export const mockClientIntegration: ClientIntegration = {
     async uploadPhoto() {},
   },
   addresses: {
+    async lookup(payload) {
+      return {
+        lat: -3.731862,
+        lng: -38.526669,
+        displayName: [
+          payload.street,
+          payload.number,
+          payload.district,
+          payload.city,
+          payload.state,
+          payload.zipCode,
+        ].filter(Boolean).join(', '),
+        confidence: 'APPROXIMATE',
+        provider: 'mock',
+      };
+    },
     async getAll() {
       return mockAddresses;
     },
@@ -388,6 +404,8 @@ export const mockClientIntegration: ClientIntegration = {
         id: nextId('addr'),
         userId: 'dev-client',
         ...payload,
+        lat: payload.lat ?? null,
+        lng: payload.lng ?? null,
         isDefault: payload.isDefault ?? mockAddresses.length === 0,
       };
 

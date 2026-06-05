@@ -32,6 +32,7 @@ export const defaultClientIntegration: ClientIntegration = {
     uploadPhoto: (orderId, formData) => ordersApi.uploadPhoto(orderId, formData),
   },
   addresses: {
+    lookup: (payload) => addressesApi.lookup(payload),
     getAll: () => addressesApi.getAll(),
     create: (payload) => addressesApi.create(payload),
     update: (id, payload) => addressesApi.update(id, payload),

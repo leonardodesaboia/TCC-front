@@ -80,6 +80,8 @@ export const clientIntegration = {
       orders().uploadPhoto(...args),
   },
   addresses: {
+    lookup: (...args: Parameters<ClientAddressesIntegration['lookup']>) =>
+      addresses().lookup(...args),
     getAll: (...args: Parameters<ClientAddressesIntegration['getAll']>) =>
       addresses().getAll(...args),
     create: (...args: Parameters<ClientAddressesIntegration['create']>) =>
