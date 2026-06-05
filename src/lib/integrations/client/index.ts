@@ -1,5 +1,6 @@
 import type {
   ClientAddressesIntegration,
+  ClientFavoritesIntegration,
   ClientIntegration,
   ClientOrdersIntegration,
   ClientProfessionalsIntegration,
@@ -31,6 +32,10 @@ function orders(): ClientOrdersIntegration {
 
 function addresses(): ClientAddressesIntegration {
   return currentClientIntegration.addresses;
+}
+
+function favorites(): ClientFavoritesIntegration {
+  return currentClientIntegration.favorites;
 }
 
 export const clientIntegration = {
@@ -75,6 +80,8 @@ export const clientIntegration = {
       orders().uploadPhoto(...args),
   },
   addresses: {
+    lookup: (...args: Parameters<ClientAddressesIntegration['lookup']>) =>
+      addresses().lookup(...args),
     getAll: (...args: Parameters<ClientAddressesIntegration['getAll']>) =>
       addresses().getAll(...args),
     create: (...args: Parameters<ClientAddressesIntegration['create']>) =>
@@ -85,6 +92,16 @@ export const clientIntegration = {
       addresses().remove(...args),
     setDefault: (...args: Parameters<ClientAddressesIntegration['setDefault']>) =>
       addresses().setDefault(...args),
+  },
+  favorites: {
+    getStatus: (...args: Parameters<ClientFavoritesIntegration['getStatus']>) =>
+      favorites().getStatus(...args),
+    favorite: (...args: Parameters<ClientFavoritesIntegration['favorite']>) =>
+      favorites().favorite(...args),
+    unfavorite: (...args: Parameters<ClientFavoritesIntegration['unfavorite']>) =>
+      favorites().unfavorite(...args),
+    list: (...args: Parameters<ClientFavoritesIntegration['list']>) =>
+      favorites().list(...args),
   },
 };
 

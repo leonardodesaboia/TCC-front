@@ -1,6 +1,7 @@
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronRight, Clock, MapPin, Star } from 'lucide-react-native';
+import { ChevronRight, Clock, Heart, MapPin, Star } from 'lucide-react-native';
+import { useFavoriteStatus, useToggleFavorite } from '@/lib/hooks/useFavorites';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
@@ -59,6 +60,37 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
+function FavoriteButton({ professionalId }: { professionalId: string }) {
+  const statusQuery = useFavoriteStatus(professionalId);
+  const toggleMutation = useToggleFavorite(professionalId);
+  const isFavorited = statusQuery.data?.favorite ?? false;
+
+  if (toggleMutation.isPending) {
+    return (
+      <ActivityIndicator
+        size="small"
+        color={colors.neutral[600]}
+        style={styles.favoriteButtonLoader}
+      />
+    );
+  }
+
+  return (
+    <Pressable
+      onPress={() => toggleMutation.mutate(isFavorited)}
+      disabled={statusQuery.isLoading}
+      hitSlop={8}
+      style={styles.favoriteButton}
+    >
+      <Heart
+        size={22}
+        color={isFavorited ? colors.error : colors.neutral[400]}
+        fill={isFavorited ? colors.error : 'transparent'}
+      />
+    </Pressable>
+  );
+}
+
 export default function ProfessionalProfileScreen() {
   const { id, categoryId, categoryName } = useLocalSearchParams<{
     id: string;
@@ -103,7 +135,11 @@ export default function ProfessionalProfileScreen() {
 
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
-      <Header title="Profissional" showBack />
+      <Header
+        title="Profissional"
+        showBack
+        rightAction={<FavoriteButton professionalId={id} />}
+      />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.profileHeader}>
           <Avatar name={professional.name} size="xl" backgroundColor={colors.primary.default} />
@@ -316,4 +352,14 @@ const styles = StyleSheet.create({
   reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
   reviewInfo: { flex: 1, gap: 2 },
   starRow: { flexDirection: 'row', gap: 2 },
+  favoriteButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  favoriteButtonLoader: {
+    width: 40,
+    height: 40,
+  },
 });

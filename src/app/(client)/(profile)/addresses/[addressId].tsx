@@ -1,25 +1,31 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LocateFixed, MapPin } from 'lucide-react-native';
+import { ErrorState } from '@/components/feedback/ErrorState';
+import { LoadingScreen } from '@/components/feedback/LoadingScreen';
+import { FormField } from '@/components/forms/FormField';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
-import { Button, Input, Text } from '@/components/ui';
-import { FormField } from '@/components/forms/FormField';
 import { PinLocationPicker, type Coordinates } from '@/components/maps/PinLocationPicker';
-import { useCreateAddress, useLookupAddress } from '@/lib/hooks/useAddresses';
+import { Button, Input, Text } from '@/components/ui';
+import { useAddresses, useLookupAddress, useUpdateAddress } from '@/lib/hooks/useAddresses';
 import { maskZipCode, normalizeStateCode, normalizeZipCode } from '@/lib/utils/address-format';
-import { spacing, colors } from '@/theme';
+import { colors, spacing } from '@/theme';
 
 const DEFAULT_PIN: Coordinates = {
   lat: -3.731862,
   lng: -38.526669,
 };
 
-export default function NewAddressScreen() {
+export default function EditAddressScreen() {
   const router = useRouter();
-  const createAddress = useCreateAddress();
+  const { addressId } = useLocalSearchParams<{ addressId: string }>();
+  const addressesQuery = useAddresses();
+  const updateAddress = useUpdateAddress(addressId);
   const lookupAddress = useLookupAddress();
+
+  const address = (addressesQuery.data ?? []).find((item) => item.id === addressId);
 
   const [label, setLabel] = useState('');
   const [zipCode, setZipCode] = useState('');
@@ -31,6 +37,27 @@ export default function NewAddressScreen() {
   const [state, setState] = useState('');
   const [pin, setPin] = useState<Coordinates | null>(null);
   const [lookupDisplayName, setLookupDisplayName] = useState<string | null>(null);
+  const [initializedAddressId, setInitializedAddressId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!address || initializedAddressId === address.id) return;
+
+    setLabel(address.label);
+    setZipCode(address.zipCode);
+    setStreet(address.street);
+    setNumber(address.number);
+    setComplement(address.complement ?? '');
+    setDistrict(address.district);
+    setCity(address.city);
+    setState(address.state);
+    setPin(
+      address.lat !== null && address.lng !== null
+        ? { lat: address.lat, lng: address.lng }
+        : null,
+    );
+    setLookupDisplayName(null);
+    setInitializedAddressId(address.id);
+  }, [address, initializedAddressId]);
 
   const hasRequiredAddressFields =
     normalizeZipCode(zipCode).length === 9 &&
@@ -80,7 +107,7 @@ export default function NewAddressScreen() {
   async function handleSave() {
     if (!canSave || !pin) return;
 
-    await createAddress.mutateAsync({
+    await updateAddress.mutateAsync({
       label: label.trim(),
       zipCode: normalizeZipCode(zipCode),
       street: street.trim(),
@@ -91,15 +118,31 @@ export default function NewAddressScreen() {
       state: normalizeStateCode(state),
       lat: pin.lat,
       lng: pin.lng,
-      isDefault: false,
     });
 
     router.back();
   }
 
+  if (addressesQuery.isLoading) {
+    return <LoadingScreen message="Carregando endereço..." />;
+  }
+
+  if (addressesQuery.isError) {
+    return (
+      <ErrorState
+        message="Não foi possível carregar o endereço."
+        onRetry={() => addressesQuery.refetch()}
+      />
+    );
+  }
+
+  if (!address) {
+    return <ErrorState message="Endereço não encontrado." onRetry={() => router.back()} />;
+  }
+
   return (
     <Screen edges={['top']}>
-      <Header title="Novo endereço" showBack />
+      <Header title="Editar endereço" showBack />
 
       <View style={styles.form}>
         <FormField label="Apelido (ex: Casa, Trabalho)">
@@ -197,7 +240,7 @@ export default function NewAddressScreen() {
             <View style={styles.flex1}>
               <Text variant="titleSm">Localização no mapa</Text>
               <Text variant="labelLg" color={colors.neutral[500]}>
-                Escolha pelo pin ou use a API apenas para sugerir o ponto inicial.
+                Ajuste o pin salvo ou use a API apenas para sugerir outro ponto.
               </Text>
             </View>
           </View>
@@ -253,9 +296,9 @@ export default function NewAddressScreen() {
           size="lg"
           onPress={handleSave}
           disabled={!canSave}
-          loading={createAddress.isPending}
+          loading={updateAddress.isPending}
         >
-          Salvar endereço
+          Salvar alterações
         </Button>
       </View>
     </Screen>

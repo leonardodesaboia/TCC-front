@@ -39,4 +39,8 @@ export const queryKeys = {
     list: (params?: object) => ['professional-orders', 'list', params] as const,
     detail: (id: string) => ['professional-orders', id] as const,
   },
+  favorites: {
+    all: ['favorites'] as const,
+    status: (professionalId: string) => ['favorites', 'status', professionalId] as const,
+  },
 } as const;

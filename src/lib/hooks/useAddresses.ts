@@ -3,12 +3,25 @@ import { queryKeys } from '@/lib/constants/query-keys';
 import { clientIntegration } from '@/lib/integrations/client';
 import { getApiErrorMessage } from '@/lib/utils/errors';
 import { toast } from '@/lib/utils/toast';
-import type { CreateAddressRequestDto, UpdateAddressRequestDto } from '@/types/address';
+import type {
+  CreateAddressRequestDto,
+  GeocodeAddressRequestDto,
+  UpdateAddressRequestDto,
+} from '@/types/address';
 
 export function useAddresses() {
   return useQuery({
     queryKey: queryKeys.addresses.all,
     queryFn: () => clientIntegration.addresses.getAll(),
+  });
+}
+
+export function useLookupAddress() {
+  return useMutation({
+    mutationFn: (payload: GeocodeAddressRequestDto) => clientIntegration.addresses.lookup(payload),
+    onError: (error: unknown) => {
+      toast.error('Não foi possível localizar o endereço', getApiErrorMessage(error));
+    },
   });
 }
 
