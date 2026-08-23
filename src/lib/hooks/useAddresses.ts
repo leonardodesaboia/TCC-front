@@ -6,6 +6,7 @@ import { toast } from '@/lib/utils/toast';
 import type {
   CreateAddressRequestDto,
   GeocodeAddressRequestDto,
+  ReverseGeocodeRequestDto,
   UpdateAddressRequestDto,
 } from '@/types/address';
 
@@ -16,12 +17,36 @@ export function useAddresses() {
   });
 }
 
-export function useLookupAddress() {
+/**
+ * Busca coordenadas a partir do endereço escrito.
+ *
+ * `silent` desliga o toast de erro. Serve para a busca automática, que a pessoa
+ * não pediu: falhar ali não deve encher a tela de aviso — ela segue marcando o
+ * ponto no mapa como faria de qualquer jeito.
+ */
+export function useLookupAddress(options?: { silent?: boolean }) {
+  const silent = options?.silent ?? false;
+
   return useMutation({
     mutationFn: (payload: GeocodeAddressRequestDto) => clientIntegration.addresses.lookup(payload),
     onError: (error: unknown) => {
+      if (silent) return;
       toast.error('Não foi possível localizar o endereço', getApiErrorMessage(error));
     },
+  });
+}
+
+/**
+ * Converte o ponto do mapa em endereço escrito.
+ *
+ * <p>Silencioso de propósito: é uma conveniência disparada ao mover o pin, não uma
+ * ação que a pessoa pediu. Falhar aqui não deve encher a tela de toast — o
+ * cadastro segue com o que ela digitou.
+ */
+export function useReverseGeocode() {
+  return useMutation({
+    mutationFn: (payload: ReverseGeocodeRequestDto) =>
+      clientIntegration.addresses.reverse(payload),
   });
 }
 

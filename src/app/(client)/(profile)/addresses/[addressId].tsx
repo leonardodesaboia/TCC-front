@@ -1,22 +1,34 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { LocateFixed, MapPin } from 'lucide-react-native';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { FormField } from '@/components/forms/FormField';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
-import { PinLocationPicker, type Coordinates } from '@/components/maps/PinLocationPicker';
+import { AddressPinSection } from '@/components/maps/AddressPinSection';
 import { Button, Input, Text } from '@/components/ui';
-import { useAddresses, useLookupAddress, useUpdateAddress } from '@/lib/hooks/useAddresses';
+import {
+  useAddresses,
+  useLookupAddress,
+  useReverseGeocode,
+  useUpdateAddress,
+} from '@/lib/hooks/useAddresses';
+import { useAddressPin } from '@/lib/hooks/useAddressPin';
+import { compareWithGeocoded, describeFields } from '@/lib/utils/address-fill';
 import { maskZipCode, normalizeStateCode, normalizeZipCode } from '@/lib/utils/address-format';
+import type { GeocodedAddress } from '@/types/address';
 import { colors, spacing } from '@/theme';
 
-const DEFAULT_PIN: Coordinates = {
-  lat: -3.731862,
-  lng: -38.526669,
-};
+/** Espera a pessoa parar de arrastar o pin antes de consultar o endereço. */
+const REVERSE_DEBOUNCE_MS = 700;
+
+/** Espera a digitação assentar antes de buscar o endereço sozinho. */
+const AUTO_LOOKUP_DEBOUNCE_MS = 900;
+
+function addressKey(parts: string[]): string {
+  return parts.join('|').toLowerCase();
+}
 
 export default function EditAddressScreen() {
   const router = useRouter();
@@ -24,6 +36,10 @@ export default function EditAddressScreen() {
   const addressesQuery = useAddresses();
   const updateAddress = useUpdateAddress(addressId);
   const lookupAddress = useLookupAddress();
+  // Busca automática não pede toast: a pessoa não pediu essa consulta.
+  const autoSuggest = useLookupAddress({ silent: true });
+  const reverseGeocode = useReverseGeocode();
+  const pinState = useAddressPin();
 
   const address = (addressesQuery.data ?? []).find((item) => item.id === addressId);
 
@@ -35,9 +51,16 @@ export default function EditAddressScreen() {
   const [district, setDistrict] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
-  const [pin, setPin] = useState<Coordinates | null>(null);
-  const [lookupDisplayName, setLookupDisplayName] = useState<string | null>(null);
+  const [divergenceWarning, setDivergenceWarning] = useState<string | null>(null);
   const [initializedAddressId, setInitializedAddressId] = useState<string | null>(null);
+  const [needsReconfirmation, setNeedsReconfirmation] = useState(false);
+
+  const reverseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastAutoLookupKeyRef = useRef<string | null>(null);
+  const formRef = useRef({ street, number, district, city, state, zipCode });
+  formRef.current = { street, number, district, city, state, zipCode };
+
+  const hydratePin = pinState.hydrate;
 
   useEffect(() => {
     if (!address || initializedAddressId === address.id) return;
@@ -50,14 +73,31 @@ export default function EditAddressScreen() {
     setDistrict(address.district);
     setCity(address.city);
     setState(address.state);
-    setPin(
-      address.lat !== null && address.lng !== null
-        ? { lat: address.lat, lng: address.lng }
-        : null,
+
+    // Coordenada antiga entra como ponto de partida no mapa, mas sem procedência:
+    // a pessoa precisa reconfirmar antes de conseguir salvar.
+    hydratePin(
+      address.lat !== null && address.lng !== null ? { lat: address.lat, lng: address.lng } : null,
+      address.coordinateSource,
     );
-    setLookupDisplayName(null);
+    setNeedsReconfirmation(
+      address.lat !== null && address.lng !== null && !address.expressReady,
+    );
+
+    // Semeia a chave com o endereço que acabou de ser carregado: abrir a tela não
+    // é digitar um endereço novo, então a busca automática não deve disparar aqui.
+    lastAutoLookupKeyRef.current = addressKey([
+      normalizeZipCode(address.zipCode),
+      address.street.trim(),
+      address.number.trim(),
+      address.district.trim(),
+      address.city.trim(),
+      normalizeStateCode(address.state),
+    ]);
+
+    setDivergenceWarning(null);
     setInitializedAddressId(address.id);
-  }, [address, initializedAddressId]);
+  }, [address, hydratePin, initializedAddressId]);
 
   const hasRequiredAddressFields =
     normalizeZipCode(zipCode).length === 9 &&
@@ -67,45 +107,122 @@ export default function EditAddressScreen() {
     city.trim().length > 0 &&
     normalizeStateCode(state).length === 2;
 
-  const canSave =
-    label.trim().length > 0 &&
-    hasRequiredAddressFields &&
-    !!pin &&
-    Number.isFinite(pin.lat) &&
-    Number.isFinite(pin.lng);
+  // Mesma regra do `isUsable()` do GeocodeRequest: CEP sozinho basta, ou rua + cidade.
+  const canLookup =
+    normalizeZipCode(zipCode).length === 9 || (street.trim().length > 0 && city.trim().length > 0);
 
-  function clearLookupResult() {
-    setLookupDisplayName(null);
+  const autoLookupKey = hasRequiredAddressFields
+    ? addressKey([
+        normalizeZipCode(zipCode),
+        street.trim(),
+        number.trim(),
+        district.trim(),
+        city.trim(),
+        normalizeStateCode(state),
+      ])
+    : null;
+
+  const coordinatePayload = pinState.toPayload();
+  const canSave = label.trim().length > 0 && hasRequiredAddressFields && !!coordinatePayload;
+
+  const saveHint = !coordinatePayload
+    ? 'Confirme o ponto no mapa para salvar.'
+    : !hasRequiredAddressFields
+      ? 'Preencha os campos do endereço para salvar.'
+      : null;
+
+  function clearSuggestion() {
+    pinState.clearSuggestion();
+    setDivergenceWarning(null);
   }
 
-  function handleChooseOnMap() {
-    setPin((current) => current ?? DEFAULT_PIN);
-    clearLookupResult();
+  function applyGeocodedAddress(result: GeocodedAddress) {
+    const { filled, divergent } = compareWithGeocoded(formRef.current, result);
+
+    if (filled.street) setStreet(filled.street);
+    if (filled.number) setNumber(filled.number);
+    if (filled.district) setDistrict(filled.district);
+    if (filled.city) setCity(filled.city);
+    if (filled.state) setState(normalizeStateCode(filled.state));
+    if (filled.zipCode) setZipCode(maskZipCode(filled.zipCode));
+
+    setDivergenceWarning(
+      divergent.length > 0
+        ? `O ponto marcado fica em ${describeFields(divergent)} diferente do que você escreveu. Confira antes de salvar.`
+        : null,
+    );
+  }
+
+  function lookupPayload() {
+    return {
+      zipCode: normalizeZipCode(zipCode) || undefined,
+      street: street.trim() || undefined,
+      number: number.trim() || undefined,
+      complement: complement.trim() || undefined,
+      district: district.trim() || undefined,
+      city: city.trim() || undefined,
+      state: normalizeStateCode(state) || undefined,
+    };
   }
 
   async function handleLookup() {
-    if (!hasRequiredAddressFields) return;
+    if (!canLookup) return;
 
     try {
-      const result = await lookupAddress.mutateAsync({
-        zipCode: normalizeZipCode(zipCode),
-        street: street.trim(),
-        number: number.trim(),
-        complement: complement.trim() || undefined,
-        district: district.trim(),
-        city: city.trim(),
-        state: normalizeStateCode(state),
-      });
-
-      setPin({ lat: result.lat, lng: result.lng });
-      setLookupDisplayName(result.displayName ?? null);
+      const result = await lookupAddress.mutateAsync(lookupPayload());
+      pinState.applySuggestion(result);
+      applyGeocodedAddress(result);
+      setNeedsReconfirmation(false);
     } catch {
       // O hook ja apresenta o erro via toast.
     }
   }
 
+  /**
+   * Editou o endereço escrito? Busca o novo lugar sozinho e reabre o mapa ali — a
+   * pessoa só aproxima. Dispara uma vez por endereço distinto, e nunca por cima de
+   * um ponto que ela já escolheu pelo GPS ou pelo dedo.
+   */
+  useEffect(() => {
+    if (!autoLookupKey) return;
+    if (lastAutoLookupKeyRef.current === autoLookupKey) return;
+    if (pinState.origin === 'gps' || pinState.origin === 'manual') return;
+
+    const timer = setTimeout(() => {
+      lastAutoLookupKeyRef.current = autoLookupKey;
+      autoSuggest
+        .mutateAsync(lookupPayload())
+        .then((result) => {
+          pinState.applySuggestion(result);
+          applyGeocodedAddress(result);
+          setNeedsReconfirmation(false);
+        })
+        .catch(() => {
+          // Sem sugestão, o mapa continua disponível para marcação manual.
+        });
+    }, AUTO_LOOKUP_DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoLookupKey, pinState.origin]);
+
+  function handlePinMoved(coordinates: { lat: number; lng: number }) {
+    setDivergenceWarning(null);
+    setNeedsReconfirmation(false);
+
+    if (reverseTimerRef.current) clearTimeout(reverseTimerRef.current);
+    reverseTimerRef.current = setTimeout(() => {
+      reverseGeocode
+        .mutateAsync(coordinates)
+        .then(applyGeocodedAddress)
+        .catch(() => {
+          // Conveniência, não obrigação: sem endereço reconhecido, segue o que foi digitado.
+        });
+    }, REVERSE_DEBOUNCE_MS);
+  }
+
   async function handleSave() {
-    if (!canSave || !pin) return;
+    if (!canSave || !coordinatePayload) return;
 
     await updateAddress.mutateAsync({
       label: label.trim(),
@@ -116,8 +233,7 @@ export default function EditAddressScreen() {
       district: district.trim(),
       city: city.trim(),
       state: normalizeStateCode(state),
-      lat: pin.lat,
-      lng: pin.lng,
+      ...coordinatePayload,
     });
 
     router.back();
@@ -145,6 +261,18 @@ export default function EditAddressScreen() {
       <Header title="Editar endereço" showBack />
 
       <View style={styles.form}>
+        {needsReconfirmation ? (
+          <View style={styles.notice}>
+            <Text variant="titleSm" color={colors.error}>
+              Confirme o ponto deste endereço
+            </Text>
+            <Text variant="labelLg" color={colors.neutral[600]}>
+              Ele foi salvo antes de passarmos a exigir o ponto exato, então pode estar
+              a quilômetros do lugar certo. Marque o pin para poder usá-lo no Express.
+            </Text>
+          </View>
+        ) : null}
+
         <FormField label="Apelido (ex: Casa, Trabalho)">
           <Input value={label} onChangeText={setLabel} placeholder="Ex: Casa" />
         </FormField>
@@ -154,7 +282,7 @@ export default function EditAddressScreen() {
             value={zipCode}
             onChangeText={(value) => {
               setZipCode(maskZipCode(value));
-              clearLookupResult();
+              clearSuggestion();
             }}
             placeholder="00000-000"
             keyboardType="numeric"
@@ -167,7 +295,7 @@ export default function EditAddressScreen() {
             value={street}
             onChangeText={(value) => {
               setStreet(value);
-              clearLookupResult();
+              clearSuggestion();
             }}
             placeholder="Nome da rua"
           />
@@ -180,7 +308,7 @@ export default function EditAddressScreen() {
                 value={number}
                 onChangeText={(value) => {
                   setNumber(value);
-                  clearLookupResult();
+                  clearSuggestion();
                 }}
                 placeholder="Nº"
               />
@@ -198,7 +326,7 @@ export default function EditAddressScreen() {
             value={district}
             onChangeText={(value) => {
               setDistrict(value);
-              clearLookupResult();
+              clearSuggestion();
             }}
             placeholder="Bairro"
           />
@@ -211,7 +339,7 @@ export default function EditAddressScreen() {
                 value={city}
                 onChangeText={(value) => {
                   setCity(value);
-                  clearLookupResult();
+                  clearSuggestion();
                 }}
                 placeholder="Cidade"
               />
@@ -223,7 +351,7 @@ export default function EditAddressScreen() {
                 value={state}
                 onChangeText={(value) => {
                   setState(normalizeStateCode(value));
-                  clearLookupResult();
+                  clearSuggestion();
                 }}
                 placeholder="UF"
                 autoCapitalize="characters"
@@ -234,63 +362,28 @@ export default function EditAddressScreen() {
           </View>
         </View>
 
-        <View style={styles.mapSection}>
-          <View style={styles.mapHeader}>
-            <MapPin color={colors.neutral[700]} size={18} />
-            <View style={styles.flex1}>
-              <Text variant="titleSm">Localização no mapa</Text>
-              <Text variant="labelLg" color={colors.neutral[500]}>
-                Ajuste o pin salvo ou use a API apenas para sugerir outro ponto.
-              </Text>
-            </View>
-          </View>
+        <AddressPinSection
+          pinState={pinState}
+          canLookup={canLookup}
+          isLookingUp={lookupAddress.isPending}
+          isSuggesting={autoSuggest.isPending}
+          onLookup={handleLookup}
+          onPinMoved={handlePinMoved}
+        />
 
-          <View style={styles.mapActions}>
-            <View style={styles.flex1}>
-              <Button
-                variant="secondary"
-                size="md"
-                leftIcon={<MapPin color={colors.primary.default} size={18} />}
-                onPress={handleChooseOnMap}
-              >
-                Escolher no mapa
-              </Button>
-            </View>
-            <View style={styles.flex1}>
-              <Button
-                variant="ghost"
-                size="md"
-                leftIcon={<LocateFixed color={colors.primary.default} size={18} />}
-                onPress={handleLookup}
-                disabled={!hasRequiredAddressFields}
-                loading={lookupAddress.isPending}
-              >
-                Usar API
-              </Button>
-            </View>
-          </View>
-
-          {pin ? (
-            <View style={styles.mapResult}>
-              <PinLocationPicker value={pin} onChange={setPin} />
-              {lookupDisplayName ? (
-                <Text variant="labelSm" color={colors.neutral[500]}>
-                  Resultado aproximado: {lookupDisplayName}
-                </Text>
-              ) : null}
-            </View>
-          ) : (
-            <View style={styles.emptyMap}>
-              <MapPin color={colors.neutral[400]} size={22} />
-              <Text variant="labelLg" color={colors.neutral[500]}>
-                Abra o mapa e toque no ponto exato do atendimento.
-              </Text>
-            </View>
-          )}
-        </View>
+        {divergenceWarning ? (
+          <Text variant="labelLg" color={colors.error}>
+            {divergenceWarning}
+          </Text>
+        ) : null}
       </View>
 
       <View style={styles.footer}>
+        {saveHint ? (
+          <Text variant="labelSm" color={colors.neutral[500]}>
+            {saveHint}
+          </Text>
+        ) : null}
         <Button
           variant="primary"
           size="lg"
@@ -310,33 +403,13 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: spacing[3] },
   flex1: { flex: 1 },
   flex2: { flex: 2 },
-  mapSection: {
-    gap: spacing[3],
-    paddingTop: spacing[2],
-  },
-  mapHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing[2],
-  },
-  mapResult: {
-    gap: spacing[2],
-  },
-  mapActions: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  emptyMap: {
-    minHeight: 128,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing[2],
-    padding: spacing[4],
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.neutral[300],
+  notice: {
+    gap: spacing[1],
+    padding: spacing[3],
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.error,
     backgroundColor: colors.neutral[100],
   },
-  footer: { paddingTop: spacing[6] },
+  footer: { paddingTop: spacing[6], gap: spacing[2] },
 });

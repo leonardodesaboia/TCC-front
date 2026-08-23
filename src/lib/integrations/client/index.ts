@@ -82,6 +82,8 @@ export const clientIntegration = {
   addresses: {
     lookup: (...args: Parameters<ClientAddressesIntegration['lookup']>) =>
       addresses().lookup(...args),
+    reverse: (...args: Parameters<ClientAddressesIntegration['reverse']>) =>
+      addresses().reverse(...args),
     getAll: (...args: Parameters<ClientAddressesIntegration['getAll']>) =>
       addresses().getAll(...args),
     create: (...args: Parameters<ClientAddressesIntegration['create']>) =>

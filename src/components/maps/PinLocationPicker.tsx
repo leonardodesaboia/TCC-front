@@ -21,6 +21,12 @@ interface PinLocationPickerProps {
   value: Coordinates;
   onChange: (value: Coordinates) => void;
   disabled?: boolean;
+  /**
+   * `false` enquanto a pessoa ainda não escolheu o ponto — o mapa abre em algum
+   * lugar de referência, mas o marcador aparece apagado e a legenda pede a
+   * confirmação. Sem isso, um mapa recém-aberto parece já ter um pin escolhido.
+   */
+  confirmed?: boolean;
 }
 
 const TILE_SIZE = 256;
@@ -53,7 +59,12 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-export function PinLocationPicker({ value, onChange, disabled = false }: PinLocationPickerProps) {
+export function PinLocationPicker({
+  value,
+  onChange,
+  disabled = false,
+  confirmed = true,
+}: PinLocationPickerProps) {
   const mapRef = useRef<View>(null);
   const centerRef = useRef(value);
   const dragStartCenterRef = useRef(value);
@@ -218,7 +229,11 @@ export function PinLocationPicker({ value, onChange, disabled = false }: PinLoca
           )}
         </Animated.View>
         <View pointerEvents="none" style={styles.pin}>
-          <MapPin color={colors.error} fill={colors.error} size={36} />
+          <MapPin
+            color={confirmed ? colors.error : colors.neutral[400]}
+            fill={confirmed ? colors.error : 'transparent'}
+            size={36}
+          />
         </View>
         <View pointerEvents="none" style={styles.crosshair}>
           <Crosshair color={colors.neutral[700]} size={16} />
@@ -228,9 +243,9 @@ export function PinLocationPicker({ value, onChange, disabled = false }: PinLoca
       <View style={styles.toolbar}>
         <View style={styles.coordinateBox}>
           <Text variant="labelSm" color={colors.neutral[500]}>
-            Pin selecionado
+            {confirmed ? 'Pin selecionado' : 'Toque no mapa para marcar o ponto'}
           </Text>
-          <Text variant="labelLg" color={colors.neutral[700]}>
+          <Text variant="labelLg" color={confirmed ? colors.neutral[700] : colors.neutral[400]}>
             {value.lat.toFixed(6)}, {value.lng.toFixed(6)}
           </Text>
         </View>

@@ -33,6 +33,7 @@ export const defaultClientIntegration: ClientIntegration = {
   },
   addresses: {
     lookup: (payload) => addressesApi.lookup(payload),
+    reverse: (payload) => addressesApi.reverse(payload),
     getAll: () => addressesApi.getAll(),
     create: (payload) => addressesApi.create(payload),
     update: (id, payload) => addressesApi.update(id, payload),

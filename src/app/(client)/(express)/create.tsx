@@ -43,13 +43,15 @@ export default function ExpressCreateScreen() {
     [addresses, selectedAddressId],
   );
 
+  // `expressReady` vem da API: ter coordenada não basta, ela precisa ser de
+  // procedência confiável. Endereço antigo com ponto aproximado é recusado no
+  // servidor de qualquer jeito — melhor avisar antes de a pessoa preencher tudo.
   const canSubmit =
     description.trim().length >= 10 &&
     !!selectedAddress &&
     !!areaId &&
     !!categoryId &&
-    Number.isFinite(selectedAddress.lat) &&
-    Number.isFinite(selectedAddress.lng);
+    selectedAddress.expressReady;
 
   async function pickImage() {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -153,10 +155,20 @@ export default function ExpressCreateScreen() {
                     {address.street}, {address.number}
                     {address.complement ? `, ${address.complement}` : ''} - {address.district}, {address.city}
                   </Text>
-                  {!Number.isFinite(address.lat) || !Number.isFinite(address.lng) ? (
-                    <Text variant="labelSm" color={colors.error}>
-                      Este endereço não possui coordenadas e não serve para Express.
-                    </Text>
+                  {!address.expressReady ? (
+                    <Pressable
+                      hitSlop={6}
+                      onPress={(event) => {
+                        event.stopPropagation();
+                        router.push(`/(client)/(profile)/addresses/${address.id}`);
+                      }}
+                    >
+                      <Text variant="labelSm" color={colors.error}>
+                        {address.lat === null || address.lng === null
+                          ? 'Sem ponto no mapa. Toque para marcar e usar no Express.'
+                          : 'Ponto aproximado. Toque para confirmar no mapa e usar no Express.'}
+                      </Text>
+                    </Pressable>
                   ) : null}
                 </View>
                 {selectedAddressId === address.id ? (
@@ -172,7 +184,7 @@ export default function ExpressCreateScreen() {
             <EmptyState
               icon={MapPin}
               title="Nenhum endereço disponível"
-              description="Cadastre um endereço com latitude e longitude antes de abrir um pedido Express."
+              description="Cadastre um endereço e confirme o ponto no mapa antes de abrir um pedido Express."
               actionLabel="Cadastrar endereço"
               onAction={() => router.push('/(client)/(profile)/addresses/new')}
             />
