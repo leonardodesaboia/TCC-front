@@ -3,6 +3,7 @@ import type {
   CreateAddressRequestDto,
   GeocodeAddressRequestDto,
   GeocodedAddress,
+  ReverseGeocodeRequestDto,
   UpdateAddressRequestDto,
 } from '@/types/address';
 import type {
@@ -55,6 +56,7 @@ export interface ClientOrdersIntegration {
 
 export interface ClientAddressesIntegration {
   lookup(payload: GeocodeAddressRequestDto): Promise<GeocodedAddress>;
+  reverse(payload: ReverseGeocodeRequestDto): Promise<GeocodedAddress>;
   getAll(): Promise<Address[]>;
   create(payload: CreateAddressRequestDto): Promise<Address>;
   update(id: string, payload: UpdateAddressRequestDto): Promise<Address>;

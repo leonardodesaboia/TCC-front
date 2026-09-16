@@ -1,6 +1,12 @@
 import type { ClientIntegration } from './contracts';
 import { OrderMode, OrderStatus, type CreateOnDemandOrderRequestDto, type CreateOrderRequestDto, type ExpressProposal, type OrderDetails, type OrderSummary } from '@/types/order';
-import type { Address, CreateAddressRequestDto, UpdateAddressRequestDto } from '@/types/address';
+import type {
+  Address,
+  CoordinateSource,
+  CreateAddressRequestDto,
+  GeocodeConfidence,
+  UpdateAddressRequestDto,
+} from '@/types/address';
 import type { ProfessionalProfile, ProfessionalSummary } from '@/types/professional';
 import type { ServiceDetails, ServiceSummary } from '@/types/service';
 
@@ -61,6 +67,17 @@ const MOCK_SERVICES: ServiceDetails[] = [
   },
 ];
 
+/** Espelha a regra do back (`CoordinateTrust`) só para o modo mock. */
+function isExpressReady(
+  source: CoordinateSource | null | undefined,
+  confidence: GeocodeConfidence | null | undefined,
+): boolean {
+  if (!source) return false;
+  if (source === 'device_gps' || source === 'user_pin') return true;
+  if (source === 'geocoded') return confidence === 'ROOFTOP';
+  return false;
+}
+
 let mockAddresses: Address[] = [
   {
     id: 'addr-1',
@@ -75,6 +92,11 @@ let mockAddresses: Address[] = [
     zipCode: '60000-000',
     lat: -3.731862,
     lng: -38.526669,
+    coordinateSource: 'user_pin',
+    coordinateAccuracyMeters: null,
+    coordinateConfidence: null,
+    coordinateConfirmedAt: '2026-08-01T12:00:00Z',
+    expressReady: true,
     isDefault: true,
   },
   {
@@ -90,6 +112,13 @@ let mockAddresses: Address[] = [
     zipCode: '60150-160',
     lat: -3.735547,
     lng: -38.496094,
+    // Endereço gravado antes da regra de procedência: serve para exercitar o
+    // caminho de reconfirmação sem precisar do back.
+    coordinateSource: 'legacy',
+    coordinateAccuracyMeters: null,
+    coordinateConfidence: null,
+    coordinateConfirmedAt: null,
+    expressReady: false,
     isDefault: false,
   },
 ];
@@ -392,7 +421,24 @@ export const mockClientIntegration: ClientIntegration = {
           payload.state,
           payload.zipCode,
         ].filter(Boolean).join(', '),
-        confidence: 'APPROXIMATE',
+        confidence: 'ROOFTOP',
+        provider: 'mock',
+      };
+    },
+    async reverse(payload) {
+      return {
+        lat: payload.lat,
+        lng: payload.lng,
+        displayName: 'Rua das Flores, 123, Centro, Fortaleza, CE',
+        normalizedAddress: {
+          street: 'Rua das Flores',
+          number: '123',
+          district: 'Centro',
+          city: 'Fortaleza',
+          state: 'CE',
+          zipCode: '60000-000',
+        },
+        confidence: 'ROOFTOP',
         provider: 'mock',
       };
     },
@@ -406,6 +452,11 @@ export const mockClientIntegration: ClientIntegration = {
         ...payload,
         lat: payload.lat ?? null,
         lng: payload.lng ?? null,
+        coordinateSource: payload.coordinateSource ?? null,
+        coordinateAccuracyMeters: payload.coordinateAccuracyMeters ?? null,
+        coordinateConfidence: payload.coordinateConfidence ?? null,
+        coordinateConfirmedAt: payload.coordinateSource ? new Date().toISOString() : null,
+        expressReady: isExpressReady(payload.coordinateSource, payload.coordinateConfidence),
         isDefault: payload.isDefault ?? mockAddresses.length === 0,
       };
 
@@ -417,7 +468,24 @@ export const mockClientIntegration: ClientIntegration = {
       return created;
     },
     async update(id: string, payload: UpdateAddressRequestDto) {
-      mockAddresses = mockAddresses.map((item) => (item.id === id ? { ...item, ...payload } : item));
+      mockAddresses = mockAddresses.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              ...payload,
+              coordinateSource: payload.coordinateSource ?? item.coordinateSource,
+              coordinateAccuracyMeters:
+                payload.coordinateAccuracyMeters ?? item.coordinateAccuracyMeters,
+              coordinateConfidence: payload.coordinateConfidence ?? item.coordinateConfidence,
+              coordinateConfirmedAt: payload.coordinateSource
+                ? new Date().toISOString()
+                : item.coordinateConfirmedAt,
+              expressReady: payload.coordinateSource
+                ? isExpressReady(payload.coordinateSource, payload.coordinateConfidence)
+                : item.expressReady,
+            }
+          : item,
+      );
       return mockAddresses.find((item) => item.id === id) ?? mockAddresses[0];
     },
     async remove(id: string) {

@@ -58,6 +58,13 @@ export default function AddressesScreen() {
                   <Text variant="labelLg" color={colors.neutral[500]}>
                     {address.district} · {address.city} - {address.state}
                   </Text>
+                  {!address.expressReady ? (
+                    <Text variant="labelSm" color={colors.error}>
+                      {address.lat === null || address.lng === null
+                        ? 'Sem ponto no mapa — não serve para Express.'
+                        : 'Ponto aproximado — confirme no mapa para usar no Express.'}
+                    </Text>
+                  ) : null}
                   {!address.isDefault ? (
                     <Text variant="labelSm" color={colors.primary.default}>
                       Toque para definir como padrão

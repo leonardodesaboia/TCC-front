@@ -7,6 +7,7 @@ import type {
   GeocodeAddressRequestDto,
   GeocodeAddressResponseDto,
   GeocodedAddress,
+  ReverseGeocodeRequestDto,
   UpdateAddressRequestDto,
 } from '@/types/address';
 import type { ApiResponse } from '@/types/api';
@@ -36,6 +37,13 @@ function mapAddress(dto: AddressDto): Address {
     zipCode: normalizeZipCode(dto.zipCode),
     lat: toNullableNumber(dto.lat),
     lng: toNullableNumber(dto.lng),
+    coordinateSource: dto.coordinateSource ?? null,
+    coordinateAccuracyMeters: toNullableNumber(dto.coordinateAccuracyMeters),
+    coordinateConfidence: dto.coordinateConfidence ?? null,
+    coordinateConfirmedAt: dto.coordinateConfirmedAt ?? null,
+    // Quem decide se a coordenada serve para o Express é a API. Espelhar a regra
+    // aqui seria criar uma segunda fonte de verdade fadada a divergir.
+    expressReady: dto.expressReady ?? false,
     isDefault: dto.isDefault ?? false,
     createdAt: dto.createdAt ?? undefined,
     updatedAt: dto.updatedAt ?? undefined,
@@ -83,6 +91,14 @@ export const addressesApi = {
     const response = await apiClient.post<GeocodeAddressResponseDto>(
       '/api/v1/geocoding/lookup',
       normalizeAddressPayload(payload),
+    );
+    return mapGeocodedAddress(response.data);
+  },
+
+  async reverse(payload: ReverseGeocodeRequestDto): Promise<GeocodedAddress> {
+    const response = await apiClient.post<GeocodeAddressResponseDto>(
+      '/api/v1/geocoding/reverse',
+      payload,
     );
     return mapGeocodedAddress(response.data);
   },
