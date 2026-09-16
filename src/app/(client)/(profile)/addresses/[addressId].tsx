@@ -79,6 +79,8 @@ export default function EditAddressScreen() {
     hydratePin(
       address.lat !== null && address.lng !== null ? { lat: address.lat, lng: address.lng } : null,
       address.coordinateSource,
+      address.coordinateConfidence,
+      address.coordinateAccuracyMeters,
     );
     setNeedsReconfirmation(
       address.lat !== null && address.lng !== null && !address.expressReady,
@@ -132,7 +134,8 @@ export default function EditAddressScreen() {
       : null;
 
   function clearSuggestion() {
-    pinState.clearSuggestion();
+    pinState.invalidate();
+    setNeedsReconfirmation(true);
     setDivergenceWarning(null);
   }
 
@@ -169,8 +172,9 @@ export default function EditAddressScreen() {
     if (!canLookup) return;
 
     try {
+      const revision = pinState.getRevision();
       const result = await lookupAddress.mutateAsync(lookupPayload());
-      pinState.applySuggestion(result);
+      if (!pinState.applySuggestion(result, revision)) return;
       applyGeocodedAddress(result);
       setNeedsReconfirmation(false);
     } catch {
@@ -188,12 +192,14 @@ export default function EditAddressScreen() {
     if (lastAutoLookupKeyRef.current === autoLookupKey) return;
     if (pinState.origin === 'gps' || pinState.origin === 'manual') return;
 
+    let cancelled = false;
+    const revision = pinState.getRevision();
     const timer = setTimeout(() => {
       lastAutoLookupKeyRef.current = autoLookupKey;
       autoSuggest
         .mutateAsync(lookupPayload())
         .then((result) => {
-          pinState.applySuggestion(result);
+          if (cancelled || !pinState.applySuggestion(result, revision)) return;
           applyGeocodedAddress(result);
           setNeedsReconfirmation(false);
         })
@@ -202,7 +208,10 @@ export default function EditAddressScreen() {
         });
     }, AUTO_LOOKUP_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoLookupKey, pinState.origin]);
 
@@ -211,10 +220,13 @@ export default function EditAddressScreen() {
     setNeedsReconfirmation(false);
 
     if (reverseTimerRef.current) clearTimeout(reverseTimerRef.current);
+    const revision = pinState.getRevision();
     reverseTimerRef.current = setTimeout(() => {
       reverseGeocode
         .mutateAsync(coordinates)
-        .then(applyGeocodedAddress)
+        .then((result) => {
+          if (revision === pinState.getRevision()) applyGeocodedAddress(result);
+        })
         .catch(() => {
           // Conveniência, não obrigação: sem endereço reconhecido, segue o que foi digitado.
         });
@@ -267,8 +279,8 @@ export default function EditAddressScreen() {
               Confirme o ponto deste endereço
             </Text>
             <Text variant="labelLg" color={colors.neutral[600]}>
-              Ele foi salvo antes de passarmos a exigir o ponto exato, então pode estar
-              a quilômetros do lugar certo. Marque o pin para poder usá-lo no Express.
+              O ponto está aproximado ou o endereço foi alterado. Confirme no mapa
+              a entrada do local do atendimento para poder usá-lo no Express.
             </Text>
           </View>
         ) : null}

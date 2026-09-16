@@ -15,6 +15,44 @@ vi.mock('expo-location', () => ({
 const FORTALEZA_CENTER = { lat: -3.731862, lng: -38.526669 };
 
 describe('useAddressPin', () => {
+  it('resposta atrasada do geocoder não sobrescreve um pin manual mais recente', () => {
+    const { result } = renderHook(() => useAddressPin());
+    const revision = result.current.getRevision();
+    act(() => result.current.moveTo({ lat: -3.74, lng: -38.5 }));
+    act(() => {
+      expect(result.current.applySuggestion({ ...FORTALEZA_CENTER, confidence: 'ROOFTOP' }, revision)).toBe(false);
+    });
+    expect(result.current.toPayload()).toEqual({ lat: -3.74, lng: -38.5, coordinateSource: 'user_pin' });
+  });
+
+  it('preserva confiança rooftop ao editar endereço geocodificado', () => {
+    const { result } = renderHook(() => useAddressPin());
+    act(() => result.current.hydrate(FORTALEZA_CENTER, 'geocoded', 'ROOFTOP'));
+    expect(result.current.toPayload()?.coordinateConfidence).toBe('ROOFTOP');
+  });
+
+  it.each(['INTERPOLATED', 'CITY', null] as const)('exige confirmação ao editar geocoded %s', (confidence) => {
+    const { result } = renderHook(() => useAddressPin());
+    act(() => result.current.hydrate(FORTALEZA_CENTER, 'geocoded', confidence));
+    expect(result.current.toPayload()).toBeNull();
+  });
+
+  it('mudança do endereço invalida o pin até reconfirmação', () => {
+    const { result } = renderHook(() => useAddressPin());
+    act(() => result.current.moveTo(FORTALEZA_CENTER));
+    act(() => result.current.invalidate());
+    expect(result.current.pin).toEqual(FORTALEZA_CENTER);
+    expect(result.current.toPayload()).toBeNull();
+    act(() => result.current.moveTo({ lat: -3.74, lng: -38.5 }));
+    expect(result.current.toPayload()?.coordinateSource).toBe('user_pin');
+  });
+
+  it('não permite salvar coordenada fora da faixa geográfica', () => {
+    const { result } = renderHook(() => useAddressPin());
+    act(() => result.current.moveTo({ lat: 91, lng: 181 }));
+    expect(result.current.toPayload()).toBeNull();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });

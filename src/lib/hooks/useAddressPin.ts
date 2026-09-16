@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { Coordinates } from '@/components/maps/PinLocationPicker';
 import { useCurrentPosition, type CurrentPositionStatus } from '@/lib/hooks/useCurrentPosition';
 import type { CoordinateSource, GeocodeConfidence, GeocodedAddress } from '@/types/address';
@@ -37,10 +37,13 @@ interface UseAddressPinResult {
    * Aplica uma sugestão da API. Só conta como ponto escolhido quando a precisão é
    * de edifício — é a mesma régua que a API usa para aceitar origem `geocoded`.
    */
-  applySuggestion: (result: GeocodedAddress) => void;
+  applySuggestion: (result: GeocodedAddress, revision?: number) => boolean;
+  getRevision: () => number;
   /** Toque ou arrasto no mapa. Sempre vira origem manual. */
   moveTo: (coordinates: Coordinates) => void;
-  hydrate: (coordinates: Coordinates | null, source: CoordinateSource | null) => void;
+  hydrate: (coordinates: Coordinates | null, source: CoordinateSource | null,
+    confidence?: GeocodeConfidence | null, accuracy?: number | null) => void;
+  invalidate: () => void;
   clearSuggestion: () => void;
 
   /** Payload pronto para create/update, ou `null` quando não há ponto escolhido. */
@@ -71,6 +74,8 @@ function toApiSource(origin: PinOrigin): Exclude<CoordinateSource, 'legacy'> {
  */
 export function useAddressPin(): UseAddressPinResult {
   const currentPosition = useCurrentPosition();
+  const revisionRef = useRef(0);
+  const getRevision = useCallback(() => revisionRef.current, []);
 
   const [pin, setPin] = useState<Coordinates | null>(null);
   const [origin, setOrigin] = useState<PinOrigin | null>(null);
@@ -91,8 +96,9 @@ export function useAddressPin(): UseAddressPinResult {
   }, []);
 
   const captureFromGps = useCallback(async () => {
+    const revision = ++revisionRef.current;
     const captured = await currentPosition.capture();
-    if (!captured) return null;
+    if (!captured || revision !== revisionRef.current) return null;
 
     const coordinates: Coordinates = { lat: captured.lat, lng: captured.lng };
     setPin(coordinates);
@@ -103,7 +109,9 @@ export function useAddressPin(): UseAddressPinResult {
     return coordinates;
   }, [clearSuggestion, currentPosition]);
 
-  const applySuggestion = useCallback((result: GeocodedAddress) => {
+  const applySuggestion = useCallback((result: GeocodedAddress, revision?: number) => {
+    if (revision !== undefined && revision !== revisionRef.current) return false;
+    revisionRef.current += 1;
     const confidence = (result.confidence as GeocodeConfidence | undefined) ?? null;
 
     setPin({ lat: result.lat, lng: result.lng });
@@ -116,9 +124,11 @@ export function useAddressPin(): UseAddressPinResult {
     setIsMapOpen(true);
     setLookupDisplayName(result.displayName ?? null);
     setLookupConfidence(confidence);
+    return true;
   }, []);
 
   const moveTo = useCallback((coordinates: Coordinates) => {
+    revisionRef.current += 1;
     setPin(coordinates);
     setOrigin('manual');
     setAccuracyMeters(null);
@@ -130,22 +140,34 @@ export function useAddressPin(): UseAddressPinResult {
    * Carrega um endereço já salvo. Coordenada `legacy` entra como ponto de partida
    * no mapa, mas sem origem — a pessoa precisa reconfirmar para poder salvar.
    */
-  const hydrate = useCallback((coordinates: Coordinates | null, source: CoordinateSource | null) => {
+  const hydrate = useCallback((coordinates: Coordinates | null, source: CoordinateSource | null,
+    confidence: GeocodeConfidence | null = null, accuracy: number | null = null) => {
+    revisionRef.current += 1;
     setPin(coordinates);
     setIsMapOpen(!!coordinates);
-    setAccuracyMeters(null);
-    clearSuggestion();
+    setAccuracyMeters(source === 'device_gps' ? accuracy : null);
+    setLookupDisplayName(null);
+    setLookupConfidence(source === 'geocoded' ? confidence : null);
 
-    if (!coordinates || !source || source === 'legacy') {
+    if (!coordinates || !source || source === 'legacy' || (source === 'geocoded' && confidence !== 'ROOFTOP')) {
       setOrigin(null);
       return;
     }
     setOrigin(source === 'device_gps' ? 'gps' : source === 'geocoded' ? 'lookup' : 'manual');
+  }, []);
+
+  const invalidate = useCallback(() => {
+    revisionRef.current += 1;
+    setOrigin(null);
+    setAccuracyMeters(null);
+    clearSuggestion();
   }, [clearSuggestion]);
 
   const toPayload = useCallback((): CoordinatePayload | null => {
     if (!pin || !origin) return null;
     if (!Number.isFinite(pin.lat) || !Number.isFinite(pin.lng)) return null;
+    if (Math.abs(pin.lat) > 90 || Math.abs(pin.lng) > 180) return null;
+    if (origin === 'lookup' && lookupConfidence !== 'ROOFTOP') return null;
 
     const payload: CoordinatePayload = {
       lat: pin.lat,
@@ -181,8 +203,10 @@ export function useAddressPin(): UseAddressPinResult {
     openMap,
     captureFromGps,
     applySuggestion,
+    getRevision,
     moveTo,
     hydrate,
+    invalidate,
     clearSuggestion,
     toPayload,
   };

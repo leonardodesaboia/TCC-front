@@ -74,7 +74,7 @@ export default function NewAddressScreen() {
       : null;
 
   function clearSuggestion() {
-    pinState.clearSuggestion();
+    pinState.invalidate();
     setDivergenceWarning(null);
   }
 
@@ -115,8 +115,9 @@ export default function NewAddressScreen() {
     if (!canLookup) return;
 
     try {
+      const revision = pinState.getRevision();
       const result = await lookupAddress.mutateAsync(lookupPayload());
-      pinState.applySuggestion(result);
+      if (!pinState.applySuggestion(result, revision)) return;
       applyGeocodedAddress(result);
     } catch {
       // O hook ja apresenta o erro via toast.
@@ -136,12 +137,14 @@ export default function NewAddressScreen() {
     if (lastAutoLookupKeyRef.current === autoLookupKey) return;
     if (pinState.origin === 'gps' || pinState.origin === 'manual') return;
 
+    let cancelled = false;
+    const revision = pinState.getRevision();
     const timer = setTimeout(() => {
       lastAutoLookupKeyRef.current = autoLookupKey;
       autoSuggest
         .mutateAsync(lookupPayload())
         .then((result) => {
-          pinState.applySuggestion(result);
+          if (cancelled || !pinState.applySuggestion(result, revision)) return;
           applyGeocodedAddress(result);
         })
         .catch(() => {
@@ -149,7 +152,10 @@ export default function NewAddressScreen() {
         });
     }, AUTO_LOOKUP_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoLookupKey, pinState.origin]);
 
@@ -157,10 +163,13 @@ export default function NewAddressScreen() {
     setDivergenceWarning(null);
 
     if (reverseTimerRef.current) clearTimeout(reverseTimerRef.current);
+    const revision = pinState.getRevision();
     reverseTimerRef.current = setTimeout(() => {
       reverseGeocode
         .mutateAsync(coordinates)
-        .then(applyGeocodedAddress)
+        .then((result) => {
+          if (revision === pinState.getRevision()) applyGeocodedAddress(result);
+        })
         .catch(() => {
           // Conveniência, não obrigação: sem endereço reconhecido, segue o que foi digitado.
         });
