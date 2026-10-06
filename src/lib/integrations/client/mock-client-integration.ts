@@ -116,6 +116,7 @@ let mockOrders: OrderDetails[] = [
       lng: -38.526669,
     },
     status: OrderStatus.ACCEPTED,
+    mode: OrderMode.EXPRESS,
     urgencyFee: 15,
     baseAmount: 135,
     platformFee: 15,
@@ -123,6 +124,10 @@ let mockOrders: OrderDetails[] = [
     createdAt: '2026-04-27T10:30:00.000Z',
     updatedAt: '2026-04-27T10:35:00.000Z',
     photos: [],
+    scopeMismatch: false,
+    pendingPriceAmount: 180,
+    pendingPriceReason: 'Encontrei fiação antiga que precisa ser trocada, não só as tomadas.',
+    pendingPriceProposedAt: '2026-04-27T10:40:00.000Z',
   },
   {
     id: 'ord-2',
@@ -150,6 +155,7 @@ let mockOrders: OrderDetails[] = [
     createdAt: '2026-04-27T09:15:00.000Z',
     updatedAt: '2026-04-27T09:15:00.000Z',
     photos: [],
+    scopeMismatch: false,
   },
 ];
 
@@ -179,6 +185,10 @@ function toOrderSummary(order: OrderDetails): OrderSummary {
     totalAmount: order.totalAmount,
     createdAt: order.createdAt,
     updatedAt: order.updatedAt,
+    scopeMismatch: order.scopeMismatch,
+    pendingPriceAmount: order.pendingPriceAmount,
+    pendingPriceReason: order.pendingPriceReason,
+    pendingPriceProposedAt: order.pendingPriceProposedAt,
   };
 }
 
@@ -294,6 +304,7 @@ export const mockClientIntegration: ClientIntegration = {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         photos: [],
+        scopeMismatch: false,
       };
       mockOrders = [created, ...mockOrders];
       return created;
@@ -330,6 +341,7 @@ export const mockClientIntegration: ClientIntegration = {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         photos: [],
+        scopeMismatch: false,
       };
       mockOrders = [created, ...mockOrders];
       return created;
@@ -359,6 +371,13 @@ export const mockClientIntegration: ClientIntegration = {
               cancelReason: reason,
               cancelledAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
+              pendingPriceAmount: undefined,
+              pendingPriceReason: undefined,
+              pendingPriceProposedAt: undefined,
+              pendingServiceId: undefined,
+              pendingServiceReason: undefined,
+              pendingServiceEstimatedDurationMinutes: undefined,
+              pendingServiceProposedAt: undefined,
             }
           : order,
       );
@@ -378,6 +397,71 @@ export const mockClientIntegration: ClientIntegration = {
       return mockOrders.find((order) => order.id === orderId) ?? mockOrders[0];
     },
     async uploadPhoto() {},
+    async respondNewPrice(orderId, payload) {
+      mockOrders = mockOrders.map((order) => {
+        if (order.id !== orderId) return order;
+
+        if (payload.accepted) {
+          const newBase = order.pendingPriceAmount ?? order.baseAmount;
+          const newFee = Math.round(newBase * 0.2 * 100) / 100;
+          return {
+            ...order,
+            baseAmount: newBase,
+            platformFee: newFee,
+            totalAmount: newBase + order.urgencyFee,
+            pendingPriceAmount: undefined,
+            pendingPriceReason: undefined,
+            pendingPriceProposedAt: undefined,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+
+        return {
+          ...order,
+          status: OrderStatus.CANCELLED,
+          scopeMismatch: true,
+          cancelReason: 'Cliente recusou o novo preço proposto',
+          cancelledAt: new Date().toISOString(),
+          pendingPriceAmount: undefined,
+          pendingPriceReason: undefined,
+          pendingPriceProposedAt: undefined,
+          updatedAt: new Date().toISOString(),
+        };
+      });
+      return mockOrders.find((order) => order.id === orderId) ?? mockOrders[0];
+    },
+    async respondServiceChange(orderId, payload) {
+      mockOrders = mockOrders.map((order) => {
+        if (order.id !== orderId) return order;
+
+        if (payload.accepted) {
+          return {
+            ...order,
+            serviceId: order.pendingServiceId ?? order.serviceId,
+            estimatedDurationMinutes: order.pendingServiceEstimatedDurationMinutes ?? order.estimatedDurationMinutes,
+            pendingServiceId: undefined,
+            pendingServiceReason: undefined,
+            pendingServiceEstimatedDurationMinutes: undefined,
+            pendingServiceProposedAt: undefined,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+
+        return {
+          ...order,
+          status: OrderStatus.CANCELLED,
+          scopeMismatch: true,
+          cancelReason: 'Cliente recusou a troca de serviço proposta',
+          cancelledAt: new Date().toISOString(),
+          pendingServiceId: undefined,
+          pendingServiceReason: undefined,
+          pendingServiceEstimatedDurationMinutes: undefined,
+          pendingServiceProposedAt: undefined,
+          updatedAt: new Date().toISOString(),
+        };
+      });
+      return mockOrders.find((order) => order.id === orderId) ?? mockOrders[0];
+    },
   },
   addresses: {
     async lookup(payload) {

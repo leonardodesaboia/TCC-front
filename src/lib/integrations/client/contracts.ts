@@ -12,6 +12,8 @@ import type {
   OrderDetails,
   OrderFiltersDto,
   OrderSummary,
+  RespondNewPriceRequestDto,
+  RespondServiceChangeRequestDto,
 } from '@/types/order';
 import type {
   GetProfessionalsByCategoryParamsDto,
@@ -51,6 +53,8 @@ export interface ClientOrdersIntegration {
   cancel: (orderId: string, reason: string) => Promise<OrderDetails>;
   confirm: (orderId: string) => Promise<OrderDetails>;
   uploadPhoto: (orderId: string, formData: FormData) => Promise<void>;
+  respondNewPrice: (orderId: string, payload: RespondNewPriceRequestDto) => Promise<OrderDetails>;
+  respondServiceChange: (orderId: string, payload: RespondServiceChangeRequestDto) => Promise<OrderDetails>;
 }
 
 export interface ClientAddressesIntegration {

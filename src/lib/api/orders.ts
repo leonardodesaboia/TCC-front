@@ -13,6 +13,10 @@ import type {
   OrderPhotoDto,
   OrderSummary,
   OrderSummaryDto,
+  ProposeNewPriceRequestDto,
+  ProposeServiceChangeRequestDto,
+  RespondNewPriceRequestDto,
+  RespondServiceChangeRequestDto,
 } from '@/types/order';
 import { OrderMode } from '@/types/order';
 
@@ -58,6 +62,16 @@ function mapOrderSummary(dto: OrderSummaryDto): OrderSummary {
     updatedAt: dto.updatedAt,
     professionalName: dto.professionalName ?? undefined,
     serviceName: dto.serviceName ?? undefined,
+    scopeMismatch: dto.scopeMismatch ?? false,
+    pendingPriceAmount: dto.pendingPriceAmount != null ? toNumber(dto.pendingPriceAmount) : undefined,
+    pendingPriceReason: dto.pendingPriceReason ?? undefined,
+    pendingPriceProposedAt: dto.pendingPriceProposedAt ?? undefined,
+    pendingServiceId: dto.pendingServiceId ?? undefined,
+    pendingServiceReason: dto.pendingServiceReason ?? undefined,
+    pendingServiceEstimatedDurationMinutes: dto.pendingServiceEstimatedDurationMinutes != null
+      ? toNumber(dto.pendingServiceEstimatedDurationMinutes)
+      : undefined,
+    pendingServiceProposedAt: dto.pendingServiceProposedAt ?? undefined,
   };
 }
 
@@ -161,6 +175,51 @@ export const ordersApi = {
     const response = await apiClient.post<ApiResponse<OrderDetailsDto> | OrderDetailsDto>(
       `/api/v1/orders/${orderId}/cancel`,
       { reason },
+    );
+
+    return mapOrderDetails(unwrapItem(response.data));
+  },
+
+  async reportScopeMismatch(orderId: string, description: string): Promise<OrderDetails> {
+    const response = await apiClient.post<ApiResponse<OrderDetailsDto> | OrderDetailsDto>(
+      `/api/v1/orders/${orderId}/report-scope-mismatch`,
+      { description },
+    );
+
+    return mapOrderDetails(unwrapItem(response.data));
+  },
+
+  async proposeNewPrice(orderId: string, payload: ProposeNewPriceRequestDto): Promise<OrderDetails> {
+    const response = await apiClient.post<ApiResponse<OrderDetailsDto> | OrderDetailsDto>(
+      `/api/v1/orders/${orderId}/express/propose-new-price`,
+      payload,
+    );
+
+    return mapOrderDetails(unwrapItem(response.data));
+  },
+
+  async respondNewPrice(orderId: string, payload: RespondNewPriceRequestDto): Promise<OrderDetails> {
+    const response = await apiClient.post<ApiResponse<OrderDetailsDto> | OrderDetailsDto>(
+      `/api/v1/orders/${orderId}/express/respond-new-price`,
+      payload,
+    );
+
+    return mapOrderDetails(unwrapItem(response.data));
+  },
+
+  async proposeServiceChange(orderId: string, payload: ProposeServiceChangeRequestDto): Promise<OrderDetails> {
+    const response = await apiClient.post<ApiResponse<OrderDetailsDto> | OrderDetailsDto>(
+      `/api/v1/orders/${orderId}/on-demand/propose-service-change`,
+      payload,
+    );
+
+    return mapOrderDetails(unwrapItem(response.data));
+  },
+
+  async respondServiceChange(orderId: string, payload: RespondServiceChangeRequestDto): Promise<OrderDetails> {
+    const response = await apiClient.post<ApiResponse<OrderDetailsDto> | OrderDetailsDto>(
+      `/api/v1/orders/${orderId}/on-demand/respond-service-change`,
+      payload,
     );
 
     return mapOrderDetails(unwrapItem(response.data));

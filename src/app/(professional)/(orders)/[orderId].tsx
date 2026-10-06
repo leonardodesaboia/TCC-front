@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Camera, Clock, MapPin, MessageCircle } from 'lucide-react-native';
+import { AlertTriangle, Camera, Clock, MapPin, MessageCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
@@ -80,6 +80,8 @@ export default function ProfessionalOrderDetailScreen() {
   const hasProfessionalActions =
     order.status !== OrderStatus.CANCELLED &&
     order.status !== OrderStatus.DISPUTED;
+  const hasPendingPriceProposal = order.pendingPriceAmount != null;
+  const hasPendingServiceChangeProposal = order.pendingServiceId != null;
   const isExpressQueueEntry = order.mode === OrderMode.EXPRESS && !order.professionalId;
   const isExpressInvitation =
     isExpressQueueEntry &&
@@ -449,18 +451,43 @@ export default function ProfessionalOrderDetailScreen() {
             </View>
           ) : null}
 
+          {order.status === OrderStatus.ACCEPTED && hasPendingPriceProposal ? (
+            <View style={styles.waitingCard}>
+              <Text variant="bodySm" color={colors.neutral[500]} style={styles.centered}>
+                Proposta de novo preço enviada. Aguardando resposta do cliente antes de poder
+                concluir o serviço.
+              </Text>
+              {order.pendingPriceAmount ? (
+                <Text variant="titleSm" color={colors.primary.default} style={styles.centered}>
+                  Novo valor proposto: {formatMoney(order.pendingPriceAmount)}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+
+          {order.status === OrderStatus.ACCEPTED && hasPendingServiceChangeProposal ? (
+            <View style={styles.waitingCard}>
+              <Text variant="bodySm" color={colors.neutral[500]} style={styles.centered}>
+                Proposta de troca de serviço enviada. Aguardando resposta do cliente antes de
+                poder concluir o serviço.
+              </Text>
+            </View>
+          ) : null}
+
           {order.status === OrderStatus.ACCEPTED ? (
             <View style={styles.actionsColumn}>
-              <Button
-                variant="primary"
-                size="sm"
-                fullWidth={false}
-                leftIcon={<Camera color="#FFFFFF" size={16} />}
-                onPress={handleComplete}
-                loading={completeOrder.isPending}
-              >
-                Concluir com foto
-              </Button>
+              {!hasPendingPriceProposal && !hasPendingServiceChangeProposal ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  fullWidth={false}
+                  leftIcon={<Camera color="#FFFFFF" size={16} />}
+                  onPress={handleComplete}
+                  loading={completeOrder.isPending}
+                >
+                  Concluir com foto
+                </Button>
+              ) : null}
               <Button
                 variant="secondary"
                 size="sm"
@@ -475,6 +502,44 @@ export default function ProfessionalOrderDetailScreen() {
               >
                 Conversar com cliente
               </Button>
+              {!hasPendingPriceProposal && !hasPendingServiceChangeProposal ? (
+                isOnDemand ? (
+                  <Button
+                    variant="dangerOutline"
+                    size="sm"
+                    leftIcon={<AlertTriangle color={colors.error} size={16} />}
+                    onPress={() =>
+                      router.push(`/(professional)/(orders)/report-scope-mismatch/${orderId}` as never)
+                    }
+                  >
+                    Escopo divergente
+                  </Button>
+                ) : (
+                  <View style={styles.actionsRow}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      fullWidth={false}
+                      onPress={() =>
+                        router.push(`/(professional)/(orders)/propose-new-price/${orderId}` as never)
+                      }
+                    >
+                      Propor novo preço
+                    </Button>
+                    <Button
+                      variant="dangerOutline"
+                      size="sm"
+                      fullWidth={false}
+                      leftIcon={<AlertTriangle color={colors.error} size={16} />}
+                      onPress={() =>
+                        router.push(`/(professional)/(orders)/report-scope-mismatch/${orderId}` as never)
+                      }
+                    >
+                      Escopo divergente
+                    </Button>
+                  </View>
+                )
+              ) : null}
             </View>
           ) : null}
 
@@ -513,6 +578,24 @@ export default function ProfessionalOrderDetailScreen() {
                 Ver disputa
               </Button>
             </View>
+          </View>
+        ) : null}
+
+        {order.status === OrderStatus.CANCELLED && order.scopeMismatch ? (
+          <View style={styles.scopeMismatchCard}>
+            <Text variant="labelLg" color={colors.warning}>Cancelado sem custo — escopo divergente</Text>
+            {order.cancelReason ? (
+              <Text variant="bodySm" color={colors.neutral[700]} style={styles.centered}>
+                {order.cancelReason}
+              </Text>
+            ) : null}
+          </View>
+        ) : order.status === OrderStatus.CANCELLED && order.cancelReason ? (
+          <View style={styles.cancelCard}>
+            <Text variant="labelLg" color={colors.error}>Motivo do cancelamento</Text>
+            <Text variant="bodySm" color={colors.neutral[700]} style={styles.centered}>
+              {order.cancelReason}
+            </Text>
           </View>
         ) : null}
 
@@ -592,5 +675,25 @@ const styles = StyleSheet.create({
     paddingTop: spacing[3],
     borderTopWidth: 1,
     borderTopColor: colors.neutral[200],
+  },
+  cancelCard: {
+    width: '100%',
+    backgroundColor: colors.neutral[50],
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.error,
+    padding: spacing[4],
+    gap: spacing[1],
+    alignItems: 'center',
+  },
+  scopeMismatchCard: {
+    width: '100%',
+    backgroundColor: colors.warningLight,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.warningBorder,
+    padding: spacing[4],
+    gap: spacing[1],
+    alignItems: 'center',
   },
 });

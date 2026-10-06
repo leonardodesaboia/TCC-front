@@ -5,7 +5,14 @@ import { professionalIntegration } from '@/lib/integrations/professional';
 import { getApiErrorMessage } from '@/lib/utils/errors';
 import { toast } from '@/lib/utils/toast';
 import { useAuth } from '@/providers/AuthProvider';
-import { OrderStatus, type OrderDetails, type OrderFiltersDto, type ProRespondRequest } from '@/types/order';
+import {
+  OrderStatus,
+  type OrderDetails,
+  type OrderFiltersDto,
+  type ProposeNewPriceRequestDto,
+  type ProposeServiceChangeRequestDto,
+  type ProRespondRequest,
+} from '@/types/order';
 
 const PRO_LIST_POLL_MS = 10000;
 const PRO_DETAIL_POLL_MS = 5000;
@@ -119,6 +126,65 @@ export function useProCancelOrder(orderId: string) {
     },
     onError: (error: unknown) => {
       toast.error('Erro ao cancelar pedido', getApiErrorMessage(error));
+    },
+  });
+}
+
+export function useReportScopeMismatch(orderId: string) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (description: string) =>
+      professionalIntegration.orders.reportScopeMismatch(orderId, description),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.professionalOrders.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
+      toast.success('Pedido cancelado sem custo.', 'O cliente foi notificado sobre a divergência de escopo.');
+      router.replace('/(professional)/(orders)');
+    },
+    onError: (error: unknown) => {
+      toast.error('Erro ao relatar escopo divergente', getApiErrorMessage(error));
+    },
+  });
+}
+
+export function useProposeNewPrice(orderId: string) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: ProposeNewPriceRequestDto) =>
+      professionalIntegration.orders.proposeNewPrice(orderId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.professionalOrders.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.professionalOrders.detail(orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
+      toast.success('Proposta enviada!', 'O cliente foi notificado sobre o novo valor.');
+      router.back();
+    },
+    onError: (error: unknown) => {
+      toast.error('Erro ao propor novo preço', getApiErrorMessage(error));
+    },
+  });
+}
+
+export function useProposeServiceChange(orderId: string) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: ProposeServiceChangeRequestDto) =>
+      professionalIntegration.orders.proposeServiceChange(orderId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.professionalOrders.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.professionalOrders.detail(orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
+      toast.success('Troca de serviço proposta!', 'O cliente foi notificado sobre a troca.');
+      router.back();
+    },
+    onError: (error: unknown) => {
+      toast.error('Erro ao propor troca de serviço', getApiErrorMessage(error));
     },
   });
 }
