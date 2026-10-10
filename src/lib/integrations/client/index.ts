@@ -78,6 +78,10 @@ export const clientIntegration = {
       orders().confirm(...args),
     uploadPhoto: (...args: Parameters<ClientOrdersIntegration['uploadPhoto']>) =>
       orders().uploadPhoto(...args),
+    respondNewPrice: (...args: Parameters<ClientOrdersIntegration['respondNewPrice']>) =>
+      orders().respondNewPrice(...args),
+    respondServiceChange: (...args: Parameters<ClientOrdersIntegration['respondServiceChange']>) =>
+      orders().respondServiceChange(...args),
   },
   addresses: {
     lookup: (...args: Parameters<ClientAddressesIntegration['lookup']>) =>

@@ -103,6 +103,9 @@ export const defaultProfessionalIntegration: ProfessionalIntegration = {
     respondOnDemand: (orderId, accepted) => ordersApi.respondOnDemand(orderId, accepted),
     complete: (orderId, formData) => ordersApi.complete(orderId, formData),
     cancel: (orderId, reason) => ordersApi.cancel(orderId, reason),
+    reportScopeMismatch: (orderId, description) => ordersApi.reportScopeMismatch(orderId, description),
+    proposeNewPrice: (orderId, payload) => ordersApi.proposeNewPrice(orderId, payload),
+    proposeServiceChange: (orderId, payload) => ordersApi.proposeServiceChange(orderId, payload),
   },
   profile: {
     getMyProfile: async () => {

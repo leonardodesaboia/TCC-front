@@ -172,3 +172,45 @@ export function useUploadOrderPhoto(orderId: string) {
     },
   });
 }
+
+export function useRespondNewPrice(orderId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (accepted: boolean) =>
+      clientIntegration.orders.respondNewPrice(orderId, { accepted }),
+    onSuccess: (_data, accepted) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.detail(orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
+      if (accepted) {
+        toast.success('Novo preço aceito!', 'O valor do pedido foi atualizado.');
+      } else {
+        toast.info('Pedido cancelado.', 'O novo preço foi recusado, sem custo para você.');
+      }
+    },
+    onError: (error: unknown) => {
+      toast.error('Erro ao responder proposta', getApiErrorMessage(error));
+    },
+  });
+}
+
+export function useRespondServiceChange(orderId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (accepted: boolean) =>
+      clientIntegration.orders.respondServiceChange(orderId, { accepted }),
+    onSuccess: (_data, accepted) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.detail(orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
+      if (accepted) {
+        toast.success('Troca de serviço aceita!', 'O serviço do pedido foi atualizado.');
+      } else {
+        toast.info('Pedido cancelado.', 'A troca de serviço foi recusada, sem custo para você.');
+      }
+    },
+    onError: (error: unknown) => {
+      toast.error('Erro ao responder proposta', getApiErrorMessage(error));
+    },
+  });
+}

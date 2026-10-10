@@ -9,8 +9,9 @@ import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { OrderStatusBadge } from '@/components/client/orders/OrderStatusBadge';
 import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
-import { useCancelOrder, useChooseOrderProposal, useConfirmOrder, useOrder, useOrderProposals } from '@/lib/hooks/useOrders';
+import { useCancelOrder, useChooseOrderProposal, useConfirmOrder, useOrder, useOrderProposals, useRespondNewPrice, useRespondServiceChange } from '@/lib/hooks/useOrders';
 import { useProfessional } from '@/lib/hooks/useProfessionals';
+import { useProfessionalService } from '@/lib/hooks/useServices';
 import { useOrderReviews } from '@/lib/hooks/useReviews';
 import { formatMoney, formatDateTime } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
@@ -177,6 +178,12 @@ export default function OrderDetailScreen() {
   const chooseProposal = useChooseOrderProposal(orderId);
   const cancelOrder = useCancelOrder(orderId);
   const confirmOrder = useConfirmOrder(orderId);
+  const respondNewPrice = useRespondNewPrice(orderId);
+  const respondServiceChange = useRespondServiceChange(orderId);
+  const pendingServiceQuery = useProfessionalService(
+    orderQuery.data?.professionalId ?? '',
+    orderQuery.data?.pendingServiceId ?? '',
+  );
   const areasQuery = useServiceAreas();
   const categoriesQuery = useServiceCategories();
   const reviewsQuery = useOrderReviews(orderId);
@@ -243,6 +250,46 @@ export default function OrderDetailScreen() {
     );
   }
 
+  function handleRejectNewPrice() {
+    const confirmReject = () => respondNewPrice.mutate(false);
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Recusar cancela o pedido, sem custo para você. Confirmar?')) {
+        confirmReject();
+      }
+      return;
+    }
+
+    Alert.alert(
+      'Recusar novo preço',
+      'Recusar cancela o pedido, sem custo para você. Confirmar?',
+      [
+        { text: 'Voltar', style: 'cancel' },
+        { text: 'Recusar e cancelar', style: 'destructive', onPress: confirmReject },
+      ],
+    );
+  }
+
+  function handleRejectServiceChange() {
+    const confirmReject = () => respondServiceChange.mutate(false);
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Recusar cancela o pedido, sem custo para você. Confirmar?')) {
+        confirmReject();
+      }
+      return;
+    }
+
+    Alert.alert(
+      'Recusar troca de serviço',
+      'Recusar cancela o pedido, sem custo para você. Confirmar?',
+      [
+        { text: 'Voltar', style: 'cancel' },
+        { text: 'Recusar e cancelar', style: 'destructive', onPress: confirmReject },
+      ],
+    );
+  }
+
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
       <Header title="Detalhes do pedido" showBack />
@@ -268,7 +315,16 @@ export default function OrderDetailScreen() {
               Agendado para: {formatDateTime(order.scheduledAt)}
             </Text>
           ) : null}
-          {order.status === OrderStatus.CANCELLED && order.cancelReason ? (
+          {order.status === OrderStatus.CANCELLED && order.scopeMismatch ? (
+            <View style={styles.scopeMismatchCard}>
+              <Text variant="labelLg" color={colors.warning}>Cancelado sem custo — escopo divergente</Text>
+              {order.cancelReason ? (
+                <Text variant="bodySm" color={colors.neutral[700]} style={styles.centered}>
+                  {order.cancelReason}
+                </Text>
+              ) : null}
+            </View>
+          ) : order.status === OrderStatus.CANCELLED && order.cancelReason ? (
             <View style={styles.cancelCard}>
               <Text variant="labelLg" color={colors.error}>Motivo do cancelamento</Text>
               <Text variant="bodySm" color={colors.neutral[700]} style={styles.centered}>
@@ -374,6 +430,98 @@ export default function OrderDetailScreen() {
         {order.professionalId && (isOnDemand || order.status !== OrderStatus.PENDING) ? (
           <>
             <AcceptedProfessionalCard professionalId={order.professionalId} orderId={orderId} professionalName={order.professionalName ?? undefined} />
+            <Divider />
+          </>
+        ) : null}
+
+        {order.status === OrderStatus.ACCEPTED && order.pendingPriceAmount != null ? (
+          <>
+            <View style={styles.section}>
+              <Text variant="titleSm">Novo preço proposto</Text>
+              <View style={styles.newPriceCard}>
+                <Text variant="bodySm" color={colors.neutral[600]}>
+                  O profissional encontrou um escopo diferente do combinado e propôs um novo
+                  valor para o serviço:
+                </Text>
+                {order.pendingPriceReason ? (
+                  <Text variant="bodySm" color={colors.neutral[700]}>
+                    "{order.pendingPriceReason}"
+                  </Text>
+                ) : null}
+                <Text variant="titleLg" color={colors.primary.default}>
+                  {formatMoney(order.pendingPriceAmount)}
+                </Text>
+                <View style={styles.actionsRow}>
+                  <Button
+                    variant="dangerOutline"
+                    size="sm"
+                    fullWidth={false}
+                    onPress={handleRejectNewPrice}
+                    loading={respondNewPrice.isPending}
+                  >
+                    Recusar
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    fullWidth={false}
+                    onPress={() => respondNewPrice.mutate(true)}
+                    loading={respondNewPrice.isPending}
+                  >
+                    Aceitar novo preço
+                  </Button>
+                </View>
+              </View>
+            </View>
+            <Divider />
+          </>
+        ) : null}
+
+        {order.status === OrderStatus.ACCEPTED && order.pendingServiceId != null ? (
+          <>
+            <View style={styles.section}>
+              <Text variant="titleSm">Troca de serviço proposta</Text>
+              <View style={styles.newPriceCard}>
+                <Text variant="bodySm" color={colors.neutral[600]}>
+                  O profissional encontrou um escopo diferente do combinado e propôs trocar
+                  para outro serviço:
+                </Text>
+                {order.pendingServiceReason ? (
+                  <Text variant="bodySm" color={colors.neutral[700]}>
+                    "{order.pendingServiceReason}"
+                  </Text>
+                ) : null}
+                {pendingServiceQuery.data ? (
+                  <>
+                    <Text variant="titleSm">{pendingServiceQuery.data.name}</Text>
+                    <Text variant="titleLg" color={colors.primary.default}>
+                      {formatMoney(pendingServiceQuery.data.effectivePrice)}
+                      {pendingServiceQuery.data.pricingType === 'hourly' ? '/h' : ''}
+                    </Text>
+                  </>
+                ) : null}
+                <View style={styles.actionsRow}>
+                  <Button
+                    variant="dangerOutline"
+                    size="sm"
+                    fullWidth={false}
+                    onPress={handleRejectServiceChange}
+                    loading={respondServiceChange.isPending}
+                  >
+                    Recusar
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    fullWidth={false}
+                    onPress={() => respondServiceChange.mutate(true)}
+                    loading={respondServiceChange.isPending}
+                  >
+                    Aceitar troca
+                  </Button>
+                </View>
+              </View>
+            </View>
             <Divider />
           </>
         ) : null}
@@ -634,6 +782,25 @@ const styles = StyleSheet.create({
     gap: spacing[1],
     alignItems: 'center',
   },
+  scopeMismatchCard: {
+    width: '100%',
+    backgroundColor: colors.warningLight,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.warningBorder,
+    padding: spacing[4],
+    gap: spacing[1],
+    alignItems: 'center',
+  },
+  newPriceCard: {
+    backgroundColor: colors.neutral[50],
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    padding: spacing[4],
+    gap: spacing[3],
+  },
+  actionsRow: { flexDirection: 'row', gap: spacing[2] },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
   cancelAction: {
     paddingTop: spacing[3],
