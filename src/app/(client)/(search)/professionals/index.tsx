@@ -21,8 +21,7 @@ const FILTER_CHIPS: Array<{
   disabled?: boolean;
 }> = [
   { key: 'rating', label: 'Mais bem avaliados' },
-  { key: 'price', label: 'Menor preco', disabled: true },
-  { key: 'availability', label: 'Disponivel agora' },
+  { key: 'availability', label: 'Disponível agora' },
 ];
 
 function normalize(value?: string) {
@@ -95,15 +94,15 @@ export default function ProfessionalsByCategoryScreen() {
     if (activeFilter === 'availability') {
       return {
         title: 'Sem disponibilidade imediata',
-        description: 'Nenhum profissional dessa categoria aparece como disponivel agora.',
+        description: 'Nenhum profissional dessa categoria aparece como disponível agora.',
         actionLabel: 'Ver todos',
         onAction: () => setActiveFilter('rating'),
       };
     }
 
     return {
-      title: 'Nenhum profissional disponivel',
-      description: 'Ainda nao encontramos profissionais para essa categoria. Voce pode abrir um pedido Express agora.',
+      title: 'Nenhum profissional disponível',
+      description: 'Ainda não encontramos profissionais para essa categoria. Você pode abrir um pedido Express agora.',
       actionLabel: 'Abrir Express',
       onAction: () => {
         if (!areaId || !categoryId) return;
@@ -127,7 +126,7 @@ export default function ProfessionalsByCategoryScreen() {
   if (professionalsQuery.isError) {
     return (
       <ErrorState
-        message="Nao foi possivel carregar os profissionais dessa categoria."
+        message="Não foi possível carregar os profissionais dessa categoria."
         onRetry={() => {
           void professionalsQuery.refetch();
         }}
@@ -155,7 +154,7 @@ export default function ProfessionalsByCategoryScreen() {
         {areaName ? <Badge label={areaName} /> : null}
         <Text variant="displaySm">{categoryName ?? 'Profissionais'}</Text>
         <Text variant="bodySm" color={colors.neutral[600]}>
-          Compare perfis, avaliacoes e siga direto para o agendamento sob demanda.
+          Compare perfis e avaliações e agende direto com o profissional.
         </Text>
       </View>
 
@@ -194,12 +193,16 @@ export default function ProfessionalsByCategoryScreen() {
 
       <View style={styles.summaryRow}>
         <Text variant="labelLg" color={colors.neutral[500]}>
-          {filteredProfessionals.length} profissionais encontrados
+          {filteredProfessionals.length === 1
+            ? '1 profissional encontrado'
+            : `${filteredProfessionals.length} profissionais encontrados`}
         </Text>
-        {activeFilter === 'price' ? (
-          <Badge label="Preco em breve" variant="muted" />
-        ) : null}
       </View>
+      {filteredProfessionals.some((professional) => professional.badgeLabel) ? (
+        <Text variant="labelSm" color={colors.neutral[500]}>
+          Os selos como "Destaque" e "Pro" indicam profissionais assinantes de um plano do AllSet. Eles não são uma nota.
+        </Text>
+      ) : null}
 
       {filteredProfessionals.length > 0 ? (
         <ProfessionalList

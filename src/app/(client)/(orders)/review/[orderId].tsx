@@ -16,7 +16,8 @@ export default function OrderReviewScreen() {
   const router = useRouter();
   const reviewsQuery = useOrderReviews(orderId);
   const createReview = useCreateOrderReview(orderId);
-  const [rating, setRating] = useState(5);
+  // Começa sem nota: a pessoa precisa escolher, em vez de enviar 5 estrelas sem perceber.
+  const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
 
   const alreadyHasCommentReview = useMemo(
@@ -50,10 +51,16 @@ export default function OrderReviewScreen() {
       <Header title="Avaliar pedido" showBack />
 
       <View style={styles.section}>
-        <Text variant="titleSm">Nota</Text>
+        <Text variant="titleSm">Nota (obrigatória)</Text>
         <View style={styles.starRow}>
           {[1, 2, 3, 4, 5].map((value) => (
-            <Pressable key={value} onPress={() => setRating(value)}>
+            <Pressable
+              key={value}
+              onPress={() => setRating(value)}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel={`${value} ${value === 1 ? 'estrela' : 'estrelas'}`}
+            >
               <Star
                 size={28}
                 color={colors.warning}
@@ -62,10 +69,13 @@ export default function OrderReviewScreen() {
             </Pressable>
           ))}
         </View>
+        <Text variant="labelLg" color={colors.neutral[500]}>
+          {rating > 0 ? `Você escolheu ${rating} de 5.` : 'Toque nas estrelas para dar sua nota.'}
+        </Text>
       </View>
 
       <View style={styles.section}>
-        <Text variant="titleSm">Comentário</Text>
+        <Text variant="titleSm">Comentário (obrigatório)</Text>
         <Input
           value={comment}
           onChangeText={setComment}
@@ -77,13 +87,22 @@ export default function OrderReviewScreen() {
       </View>
 
       <View style={styles.footer}>
+        {rating === 0 || comment.trim().length === 0 ? (
+          <Text variant="labelLg" color={colors.neutral[500]} style={styles.missing}>
+            {rating === 0 && comment.trim().length === 0
+              ? 'Falta escolher a nota e escrever o comentário.'
+              : rating === 0
+                ? 'Falta escolher a nota.'
+                : 'Falta escrever o comentário.'}
+          </Text>
+        ) : null}
         <Button
           onPress={async () => {
             await createReview.mutateAsync({ rating, comment: comment.trim() });
             router.back();
           }}
           loading={createReview.isPending}
-          disabled={comment.trim().length === 0}
+          disabled={rating === 0 || comment.trim().length === 0}
         >
           Enviar avaliação
         </Button>
@@ -95,6 +114,7 @@ export default function OrderReviewScreen() {
 const styles = StyleSheet.create({
   section: { gap: spacing[3] },
   starRow: { flexDirection: 'row', gap: spacing[2] },
+  missing: { textAlign: 'center', marginBottom: spacing[2] },
   textArea: {
     minHeight: 140,
   },

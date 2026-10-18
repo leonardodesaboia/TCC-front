@@ -70,6 +70,10 @@ export interface OrderDetails extends OrderSummary {
   clientId: string;
   serviceId?: string | null;
   expiresAt?: string | null;
+  /** Fim da janela em que profissionais podem enviar propostas (Express). */
+  proposalDeadline?: string | null;
+  /** Quantos profissionais foram avisados (Express, só para o cliente). */
+  notifiedProfessionals?: number | null;
   searchRadiusKm?: number | null;
   searchAttempts?: number | null;
   proCompletedAt?: string | null;
@@ -127,6 +131,8 @@ export interface OrderSummaryDto {
   addressSnapshot?: string | null;
   scheduledAt?: string | null;
   expiresAt?: string | null;
+  proposalDeadline?: string | null;
+  notifiedProfessionals?: number | null;
   urgencyFee?: number | string | null;
   baseAmount?: number | string | null;
   platformFee?: number | string | null;

@@ -103,10 +103,10 @@ export function useProCompleteOrder(orderId: string) {
       queryClient.invalidateQueries({ queryKey: queryKeys.professionalOrders.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.professionalOrders.detail(orderId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
-      toast.success('Servico marcado como concluido!');
+      toast.success('Serviço marcado como concluído!');
     },
     onError: (error: unknown) => {
-      toast.error('Erro ao concluir servico', getApiErrorMessage(error));
+      toast.error('Erro ao concluir serviço', getApiErrorMessage(error));
     },
   });
 }

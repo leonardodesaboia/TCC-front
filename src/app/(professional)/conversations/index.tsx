@@ -13,7 +13,7 @@ import type { ConversationSummary } from '@/types/conversation';
 import { colors, radius, spacing } from '@/theme';
 
 function ConversationCard({ conversation, onPress }: { conversation: ConversationSummary; onPress: () => void }) {
-  const displayName = `Pedido ${conversation.orderId.slice(0, 8)}`;
+  const displayName = conversation.otherParticipantName ?? 'Conversa do pedido';
 
   return (
     <Pressable
@@ -59,7 +59,7 @@ export default function ProfessionalConversationsScreen() {
   }
 
   if (conversationsQuery.isError) {
-    return <ErrorState message="Nao foi possivel carregar conversas." onRetry={() => conversationsQuery.refetch()} />;
+    return <ErrorState message="Não foi possível carregar conversas." onRetry={() => conversationsQuery.refetch()} />;
   }
 
   const conversations = conversationsQuery.data ?? [];

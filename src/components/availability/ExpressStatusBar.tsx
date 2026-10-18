@@ -9,9 +9,9 @@ import { colors, spacing } from '@/theme';
 const PROBLEM_STATES = new Set<ExpressAvailabilityStatus>(['permission-denied', 'stale', 'unavailable']);
 
 const messageMap: Record<Extract<ExpressAvailabilityStatus, 'permission-denied' | 'stale' | 'unavailable'>, string> = {
-  'permission-denied': 'Permissao de localizacao revogada. Toque para abrir o perfil.',
-  stale: 'Sua localizacao esta desatualizada. Toque para abrir o perfil.',
-  unavailable: 'Nao foi possivel obter sua localizacao. Toque para abrir o perfil.',
+  'permission-denied': 'A permissão de localização foi retirada. Toque para resolver.',
+  stale: 'Sua localização não é atualizada há alguns minutos. Toque para atualizar.',
+  unavailable: 'Não foi possível obter sua localização. Toque para resolver.',
 };
 
 export function ExpressStatusBar() {

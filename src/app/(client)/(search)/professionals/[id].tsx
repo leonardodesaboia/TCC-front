@@ -81,12 +81,17 @@ function FavoriteButton({ professionalId }: { professionalId: string }) {
       disabled={statusQuery.isLoading}
       hitSlop={8}
       style={styles.favoriteButton}
+      accessibilityRole="button"
+      accessibilityLabel={isFavorited ? 'Remover dos salvos' : 'Salvar profissional'}
     >
       <Heart
-        size={22}
-        color={isFavorited ? colors.error : colors.neutral[400]}
+        size={20}
+        color={isFavorited ? colors.error : colors.neutral[600]}
         fill={isFavorited ? colors.error : 'transparent'}
       />
+      <Text variant="labelLg" color={isFavorited ? colors.error : colors.neutral[700]}>
+        {isFavorited ? 'Salvo' : 'Salvar'}
+      </Text>
     </Pressable>
   );
 }
@@ -162,8 +167,16 @@ export default function ProfessionalProfileScreen() {
           )}
           <View style={styles.ratingRow}>
             <Star color={colors.warning} fill={colors.warning} size={16} />
-            <Text variant="titleSm">{professional.rating.toFixed(1)}</Text>
-            <Text variant="bodySm" color={colors.neutral[500]}>({professional.reviewCount} avaliações)</Text>
+            {professional.reviewCount > 0 ? (
+              <>
+                <Text variant="titleSm">{professional.rating.toFixed(1)}</Text>
+                <Text variant="bodySm" color={colors.neutral[500]}>
+                  ({professional.reviewCount} {professional.reviewCount === 1 ? 'avaliação' : 'avaliações'})
+                </Text>
+              </>
+            ) : (
+              <Text variant="bodySm" color={colors.neutral[500]}>Novo, sem avaliações</Text>
+            )}
           </View>
           {professional.badgeLabel ? <Badge label={professional.badgeLabel} /> : null}
         </View>
@@ -175,7 +188,7 @@ export default function ProfessionalProfileScreen() {
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
-            <Text variant="titleLg">{professional.rating.toFixed(1)}</Text>
+            <Text variant="titleLg">{professional.reviewCount > 0 ? professional.rating.toFixed(1) : '—'}</Text>
             <Text variant="labelSm" color={colors.neutral[500]}>Avaliação</Text>
           </View>
           <View style={styles.statDivider} />
@@ -221,7 +234,7 @@ export default function ProfessionalProfileScreen() {
                       <View style={styles.serviceTitleRow}>
                         <Text variant="titleSm" style={styles.serviceTitle}>{service.name}</Text>
                         {selectedCategoryMatch ? (
-                          <Badge label="Categoria selecionada" variant="info" />
+                          <Badge label="Da profissão buscada" variant="info" />
                         ) : null}
                       </View>
                       <Text variant="labelLg" color={colors.neutral[500]}>{service.description}</Text>
@@ -353,10 +366,15 @@ const styles = StyleSheet.create({
   reviewInfo: { flex: 1, gap: 2 },
   starRow: { flexDirection: 'row', gap: 2 },
   favoriteButton: {
-    width: 40,
-    height: 40,
+    flexDirection: 'row',
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing[1],
+    paddingHorizontal: spacing[3],
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
   },
   favoriteButtonLoader: {
     width: 40,

@@ -90,7 +90,7 @@ export default function ClientHomeScreen() {
       name: p.name,
       profession: p.areas[0]?.name ?? p.profession,
       highlight: p.specialties[0] ?? '',
-      rating: (p.rating ?? 0).toFixed(1),
+      rating: p.reviewCount > 0 ? (p.rating ?? 0).toFixed(1) : 'Novo',
       badge: p.badgeLabel ?? '',
     }));
   const unreadNotifications = (notificationsQuery.data ?? []).filter((item) => !item.readAt).length;
@@ -210,7 +210,7 @@ export default function ClientHomeScreen() {
 
       {/* Quick categories */}
       <View style={styles.section}>
-        <Text variant="titleMd">Categorias</Text>
+        <Text variant="titleMd">Áreas</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -410,7 +410,8 @@ const styles = StyleSheet.create({
     paddingRight: spacing[2],
   },
   categoryCard: {
-    width: 92,
+    // Largura mínima em vez de fixa: nomes longos ("Climatização") não são mais cortados.
+    minWidth: 92,
     alignItems: 'center',
     gap: spacing[2],
     borderRadius: radius.xl,
@@ -418,7 +419,7 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral[200],
     backgroundColor: colors.neutral[50],
     paddingVertical: spacing[3],
-    paddingHorizontal: spacing[2],
+    paddingHorizontal: spacing[3],
   },
   categoryIconLg: {
     width: 48,

@@ -1,10 +1,13 @@
 import {
+  AirVent,
+  Armchair,
   Brush,
   Droplets,
   HardHat,
   Heart,
   Search,
   Sparkles,
+  Sprout,
   Wrench,
   Zap,
 } from 'lucide-react-native';
@@ -35,6 +38,9 @@ const AREA_RULES: AreaRule[] = [
   { match: ['manutencao'], Icon: Wrench, color: '#EF4444', bgColor: '#FEE2E2' },
   { match: ['reforma', 'reformas', 'obra'], Icon: HardHat, color: '#E98936', bgColor: '#FFF1E5' },
   { match: ['cuidado', 'cuidados'], Icon: Heart, color: '#EC4899', bgColor: '#FCE7F3' },
+  { match: ['climatizacao', 'ar-condicionado'], Icon: AirVent, color: '#0EA5E9', bgColor: '#E0F2FE' },
+  { match: ['jardinagem', 'jardim'], Icon: Sprout, color: '#16A34A', bgColor: '#DCFCE7' },
+  { match: ['montagem'], Icon: Armchair, color: '#EA580C', bgColor: '#FFEDD5' },
 ];
 
 function normalize(value: string) {

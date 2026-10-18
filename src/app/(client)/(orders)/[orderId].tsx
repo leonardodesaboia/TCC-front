@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Camera, ChevronRight, DollarSign, MapPin, MessageCircle, Star } from 'lucide-react-native';
+import { CalendarDays, Camera, ChevronRight, Clock, MapPin, MessageCircle, Star, Users } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Avatar, Badge, Button, Divider, Text } from '@/components/ui';
@@ -13,7 +13,8 @@ import { useCancelOrder, useChooseOrderProposal, useConfirmOrder, useOrder, useO
 import { useProfessional } from '@/lib/hooks/useProfessionals';
 import { useProfessionalService } from '@/lib/hooks/useServices';
 import { useOrderReviews } from '@/lib/hooks/useReviews';
-import { formatMoney, formatDateTime } from '@/lib/utils/formatters';
+import { useNow } from '@/lib/hooks/useNow';
+import { formatMoney, formatDateTime, formatRemaining, formatReviewCount } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 import { OrderMode, OrderStatus } from '@/types/order';
 
@@ -55,7 +56,7 @@ function buildTimeline(status: OrderStatus, mode?: OrderMode): TimelineStep[] {
       active: status === OrderStatus.COMPLETED_BY_PRO,
     },
     {
-      label: isOnDemand ? 'Confirmado pelo cliente' : 'Proposta confirmada pelo cliente',
+      label: 'Serviço confirmado por você',
       completed: status === OrderStatus.COMPLETED,
       active: false,
     },
@@ -94,7 +95,7 @@ function ProposalCard({ professionalId, proposedAmount, respondedAt, onAccept, i
             <View style={styles.proposalRating}>
               <Star color={colors.warning} fill={colors.warning} size={12} />
               <Text variant="labelLg" color={colors.neutral[500]}>
-                {pro.rating.toFixed(1)} ({pro.reviewCount})
+                {pro.reviewCount > 0 ? `${pro.rating.toFixed(1)} (${pro.reviewCount})` : 'Novo, sem avaliações'}
               </Text>
             </View>
           ) : null}
@@ -138,7 +139,7 @@ function AcceptedProfessionalCard({ professionalId, orderId, professionalName }:
               <View style={styles.proposalRating}>
                 <Star color={colors.warning} fill={colors.warning} size={12} />
                 <Text variant="labelLg" color={colors.neutral[500]}>
-                  {pro.rating.toFixed(1)} ({pro.reviewCount} avaliações)
+                  {pro.reviewCount > 0 ? `${pro.rating.toFixed(1)} (${formatReviewCount(pro.reviewCount)})` : 'Novo, sem avaliações'}
                 </Text>
               </View>
             </>
@@ -187,12 +188,13 @@ export default function OrderDetailScreen() {
   const areasQuery = useServiceAreas();
   const categoriesQuery = useServiceCategories();
   const reviewsQuery = useOrderReviews(orderId);
+  const now = useNow(1000, orderQuery.data?.status === OrderStatus.PENDING);
 
-  if (orderQuery.isLoading || areasQuery.isLoading || categoriesQuery.isLoading || reviewsQuery.isLoading) {
+  if (orderQuery.isLoading) {
     return <LoadingScreen message="Carregando pedido..." />;
   }
 
-  if (orderQuery.isError || areasQuery.isError || categoriesQuery.isError || reviewsQuery.isError) {
+  if (orderQuery.isError) {
     return (
       <ErrorState
         message="Não foi possível carregar esse pedido."
@@ -224,6 +226,12 @@ export default function OrderDetailScreen() {
   const hasReview = (reviewsQuery.data ?? []).some((review) => !!review.comment);
   const requestPhotos = order.photos.filter((photo) => photo.type === 'request');
   const completionPhotos = order.photos.filter((photo) => photo.type === 'completion_proof');
+  const proposalDeadlineMs = order.proposalDeadline ? new Date(order.proposalDeadline).getTime() : null;
+  const expiresAtMs = order.expiresAt ? new Date(order.expiresAt).getTime() : null;
+  const inProposalPhase = proposalDeadlineMs !== null && now < proposalDeadlineMs;
+  const inChoicePhase = !inProposalPhase && expiresAtMs !== null && now < expiresAtMs;
+  const notified = order.notifiedProfessionals;
+
   const hasActions =
     order.status === OrderStatus.COMPLETED_BY_PRO ||
     order.status === OrderStatus.COMPLETED ||
@@ -336,7 +344,7 @@ export default function OrderDetailScreen() {
 
         {requestPhotos.length > 0 ? (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+            <View style={styles.sectionHeaderStart}>
               <Camera color={colors.neutral[700]} size={18} />
               <Text variant="titleSm">Foto do pedido</Text>
             </View>
@@ -391,6 +399,36 @@ export default function OrderDetailScreen() {
             <View style={styles.sectionHeader}>
               <Text variant="titleSm">Propostas recebidas</Text>
               <Badge label={`${proposals.length}`} variant="default" />
+            </View>
+            <View style={styles.windowCard}>
+              {notified != null ? (
+                <View style={styles.windowRow}>
+                  <Users color={colors.neutral[500]} size={16} />
+                  <Text variant="labelLg" color={colors.neutral[700]}>
+                    {notified === 1
+                      ? '1 profissional próximo foi avisado.'
+                      : `${notified} profissionais próximos foram avisados.`}
+                  </Text>
+                </View>
+              ) : null}
+              {inProposalPhase && proposalDeadlineMs !== null ? (
+                <View style={styles.windowRow}>
+                  <Clock color={colors.warning} size={16} />
+                  <Text variant="labelLg" color={colors.neutral[700]}>
+                    Recebendo propostas por mais {formatRemaining(proposalDeadlineMs - now)}. Você já pode escolher uma.
+                  </Text>
+                </View>
+              ) : null}
+              {inChoicePhase && expiresAtMs !== null ? (
+                <View style={styles.windowRow}>
+                  <Clock color={colors.error} size={16} />
+                  <Text variant="labelLg" color={colors.neutral[700]}>
+                    {proposals.length > 0
+                      ? `Não chegam mais propostas. Escolha uma em até ${formatRemaining(expiresAtMs - now)}, senão o pedido é cancelado.`
+                      : 'O prazo para propostas terminou sem respostas. O pedido será cancelado.'}
+                  </Text>
+                </View>
+              ) : null}
             </View>
             {proposals.length > 0 ? (
               <View style={styles.proposalList}>
@@ -528,7 +566,7 @@ export default function OrderDetailScreen() {
 
         {completionPhotos.length > 0 ? (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+            <View style={styles.sectionHeaderStart}>
               <Camera color={colors.neutral[700]} size={18} />
               <Text variant="titleSm">Fotos de conclusão</Text>
             </View>
@@ -558,7 +596,7 @@ export default function OrderDetailScreen() {
               : 'Endereço indisponível'}
           />
           <InfoRow
-            icon={<DollarSign color={colors.neutral[400]} size={18} />}
+            icon={<CalendarDays color={colors.neutral[400]} size={18} />}
             label="Criado em"
             value={formatDateTime(order.createdAt)}
           />
@@ -627,12 +665,12 @@ export default function OrderDetailScreen() {
                 ) : null}
                 {order.status === OrderStatus.COMPLETED ? (
                   <Button
-                    variant="secondary"
+                    variant={hasReview ? 'secondary' : 'primary'}
                     size="sm"
                     fullWidth={false}
                     onPress={() => router.push(`/(client)/(orders)/review/${orderId}` as never)}
                   >
-                    {hasReview ? 'Ver avaliação' : 'Avaliar pedido'}
+                    {hasReview ? 'Ver avaliação' : 'Avaliar o profissional'}
                   </Button>
                 ) : null}
                 {order.status === OrderStatus.CANCELLED && order.mode === OrderMode.EXPRESS && areaName ? (
@@ -660,7 +698,7 @@ export default function OrderDetailScreen() {
           </>
         ) : null}
 
-        {order.status !== OrderStatus.CANCELLED && order.status !== OrderStatus.COMPLETED && order.status !== OrderStatus.DISPUTED ? (
+        {order.status === OrderStatus.PENDING || order.status === OrderStatus.ACCEPTED ? (
           <View style={styles.cancelAction}>
             <Button
               variant="dangerOutline"
@@ -686,6 +724,14 @@ const styles = StyleSheet.create({
   badgesRow: { flexDirection: 'row', gap: spacing[2] },
   section: { gap: spacing[3] },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  sectionHeaderStart: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
+  windowCard: {
+    gap: spacing[2],
+    borderRadius: radius.lg,
+    backgroundColor: colors.neutral[100],
+    padding: spacing[3],
+  },
+  windowRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing[2] },
   centered: { textAlign: 'center' },
   timeline: { gap: 0 },
   timelineStep: { flexDirection: 'row', minHeight: 44 },

@@ -22,7 +22,7 @@ function UnsupportedRoleState() {
       <View style={styles.unsupported}>
         <Text variant="displaySm">Acesso limitado</Text>
         <Text variant="bodySm" color={colors.neutral[500]}>
-          Esta area esta disponivel apenas para profissionais.
+          Esta área está disponível apenas para profissionais.
         </Text>
         <Button loading={logout.isPending} onPress={() => logout.mutate()}>
           Sair da conta
@@ -57,7 +57,7 @@ export default function ProfessionalLayout() {
         >
           <Tabs.Screen name="index" options={{ href: null }} />
           <Tabs.Screen name="notifications" options={{ href: null }} />
-          <Tabs.Screen name="(dashboard)" options={{ title: 'Inicio' }} />
+          <Tabs.Screen name="(dashboard)" options={{ title: 'Início' }} />
           <Tabs.Screen name="(orders)" options={{ title: 'Pedidos' }} />
           <Tabs.Screen name="conversations" options={{ href: null }} />
           <Tabs.Screen name="(profile)" options={{ title: 'Perfil' }} />

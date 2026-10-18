@@ -1,6 +1,6 @@
 /**
  * Origem da coordenada de um endereço. A API exige este campo sempre que lat/lng
- * são enviados: o modo Express notifica profissionais num raio de 300 metros em
+ * são enviados: o modo Express notifica profissionais num raio de 5 km (EXPRESS_SEARCH_RADIUS_METERS) em
  * volta do ponto, então de onde ele veio importa tanto quanto o valor.
  *
  * `legacy` nunca é enviado pelo app — é a marcação que a API dá a coordenadas

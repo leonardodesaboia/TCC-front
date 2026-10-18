@@ -1,4 +1,5 @@
 import {
+  AirVent,
   Armchair,
   Baby,
   Bath,
@@ -8,6 +9,7 @@ import {
   Droplets,
   Hammer,
   HeartHandshake,
+  Lightbulb,
   PaintRoller,
   Paintbrush,
   PawPrint,
@@ -16,6 +18,7 @@ import {
   ShowerHead,
   Sparkles,
   SprayCan,
+  Sprout,
   Wrench,
   Zap,
 } from 'lucide-react-native';
@@ -58,6 +61,12 @@ const CATEGORY_RULES: CategoryRule[] = [
   { match: ['idosos'], Icon: HeartHandshake, color: '#DB2777', bgColor: '#FCE7F3' },
   { match: ['baba', 'babá'], Icon: Baby, color: '#EC4899', bgColor: '#FCE7F3' },
   { match: ['pet sitter'], Icon: PawPrint, color: '#BE185D', bgColor: '#FCE7F3' },
+  { match: ['ar-condicionado', 'split', 'climatizacao'], Icon: AirVent, color: '#0EA5E9', bgColor: '#E0F2FE' },
+  { match: ['luminaria', 'iluminacao'], Icon: Lightbulb, color: '#F59E0B', bgColor: '#FEF3C7' },
+  { match: ['diarista', 'limpeza'], Icon: BrushCleaning, color: '#2563EB', bgColor: '#DBEAFE' },
+  { match: ['pintor'], Icon: PaintRoller, color: '#7C3AED', bgColor: '#EDE9FE' },
+  { match: ['jardin', 'paisagis'], Icon: Sprout, color: '#16A34A', bgColor: '#DCFCE7' },
+  { match: ['montador'], Icon: Armchair, color: '#EA580C', bgColor: '#FFEDD5' },
 ];
 
 function normalize(value: string) {

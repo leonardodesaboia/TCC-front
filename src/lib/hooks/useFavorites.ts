@@ -19,11 +19,16 @@ export function useToggleFavorite(professionalId: string) {
       isFavorited
         ? clientIntegration.favorites.unfavorite(professionalId)
         : clientIntegration.favorites.favorite(professionalId),
-    onSuccess: () => {
+    onSuccess: (_data, wasFavorited) => {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.favorites.status(professionalId),
       });
       void queryClient.invalidateQueries({ queryKey: queryKeys.favorites.all });
+      if (wasFavorited) {
+        toast.success('Removido dos salvos.');
+      } else {
+        toast.success('Profissional salvo!', 'Você encontra seus salvos em Perfil > Profissionais salvos.');
+      }
     },
     onError: () => {
       toast.error('Não foi possível atualizar os favoritos.');

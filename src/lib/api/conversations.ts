@@ -24,6 +24,7 @@ function mapConversationSummary(dto: ConversationSummaryDto): ConversationSummar
     id: dto.id,
     orderId: dto.orderId,
     otherParticipantId: dto.otherParticipantId,
+    otherParticipantName: dto.otherParticipantName ?? undefined,
     lastMessage: lastMessagePreview,
     unreadCount: toNumber(dto.unreadCount),
   };
@@ -37,6 +38,7 @@ function mapConversation(dto: ConversationDto): Conversation {
     professionalUserId: dto.professionalUserId,
     createdAt: dto.createdAt,
     orderStatus: dto.orderStatus ?? undefined,
+    otherParticipantName: dto.otherParticipantName ?? undefined,
   };
 }
 

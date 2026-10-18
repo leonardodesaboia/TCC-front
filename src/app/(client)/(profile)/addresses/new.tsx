@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/Header';
 import { Button, Input, Text } from '@/components/ui';
 import { FormField } from '@/components/forms/FormField';
 import { AddressPinSection } from '@/components/maps/AddressPinSection';
-import { useCreateAddress, useLookupAddress, useReverseGeocode } from '@/lib/hooks/useAddresses';
+import { useAddresses, useCreateAddress, useLookupAddress, useReverseGeocode } from '@/lib/hooks/useAddresses';
 import { useAddressPin } from '@/lib/hooks/useAddressPin';
 import { compareWithGeocoded, describeFields } from '@/lib/utils/address-fill';
 import { maskZipCode, normalizeStateCode, normalizeZipCode } from '@/lib/utils/address-format';
@@ -22,6 +22,7 @@ const AUTO_LOOKUP_DEBOUNCE_MS = 900;
 export default function NewAddressScreen() {
   const router = useRouter();
   const createAddress = useCreateAddress();
+  const existingAddresses = useAddresses();
   const lookupAddress = useLookupAddress();
   // Busca automática não pede toast: a pessoa não pediu essa consulta.
   const autoSuggest = useLookupAddress({ silent: true });
@@ -189,7 +190,8 @@ export default function NewAddressScreen() {
       city: city.trim(),
       state: normalizeStateCode(state),
       ...coordinatePayload,
-      isDefault: false,
+      // O primeiro endereço vira o padrão: é o que o Express e o agendamento já sugerem.
+      isDefault: (existingAddresses.data ?? []).length === 0,
     });
 
     router.back();
