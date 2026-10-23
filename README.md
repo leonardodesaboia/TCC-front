@@ -16,13 +16,32 @@ Para apontar para outra API, defina `ALLSET_API_URL` antes do comando. Se prefer
 
 Na pasta que contém os dois repositórios há `Iniciar-AllSet.ps1`, que usa uma cópia de execução fora do OneDrive para evitar problemas de sincronização de node_modules.
 
+## Testar no celular com Expo Go e API na nuvem
+
+Na pasta deste repositório, use Node.js compatível com Expo SDK 54 (20.19 ou superior), atualize a `main` e instale pelo lockfile:
+
+```powershell
+git switch main
+git pull --ff-only origin main
+npm ci
+npm run start:cloud -- --go --clear
+```
+
+Mantenha o computador e o celular na mesma rede Wi-Fi. Abra o QR code no Expo Go (no iPhone, também pode usar a câmera). O computador fornece o JavaScript pelo Metro; o celular acessa o backend HTTPS diretamente pela internet. Não é necessário subir backend, PostgreSQL ou Docker no computador para esse teste. O comando `start:cloud` define a API correta e desativa mocks/bypass mesmo se existir `.env` antigo. Não troque a origem da API por `localhost`, pois no celular ele identifica o próprio aparelho.
+
+O Expo Go precisa ser compatível com **SDK 54**, a versão deste projeto. Consulte [o guia oficial de compatibilidade](https://docs.expo.dev/troubleshooting/expo-go-version-mismatch/) e [o instalador por SDK/plataforma](https://expo.dev/go). Caso a rede bloqueie a conexão com o Metro, encerre o servidor e use `npm run start:cloud -- --go --tunnel --clear`. O túnel muda o transporte do bundle, mantendo a API na nuvem.
+
+Para execução em pastas sincronizadas pelo OneDrive, prefira clonar em uma pasta local, por exemplo `C:\Projetos\TCC-front`. Após atualizar dependências, execute novamente `npm ci` e reinicie o Metro. Não compartilhe `node_modules` nem arquivos `.env` privados entre integrantes.
+
+GPS e câmera dependem das permissões do aparelho e precisam de teste físico. Push remoto exige uma build de desenvolvimento com configuração EAS própria; não faz parte da validação no Expo Go. A verificação de 23/10/2026 inclui Expo Doctor, testes, TypeScript e geração dos bundles Android/iOS, além do reteste da API hospedada, sem substituir sessões reais nos aparelhos da equipe.
+
 ## Sprint de geolocalização
 
 O cadastro distingue sugestão aproximada de ponto confirmado. GPS ou toque no mapa confirmam o local; mudar o endereço exige nova confirmação. A edição preserva a confiança do ponto salvo, e respostas atrasadas do geocoder não sobrescrevem uma escolha mais recente.
 
 ## Rodar junto com o backend
 
-Use `fix/geolocation-sprint-validation` nos dois repositórios, com Docker Desktop ativo e `.env` do backend preenchido conforme `.env.example`.
+Para desenvolvimento com backend local, use a `main` atualizada nos dois repositórios, com Docker Desktop ativo e `.env` do backend preenchido conforme `.env.example`. Para testar com a API na nuvem, siga as instruções acima.
 
 No backend, com os repositórios lado a lado:
 
