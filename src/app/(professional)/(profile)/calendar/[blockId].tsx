@@ -133,7 +133,7 @@ export default function EditCalendarBlockScreen() {
             <Input
               value={specificDate}
               onChangeText={(v) => setSpecificDate(maskDate(v))}
-              placeholder="31/12/2025"
+              placeholder="dd/mm/aaaa"
               keyboardType="numeric"
               maxLength={10}
             />
@@ -146,7 +146,7 @@ export default function EditCalendarBlockScreen() {
               <Input
                 value={startsAt}
                 onChangeText={(v) => setStartsAt(maskTime(v))}
-                placeholder="08:00"
+                placeholder="hh:mm"
                 keyboardType="numeric"
                 maxLength={5}
               />
@@ -156,7 +156,7 @@ export default function EditCalendarBlockScreen() {
               <Input
                 value={endsAt}
                 onChangeText={(v) => setEndsAt(maskTime(v))}
-                placeholder="12:00"
+                placeholder="hh:mm"
                 keyboardType="numeric"
                 maxLength={5}
               />

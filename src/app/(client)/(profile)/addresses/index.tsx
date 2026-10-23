@@ -110,22 +110,24 @@ export default function AddressesScreen() {
         <EmptyState
           icon={MapPin}
           title="Nenhum endereço cadastrado"
-          description="Adicione um endereço com coordenadas para conseguir abrir pedidos Express."
+          description="Cadastre o endereço onde o serviço vai ser feito e marque o local no mapa para poder pedir pelo Express."
           actionLabel="Adicionar endereço"
           onAction={() => router.push('/(client)/(profile)/addresses/new')}
         />
       )}
 
-      <View style={styles.footer}>
-        <Button
-          variant="secondary"
-          size="lg"
-          leftIcon={<Plus color={colors.primary.default} size={20} />}
-          onPress={() => router.push('/(client)/(profile)/addresses/new')}
-        >
-          Adicionar endereço
-        </Button>
-      </View>
+      {addresses.length > 0 ? (
+        <View style={styles.footer}>
+          <Button
+            variant="secondary"
+            size="lg"
+            leftIcon={<Plus color={colors.primary.default} size={20} />}
+            onPress={() => router.push('/(client)/(profile)/addresses/new')}
+          >
+            Adicionar endereço
+          </Button>
+        </View>
+      ) : null}
     </Screen>
   );
 }

@@ -20,6 +20,35 @@ export function maskDate(value: string): string {
   return digits.replace(/(\d{2})(\d{2})(\d{0,4})/, '$1/$2/$3');
 }
 
+/**
+ * Máscara de valor em reais para campos digitados.
+ * O que a pessoa digita é lido como reais: "120" vira "120" (R$ 120,00), "120,5" vira "120,5".
+ * Aceita vírgula ou ponto como separador decimal e limita a duas casas.
+ * Não usa separador de milhar, para que o ponto digitado nunca seja ambíguo.
+ */
+export function maskMoney(value: string): string {
+  const cleaned = value.replace(/\./g, ',').replace(/[^\d,]/g, '');
+  const [rawInteger, ...rest] = cleaned.split(',');
+  const integer = rawInteger.replace(/^0+(?=\d)/, '').slice(0, 6);
+
+  if (rest.length === 0) return integer;
+
+  const decimals = rest.join('').slice(0, 2);
+  return `${integer || '0'},${decimals}`;
+}
+
+/** Converte o texto de maskMoney em número (reais). Retorna null se vazio ou zero. */
+export function parseMoney(value: string): number | null {
+  if (!value) return null;
+  const parsed = Number.parseFloat(value.replace(',', '.'));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+/** Converte um valor numérico em texto compatível com maskMoney (ex.: 60 -> "60,00"). */
+export function moneyToInput(value: number): string {
+  return value.toFixed(2).replace('.', ',');
+}
+
 export function unmask(value: string): string {
   return value.replace(/\D/g, '');
 }

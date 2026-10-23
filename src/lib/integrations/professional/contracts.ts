@@ -15,6 +15,7 @@ export interface ProfessionalProfileData {
   yearsOfExperience?: number;
   baseHourlyRate?: number;
   verificationStatus?: string;
+  rejectionReason?: string;
   geoActive?: boolean;
   geoCapturedAt?: string;
   geoAccuracyMeters?: number;

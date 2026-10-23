@@ -242,11 +242,8 @@ export function PinLocationPicker({
 
       <View style={styles.toolbar}>
         <View style={styles.coordinateBox}>
-          <Text variant="labelSm" color={colors.neutral[500]}>
-            {confirmed ? 'Pin selecionado' : 'Toque no mapa para marcar o ponto'}
-          </Text>
-          <Text variant="labelLg" color={confirmed ? colors.neutral[700] : colors.neutral[400]}>
-            {value.lat.toFixed(6)}, {value.lng.toFixed(6)}
+          <Text variant="labelLg" color={confirmed ? colors.success : colors.neutral[500]}>
+            {confirmed ? 'Local marcado no mapa' : 'Toque no mapa para marcar o local'}
           </Text>
         </View>
         <View style={styles.zoomControls}>

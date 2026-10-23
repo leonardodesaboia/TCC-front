@@ -7,7 +7,7 @@ const MOCK_USER_ID = 'dev-professional';
 const mockProfile: ProfessionalProfileData = {
   id: MOCK_PRO_ID,
   userId: MOCK_USER_ID,
-  bio: 'Eletricista com mais de 10 anos de experiencia.',
+  bio: 'Eletricista com mais de 10 anos de experiência.',
   yearsOfExperience: 10,
   baseHourlyRate: 80,
   verificationStatus: 'approved',
@@ -47,7 +47,7 @@ let mockOrders: OrderSummary[] = [
     status: 'accepted' as any,
     categoryId: 'cat-1',
     areaId: 'area-1',
-    description: 'Instalacao de lustre no quarto',
+    description: 'Instalação de lustre no quarto',
     professionalId: MOCK_PRO_ID,
     addressId: 'addr-2',
     addressSnapshot: {
@@ -102,7 +102,7 @@ export const mockProfessionalIntegration: ProfessionalIntegration = {
     },
     getById: async (id) => {
       const order = mockOrders.find((o) => o.id === id);
-      if (!order) throw new Error('Pedido nao encontrado');
+      if (!order) throw new Error('Pedido não encontrado');
       return {
         ...order,
         clientId: 'client-1',

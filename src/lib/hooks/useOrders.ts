@@ -1,21 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Platform } from 'react-native';
 import { queryKeys } from '@/lib/constants/query-keys';
 import { clientIntegration } from '@/lib/integrations/client';
 import { getApiErrorMessage } from '@/lib/utils/errors';
+import { appendImage } from '@/lib/utils/form-data';
 import { toast } from '@/lib/utils/toast';
 import { OrderStatus, type CreateOnDemandOrderRequestDto, type CreateOrderRequestDto, type OrderDetails, type OrderFiltersDto } from '@/types/order';
 
 async function buildPhotoFormData(imageUri: string): Promise<FormData> {
   const formData = new FormData();
-  if (Platform.OS === 'web') {
-    const response = await fetch(imageUri);
-    const blob = await response.blob();
-    formData.append('file', blob, 'photo.jpg');
-  } else {
-    formData.append('file', { uri: imageUri, type: 'image/jpeg', name: 'photo.jpg' } as unknown as Blob);
-  }
+  await appendImage(formData, 'file', { uri: imageUri }, 'photo.jpg');
   formData.append('type', 'request');
   return formData;
 }
@@ -71,8 +65,11 @@ export function useCreateOrder() {
       return order;
     },
     onSuccess: (order) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
-      toast.success('Pedido enviado!', 'O profissional será notificado');
+      // O pedido recém-criado já vai para o cache: a tela de detalhes abre na hora,
+      // sem ficar em "Carregando pedido..." esperando a primeira busca.
+      queryClient.setQueryData(queryKeys.orders.detail(order.id), order);
+      queryClient.invalidateQueries({ queryKey: ['orders', 'my-orders'] });
+      toast.success('Pedido enviado!', 'Os profissionais próximos estão sendo avisados.');
       router.push(`/(client)/(orders)/${order.id}`);
     },
     onError: (error: unknown) => {
@@ -119,7 +116,7 @@ export function useChooseOrderProposal(orderId: string) {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.detail(orderId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.proposals(orderId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
-      toast.success('Proposta aceita!', 'O chat será liberado quando o backend concluir a transição.');
+      toast.success('Proposta aceita!', 'Você já pode conversar com o profissional pelo botão "Conversar".');
     },
     onError: (error: unknown) => {
       toast.error('Erro ao aceitar proposta', getApiErrorMessage(error));
@@ -147,13 +144,16 @@ export function useCancelOrder(orderId: string) {
 
 export function useConfirmOrder(orderId: string) {
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   return useMutation({
     mutationFn: () => clientIntegration.orders.confirm(orderId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.detail(orderId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
-      toast.success('Pedido confirmado.');
+      toast.success('Serviço confirmado!', 'Agora conte como foi o atendimento.');
+      // A avaliação é o passo seguinte natural: abrir direto evita que ela seja esquecida.
+      router.push(`/(client)/(orders)/review/${orderId}` as never);
     },
     onError: (error: unknown) => {
       toast.error('Erro ao confirmar pedido', getApiErrorMessage(error));

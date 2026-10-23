@@ -1,35 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Button, Input, Text } from '@/components/ui';
 import { FormField } from '@/components/forms/FormField';
+import { MoneyInput } from '@/components/forms/MoneyInput';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { getCategoryVisual } from '@/lib/catalog/category-visuals';
 import { useMyProfessionalProfile } from '@/lib/hooks/useProfessionalArea';
 import { useCreateProfessionalOffering } from '@/lib/hooks/useProfessionalManagement';
+import { moneyToInput, parseMoney } from '@/lib/utils/masks';
 import type { PricingType } from '@/types/service-meta';
 import type { ProfessionalSpecialty } from '@/types/professional-management';
 import { colors, radius, spacing } from '@/theme';
-
-function formatMoneyInput(raw: string): string {
-  const digits = raw.replace(/\D/g, '');
-  if (!digits) return '';
-  const integer = digits.slice(0, -2) || '0';
-  const decimal = digits.slice(-2).padStart(2, '0');
-  return `${String(Number(integer))},${decimal}`;
-}
-
-function parseMoneyInput(value: string): number | null {
-  const parsed = Number.parseFloat(value.replace(',', '.'));
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-}
-
-function numberToMoneyInput(value: number): string {
-  return formatMoneyInput(Math.round(value * 100).toString());
-}
 
 export default function NewProfessionalServiceScreen() {
   const router = useRouter();
@@ -44,6 +29,12 @@ export default function NewProfessionalServiceScreen() {
   const [price, setPrice] = useState('');
   const [duration, setDuration] = useState('');
 
+  // Com uma única profissão no perfil não há escolha a fazer: ela já vem selecionada.
+  const onlySpecialtyId = profile?.specialties?.length === 1 ? profile.specialties[0].categoryId : null;
+  useEffect(() => {
+    if (onlySpecialtyId && !categoryId) setCategoryId(onlySpecialtyId);
+  }, [onlySpecialtyId, categoryId]);
+
   if (profileQuery.isLoading) {
     return <LoadingScreen message="Carregando..." />;
   }
@@ -56,7 +47,7 @@ export default function NewProfessionalServiceScreen() {
   function handleSelectCategory(specialty: ProfessionalSpecialty) {
     setCategoryId(specialty.categoryId);
     if (pricingType === 'hourly' && specialty.hourlyRate != null) {
-      setPrice(numberToMoneyInput(specialty.hourlyRate));
+      setPrice(moneyToInput(specialty.hourlyRate));
     }
   }
 
@@ -65,12 +56,12 @@ export default function NewProfessionalServiceScreen() {
     if (type === 'hourly' && categoryId) {
       const specialty = specialties.find((s) => s.categoryId === categoryId);
       if (specialty?.hourlyRate != null) {
-        setPrice(numberToMoneyInput(specialty.hourlyRate));
+        setPrice(moneyToInput(specialty.hourlyRate));
       }
     }
   }
 
-  const parsedPrice = parseMoneyInput(price);
+  const parsedPrice = parseMoney(price);
   const parsedDuration = duration ? parseInt(duration, 10) : 0;
   const canSubmit =
     !!categoryId &&
@@ -78,6 +69,15 @@ export default function NewProfessionalServiceScreen() {
     description.trim().length > 0 &&
     (pricingType === 'hourly' || parsedDuration > 0) &&
     (pricingType === 'hourly' || (parsedPrice !== null && !Number.isNaN(parsedPrice) && parsedPrice > 0));
+
+  // Lista o que ainda falta, para o botão desabilitado não ficar sem explicação.
+  const missingFields = [
+    !categoryId && 'profissão',
+    !title.trim() && 'título',
+    !description.trim() && 'descrição',
+    pricingType === 'fixed' && !(parsedPrice && parsedPrice > 0) && 'valor',
+    pricingType === 'fixed' && !(parsedDuration > 0) && 'duração',
+  ].filter(Boolean) as string[];
 
   async function handleSubmit() {
     if (!canSubmit || !categoryId) return;
@@ -98,7 +98,7 @@ export default function NewProfessionalServiceScreen() {
 
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
-      <Header title="Novo servico" showBack />
+      <Header title="Novo serviço" showBack />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <FormField label="Profissão">
@@ -176,12 +176,7 @@ export default function NewProfessionalServiceScreen() {
         </FormField>
 
         <FormField label={pricingType === 'hourly' ? 'Valor por hora (R$)' : 'Valor (R$)'}>
-          <Input
-            value={price}
-            onChangeText={(v) => setPrice(formatMoneyInput(v))}
-            placeholder="Ex: 80,00"
-            keyboardType="numeric"
-          />
+          <MoneyInput value={price} onChangeText={setPrice} placeholder="Ex: 100" />
           {pricingType === 'hourly' ? (
             <Text variant="labelSm" color={colors.neutral[500]}>
               Preenchido automaticamente com o valor da profissão selecionada.
@@ -199,6 +194,11 @@ export default function NewProfessionalServiceScreen() {
       </ScrollView>
 
       <View style={styles.bottomBar}>
+        {missingFields.length > 0 ? (
+          <Text variant="labelLg" color={colors.neutral[500]} style={styles.missing}>
+            Falta preencher: {missingFields.join(', ')}.
+          </Text>
+        ) : null}
         <Button
           variant="primary"
           size="lg"
@@ -206,7 +206,7 @@ export default function NewProfessionalServiceScreen() {
           disabled={!canSubmit}
           loading={createOffering.isPending}
         >
-          Cadastrar servico
+          Cadastrar serviço
         </Button>
       </View>
     </Screen>
@@ -240,6 +240,10 @@ const styles = StyleSheet.create({
   },
   chipActive: {
     backgroundColor: colors.primary.default,
+  },
+  missing: {
+    textAlign: 'center',
+    marginBottom: spacing[2],
   },
   bottomBar: {
     paddingTop: spacing[3],

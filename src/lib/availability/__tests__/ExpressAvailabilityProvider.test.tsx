@@ -383,6 +383,32 @@ describe('ExpressAvailabilityProvider', () => {
     expect(updateGeo).toHaveBeenCalledTimes(1);
   });
 
+  it('refreshes the position before it gets stale, so a stationary professional stays active', async () => {
+    requestForegroundPermissionsAsync.mockResolvedValue({ status: 'granted' });
+    getCurrentPositionAsync.mockResolvedValue({
+      coords: { latitude: 0, longitude: 0, accuracy: 10 },
+      timestamp: Date.now(),
+    });
+
+    const { result } = renderHook(() => useExpressAvailability(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.toggle(true);
+    });
+    updateGeo.mockClear();
+
+    await act(async () => {
+      vi.advanceTimersByTime(2.5 * 60 * 1000);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(updateGeo).toHaveBeenCalled();
+    expect(result.current.status).toBe('active');
+  });
+
   it('marks status stale when lastCapturedAt is older than 4 minutes', async () => {
     requestForegroundPermissionsAsync.mockResolvedValue({ status: 'granted' });
     getCurrentPositionAsync.mockResolvedValue({

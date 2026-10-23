@@ -2,22 +2,25 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { AlertTriangle, Camera, Clock, MapPin, MessageCircle } from 'lucide-react-native';
+import { AlertTriangle, Camera, CheckCircle2, Clock, MapPin, MessageCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
-import { Badge, Button, Divider, Input, Text } from '@/components/ui';
+import { MoneyInput } from '@/components/forms/MoneyInput';
+import { Badge, Button, Divider, Text } from '@/components/ui';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
 import { useProfessionalOrder, useRespondToOrder, useRespondOnDemandOrder, useProCompleteOrder, useProCancelOrder } from '@/lib/hooks/useProfessionalArea';
-import { formatMoney, formatDateTime, formatDuration } from '@/lib/utils/formatters';
+import { useNow } from '@/lib/hooks/useNow';
+import { formatMoney, formatDateTime, formatDuration, formatRemaining } from '@/lib/utils/formatters';
+import { parseMoney } from '@/lib/utils/masks';
 import { colors, radius, spacing } from '@/theme';
 import { OrderMode, OrderStatus } from '@/types/order';
 
 const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'error' | 'info' | 'muted' }> = {
   [OrderStatus.PENDING]: { label: 'Pendente', variant: 'warning' },
-  [OrderStatus.ACCEPTED]: { label: 'Aceito', variant: 'info' },
+  [OrderStatus.ACCEPTED]: { label: 'Em andamento', variant: 'info' },
   [OrderStatus.COMPLETED_BY_PRO]: { label: 'Aguardando cliente', variant: 'default' },
   [OrderStatus.COMPLETED]: { label: 'Concluído', variant: 'success' },
   [OrderStatus.CANCELLED]: { label: 'Cancelado', variant: 'muted' },
@@ -48,6 +51,9 @@ export default function ProfessionalOrderDetailScreen() {
   const categoriesQuery = useServiceCategories();
 
   const [proposedAmount, setProposedAmount] = useState('');
+  // Foto escolhida para concluir o serviço; só é enviada depois que o profissional confirma.
+  const [completionAsset, setCompletionAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const now = useNow(1000, orderQuery.data?.status === OrderStatus.PENDING);
 
   if (orderQuery.isLoading || areasQuery.isLoading || categoriesQuery.isLoading) {
     return <LoadingScreen message="Carregando pedido..." />;
@@ -101,10 +107,13 @@ export default function ProfessionalOrderDetailScreen() {
     order.professionalProResponse === 'accepted' &&
     order.professionalClientResponse === 'rejected';
 
+  const proposalDeadlineMs = order.proposalDeadline ? new Date(order.proposalDeadline).getTime() : null;
+  const proposalTimeLeft = proposalDeadlineMs !== null ? proposalDeadlineMs - now : null;
+  const isChosenExpress = order.mode === OrderMode.EXPRESS && order.status === OrderStatus.ACCEPTED;
+
   function handleAccept() {
-    const digits = proposedAmount.replace(/\D/g, '');
-    const amount = parseInt(digits || '0', 10) / 100;
-    if (!amount || amount <= 0) {
+    const amount = parseMoney(proposedAmount);
+    if (!amount) {
       if (Platform.OS === 'web') {
         window.alert('Valor inválido. Informe o valor proposto para o serviço.');
       } else {
@@ -177,7 +186,12 @@ export default function ProfessionalOrderDetailScreen() {
 
     if (result.canceled || !result.assets?.[0]) return;
 
-    const asset = result.assets[0];
+    setCompletionAsset(result.assets[0]);
+  }
+
+  function handleSendCompletion() {
+    const asset = completionAsset;
+    if (!asset) return;
     const formData = new FormData();
     const webFile = (asset as typeof asset & { file?: File }).file;
 
@@ -191,7 +205,7 @@ export default function ProfessionalOrderDetailScreen() {
       } as any);
     }
 
-    completeOrder.mutate(formData);
+    completeOrder.mutate(formData, { onSuccess: () => setCompletionAsset(null) });
   }
 
   function handleCancel() {
@@ -243,7 +257,19 @@ export default function ProfessionalOrderDetailScreen() {
           {isAwaitingClientChoice ? (
             <Text variant="labelLg" color={colors.neutral[600]} style={styles.centered}>
               Sua proposta foi enviada. Agora o cliente precisa escolher entre as propostas recebidas.
+              Você ainda não foi contratado.
             </Text>
+          ) : null}
+          {isChosenExpress ? (
+            <View style={styles.chosenCard}>
+              <CheckCircle2 color={colors.success} size={20} />
+              <View style={styles.chosenText}>
+                <Text variant="titleSm" color={colors.success}>O cliente escolheu você!</Text>
+                <Text variant="labelLg" color={colors.neutral[700]}>
+                  Combine o horário pelo chat e, ao terminar, conclua o serviço com uma foto.
+                </Text>
+              </View>
+            </View>
           ) : null}
           {order.scheduledAt ? (
             <Text variant="labelLg" color={colors.neutral[600]}>
@@ -347,7 +373,7 @@ export default function ProfessionalOrderDetailScreen() {
           {order.status === OrderStatus.PENDING && isOnDemand ? (
             <View style={styles.actionsColumn}>
               <Text variant="bodySm" color={colors.neutral[500]}>
-                O cliente deseja agendar este servico. Aceitar ou recusar?
+                O cliente deseja agendar este serviço. Aceitar ou recusar?
               </Text>
               {order.totalAmount > 0 ? (
                 <Text variant="titleSm" color={colors.primary.default}>
@@ -380,17 +406,16 @@ export default function ProfessionalOrderDetailScreen() {
           {order.status === OrderStatus.PENDING && !isOnDemand && isExpressInvitation ? (
             <View style={styles.actionsColumn}>
               <Text variant="bodySm" color={colors.neutral[500]}>
-                Informe seu valor para aceitar o pedido:
+                Informe seu valor para participar da seleção. O cliente compara as propostas e escolhe uma.
               </Text>
-              <Input
-                value={proposedAmount}
-                onChangeText={(text) => {
-                  const digits = text.replace(/\D/g, '');
-                  setProposedAmount(digits ? formatMoney(parseInt(digits, 10) / 100) : '');
-                }}
-                placeholder="Valor proposto (R$)"
-                keyboardType="numeric"
-              />
+              {proposalTimeLeft !== null ? (
+                <Text variant="labelLg" color={proposalTimeLeft > 0 ? colors.warning : colors.error}>
+                  {proposalTimeLeft > 0
+                    ? `Tempo para enviar a proposta: ${formatRemaining(proposalTimeLeft)}`
+                    : 'O prazo para enviar propostas terminou.'}
+                </Text>
+              ) : null}
+              <MoneyInput value={proposedAmount} onChangeText={setProposedAmount} placeholder="Valor proposto, ex: 120" />
               <View style={styles.actionsRow}>
                 <Button
                   variant="secondary"
@@ -476,17 +501,45 @@ export default function ProfessionalOrderDetailScreen() {
 
           {order.status === OrderStatus.ACCEPTED ? (
             <View style={styles.actionsColumn}>
-              {!hasPendingPriceProposal && !hasPendingServiceChangeProposal ? (
+              {!hasPendingPriceProposal && !hasPendingServiceChangeProposal && !completionAsset ? (
                 <Button
                   variant="primary"
                   size="sm"
                   fullWidth={false}
                   leftIcon={<Camera color="#FFFFFF" size={16} />}
-                  onPress={handleComplete}
-                  loading={completeOrder.isPending}
+                  onPress={() => { void handleComplete(); }}
                 >
                   Concluir com foto
                 </Button>
+              ) : null}
+              {completionAsset ? (
+                <View style={styles.previewCard}>
+                  <Text variant="titleSm">Confira a foto antes de concluir</Text>
+                  <Image source={{ uri: completionAsset.uri }} style={styles.previewImage} resizeMode="cover" />
+                  <Text variant="labelLg" color={colors.neutral[500]}>
+                    Ao enviar, o pedido fica aguardando a confirmação do cliente. Essa ação não pode ser desfeita.
+                  </Text>
+                  <View style={styles.actionsRow}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      fullWidth={false}
+                      onPress={() => { void handleComplete(); }}
+                      disabled={completeOrder.isPending}
+                    >
+                      Trocar foto
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      fullWidth={false}
+                      onPress={handleSendCompletion}
+                      loading={completeOrder.isPending}
+                    >
+                      Enviar e concluir
+                    </Button>
+                  </View>
+                </View>
               ) : null}
               <Button
                 variant="secondary"
@@ -546,7 +599,7 @@ export default function ProfessionalOrderDetailScreen() {
           {order.status === OrderStatus.COMPLETED_BY_PRO ? (
             <View style={styles.waitingCard}>
               <Text variant="bodySm" color={colors.neutral[500]} style={styles.centered}>
-                Aguardando confirmacao do cliente...
+                Aguardando confirmação do cliente...
               </Text>
             </View>
           ) : null}
@@ -658,7 +711,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionsColumn: { gap: spacing[3] },
-  actionsRow: { flexDirection: 'row', gap: spacing[2] },
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
+  chosenCard: {
+    flexDirection: 'row',
+    gap: spacing[3],
+    alignItems: 'flex-start',
+    width: '100%',
+    backgroundColor: colors.successMid,
+    borderRadius: radius.lg,
+    padding: spacing[4],
+  },
+  chosenText: { flex: 1, gap: spacing[1] },
+  previewCard: {
+    gap: spacing[3],
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    padding: spacing[4],
+  },
+  previewImage: { width: '100%', height: 200, borderRadius: radius.md },
   waitingCard: {
     backgroundColor: colors.neutral[50],
     borderRadius: radius.lg,

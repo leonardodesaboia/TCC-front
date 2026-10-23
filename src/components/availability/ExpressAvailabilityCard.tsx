@@ -2,6 +2,8 @@ import { ActivityIndicator, Pressable, StyleSheet, Switch, View } from 'react-na
 import { Zap } from 'lucide-react-native';
 import { Text } from '@/components/ui';
 import { useExpressAvailability } from '@/lib/availability/useExpressAvailability';
+import { useNow } from '@/lib/hooks/useNow';
+import { formatTimeAgo } from '@/lib/utils/formatters';
 import type { ExpressAvailabilityStatus } from '@/lib/availability/types';
 import { colors, radius, spacing } from '@/theme';
 
@@ -27,7 +29,7 @@ function badgeFor(status: ExpressAvailabilityStatus): BadgeStyle {
     case 'requesting-permission':
       return { backgroundColor: colors.neutral[100], foregroundColor: colors.neutral[600], label: 'Aguardando...' };
     case 'permission-denied':
-      return { backgroundColor: '#FEE2E2', foregroundColor: colors.error, label: 'Sem permissao' };
+      return { backgroundColor: '#FEE2E2', foregroundColor: colors.error, label: 'Sem permissão' };
     case 'capturing':
       return { backgroundColor: colors.neutral[100], foregroundColor: colors.neutral[600], label: 'Localizando...' };
     case 'active':
@@ -35,7 +37,7 @@ function badgeFor(status: ExpressAvailabilityStatus): BadgeStyle {
     case 'stale':
       return { backgroundColor: '#FEF3C7', foregroundColor: '#B45309', label: 'Atualizando...' };
     case 'unavailable':
-      return { backgroundColor: '#FEE2E2', foregroundColor: colors.error, label: 'Indisponivel' };
+      return { backgroundColor: '#FEE2E2', foregroundColor: colors.error, label: 'Indisponível' };
   }
 }
 
@@ -51,30 +53,45 @@ function compactToneFor(status: ExpressAvailabilityStatus): CompactCardTone {
   }
 }
 
-function messageFor(status: ExpressAvailabilityStatus, lastCapturedAt: Date | null): string {
+function messageFor(status: ExpressAvailabilityStatus, lastCapturedAt: Date | null, now: number): string {
   switch (status) {
     case 'idle':
-      return 'Ative para receber pedidos proximos.';
+      return 'Ative para receber pedidos de clientes a até 5 km de você.';
     case 'requesting-permission':
-      return 'Solicitando permissao de localizacao...';
+      return 'Solicitando permissão de localização...';
     case 'permission-denied':
-      return 'Permissao de localizacao negada. Habilite nas configuracoes para receber pedidos Express.';
+      return 'O app precisa da sua localização para saber quais pedidos estão perto de você. '
+        + 'Libere a localização para o AllSet nas configurações do celular e toque em "Tentar de novo".';
     case 'capturing':
-      return 'Localizando voce...';
+      return 'Localizando você...';
     case 'active': {
-      if (!lastCapturedAt) return 'Recebendo pedidos proximos.';
-      const secondsAgo = Math.max(0, Math.round((Date.now() - lastCapturedAt.getTime()) / 1000));
-      return `Recebendo pedidos proximos. Ultima atualizacao: ha ${secondsAgo}s.`;
+      if (!lastCapturedAt) return 'Você está recebendo pedidos de clientes a até 5 km.';
+      const secondsAgo = Math.max(0, (now - lastCapturedAt.getTime()) / 1000);
+      return `Você está recebendo pedidos de clientes a até 5 km. Localização atualizada ${formatTimeAgo(secondsAgo)}.`;
     }
     case 'stale':
-      return 'Sua posicao esta desatualizada. Tentando atualizar...';
+      return 'Sua localização não é atualizada há alguns minutos. Tentando de novo...';
     case 'unavailable':
-      return 'Nao foi possivel obter sua localizacao. Verifique GPS e tente de novo.';
+      return 'Não foi possível obter sua localização. Verifique se o GPS está ligado e tente de novo.';
+  }
+}
+
+/** Mensagem curta exibida no card compacto (painel) quando há algo a resolver. */
+function compactProblemFor(status: ExpressAvailabilityStatus): string | null {
+  switch (status) {
+    case 'permission-denied':
+      return 'Libere a localização nas configurações do celular para receber pedidos.';
+    case 'unavailable':
+      return 'Não conseguimos sua localização. Verifique o GPS.';
+    default:
+      return null;
   }
 }
 
 export function ExpressAvailabilityCard({ variant = 'default' }: ExpressAvailabilityCardProps) {
   const { status, geoActive, lastCapturedAt, toggle, forceCapture, openSettings } = useExpressAvailability();
+  // Re-renderiza a cada 30 s para o "atualizada há X min" não ficar congelado.
+  const now = useNow(30000, status === 'active');
   const badge = badgeFor(status);
   const compactTone = compactToneFor(status);
   const busy = status === 'requesting-permission' || status === 'capturing';
@@ -110,6 +127,14 @@ export function ExpressAvailabilityCard({ variant = 'default' }: ExpressAvailabi
           thumbColor="#FFFFFF"
           ios_backgroundColor={colors.neutral[300]}
         />
+        {compactProblemFor(status) ? (
+          <View style={styles.compactProblem}>
+            <Text variant="labelLg" color={colors.neutral[700]}>{compactProblemFor(status)}</Text>
+            <Pressable onPress={() => void toggle(true)} hitSlop={6}>
+              <Text variant="labelLg" color={colors.primary.default}>Tentar de novo</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </View>
     );
   }
@@ -119,7 +144,7 @@ export function ExpressAvailabilityCard({ variant = 'default' }: ExpressAvailabi
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Zap color={colors.primary.default} size={20} />
-          <Text variant="titleSm">Disponivel para Express</Text>
+          <Text variant="titleSm">Disponível para Express</Text>
         </View>
 
         <Switch
@@ -144,15 +169,22 @@ export function ExpressAvailabilityCard({ variant = 'default' }: ExpressAvailabi
       </View>
 
       <Text variant="bodySm" color={colors.neutral[600]}>
-        {messageFor(status, lastCapturedAt)}
+        {messageFor(status, lastCapturedAt, now)}
       </Text>
 
       {status === 'permission-denied' ? (
-        <Pressable style={styles.actionButton} onPress={() => void openSettings()}>
-          <Text variant="labelLg" color={colors.primary.default}>
-            Abrir configuracoes
-          </Text>
-        </Pressable>
+        <View style={styles.actionsRow}>
+          <Pressable style={styles.actionButton} onPress={() => void openSettings()}>
+            <Text variant="labelLg" color={colors.primary.default}>
+              Abrir configurações
+            </Text>
+          </Pressable>
+          <Pressable style={styles.actionButton} onPress={() => void toggle(true)}>
+            <Text variant="labelLg" color={colors.primary.default}>
+              Tentar de novo
+            </Text>
+          </Pressable>
+        </View>
       ) : null}
 
       {status === 'stale' || status === 'unavailable' ? (
@@ -177,6 +209,7 @@ const styles = StyleSheet.create({
   },
   compactCard: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing[3],
@@ -216,6 +249,14 @@ const styles = StyleSheet.create({
   },
   defaultBadge: {
     alignSelf: 'flex-start',
+  },
+  compactProblem: {
+    width: '100%',
+    gap: spacing[1],
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: spacing[4],
   },
   actionButton: {
     alignSelf: 'flex-start',

@@ -9,7 +9,7 @@ import { Header } from '@/components/layout/Header';
 import { Avatar, Badge, Button, Divider, Text } from '@/components/ui';
 import { useProfessional } from '@/lib/hooks/useProfessionals';
 import { useProfessionalService } from '@/lib/hooks/useServices';
-import { formatMoney, formatDuration } from '@/lib/utils/formatters';
+import { formatMoney, formatDuration, formatReviewCount } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 
 export default function ServiceDetailScreen() {
@@ -108,7 +108,7 @@ export default function ServiceDetailScreen() {
                   </View>
                   <Text variant="bodySm" color={colors.neutral[500]}>{professional.profession}</Text>
                   <Text variant="labelLg" color={colors.neutral[500]}>
-                    {professional.rating.toFixed(1)} ({professional.reviewCount} avaliações)
+                    {professional.reviewCount > 0 ? `${professional.rating.toFixed(1)} (${formatReviewCount(professional.reviewCount)})` : 'Novo, sem avaliações'}
                   </Text>
                 </View>
               </View>

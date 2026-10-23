@@ -86,7 +86,7 @@ export default function ConversationDetailScreen() {
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
       <Header
-        title={`Conversa ${conversation.orderId.slice(0, 8)}`}
+        title={conversation.otherParticipantName ? `Conversa com ${conversation.otherParticipantName}` : 'Conversa do pedido'}
         showBack
         onBackPress={from === 'order' ? handleBack : undefined}
       />

@@ -21,6 +21,7 @@ interface ProfessionalResponseDto {
   yearsOfExperience?: number | null;
   baseHourlyRate?: number | string | null;
   verificationStatus?: string | null;
+  rejectionReason?: string | null;
   geoActive?: boolean | null;
   geoCapturedAt?: string | null;
   geoAccuracyMeters?: number | string | null;
@@ -38,6 +39,7 @@ function mapProfileData(dto: ProfessionalResponseDto): ProfessionalProfileData {
     yearsOfExperience: dto.yearsOfExperience ?? undefined,
     baseHourlyRate: dto.baseHourlyRate != null ? toNumber(dto.baseHourlyRate) : undefined,
     verificationStatus: dto.verificationStatus ?? undefined,
+    rejectionReason: dto.rejectionReason ?? undefined,
     geoActive: dto.geoActive ?? undefined,
     geoCapturedAt: dto.geoCapturedAt ?? undefined,
     geoAccuracyMeters: dto.geoAccuracyMeters != null ? toNumber(dto.geoAccuracyMeters) : undefined,

@@ -38,15 +38,19 @@ export function ProfessionalCard({ professional, onPress }: ProfessionalCardProp
         <Text variant="bodySm" color={colors.neutral[500]}>
           {professional.area}
         </Text>
-        <View style={styles.ratingRow}>
-          <Star color={colors.warning} fill={colors.warning} size={14} />
-          <Text variant="labelLg" color={colors.neutral[800]}>
-            {professional.rating}
-          </Text>
-          <Text variant="labelSm" color={colors.neutral[500]}>
-            ({professional.reviewCount})
-          </Text>
-        </View>
+        {professional.reviewCount === '0' ? (
+          <Text variant="labelLg" color={colors.neutral[500]}>Novo, sem avaliações</Text>
+        ) : (
+          <View style={styles.ratingRow}>
+            <Star color={colors.warning} fill={colors.warning} size={14} />
+            <Text variant="labelLg" color={colors.neutral[800]}>
+              {professional.rating}
+            </Text>
+            <Text variant="labelSm" color={colors.neutral[500]}>
+              ({professional.reviewCount})
+            </Text>
+          </View>
+        )}
       </View>
       <ChevronRight color={colors.neutral[300]} size={20} />
     </Pressable>

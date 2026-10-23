@@ -16,6 +16,7 @@ import {
   setStoredValue,
 } from '@/lib/utils/token-storage';
 import { getAuthenticatedUserId } from '@/lib/utils/auth-session';
+import { appendImage } from '@/lib/utils/form-data';
 
 export const authApi = {
   async login(data: LoginRequest): Promise<AuthTokens> {
@@ -31,7 +32,14 @@ export const authApi = {
     return this.login({ email: data.email, password: data.password });
   },
 
-  async registerProfessional(data: RegisterProfessionalRequest): Promise<AuthTokens> {
+  /**
+   * Cria a conta, o perfil e envia os documentos.
+   * A conta já existe depois do primeiro passo, então uma falha no envio dos documentos
+   * não pode virar erro do cadastro inteiro (tentar de novo daria "e-mail já cadastrado").
+   * Nesse caso o cadastro termina normalmente e `documentsUploaded` volta false, para o app
+   * orientar o reenvio em Perfil > Documentos.
+   */
+  async registerProfessional(data: RegisterProfessionalRequest): Promise<{ tokens: AuthTokens; documentsUploaded: boolean }> {
     const user = await usersApi.createProfessional(data);
     const tokens = await this.login({ email: data.email, password: data.password });
     const professional = await professionalManagementApi.createProfile({
@@ -40,22 +48,22 @@ export const authApi = {
       specialties: data.specialties,
     });
 
-    for (const document of data.documents) {
-      const formData = new FormData();
-      formData.append('file', {
-        uri: document.uri,
-        type: document.mimeType ?? 'image/jpeg',
-        name: document.fileName ?? `${document.docType}-${document.docSide}.jpg`,
-      } as any);
+    try {
+      for (const document of data.documents) {
+        const formData = new FormData();
+        await appendImage(formData, 'file', document, `${document.docType}-${document.docSide}.jpg`);
 
-      await professionalManagementApi.uploadDocument(professional.id, {
-        docType: document.docType,
-        docSide: document.docSide,
-        formData,
-      });
+        await professionalManagementApi.uploadDocument(professional.id, {
+          docType: document.docType,
+          docSide: document.docSide,
+          formData,
+        });
+      }
+    } catch {
+      return { tokens, documentsUploaded: false };
     }
 
-    return tokens;
+    return { tokens, documentsUploaded: true };
   },
 
   async getProfile() {

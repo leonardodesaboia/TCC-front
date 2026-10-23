@@ -81,6 +81,8 @@ function mapOrderDetails(dto: OrderDetailsDto): OrderDetails {
     clientId: dto.clientId,
     serviceId: dto.serviceId ?? undefined,
     expiresAt: dto.expiresAt ?? undefined,
+    proposalDeadline: dto.proposalDeadline ?? undefined,
+    notifiedProfessionals: dto.notifiedProfessionals ?? undefined,
     searchRadiusKm: dto.searchRadiusKm != null ? toNumber(dto.searchRadiusKm) : undefined,
     searchAttempts: dto.searchAttempts != null ? toNumber(dto.searchAttempts) : undefined,
     proCompletedAt: dto.proCompletedAt ?? undefined,

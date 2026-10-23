@@ -13,6 +13,7 @@ import { Text } from '@/components/ui';
 import { getAreaVisual } from '@/lib/catalog/area-visuals';
 import { getCategoryVisual } from '@/lib/catalog/category-visuals';
 import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
+import { formatProfessionCount } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 
 const EXPRESS_ACCENT = colors.warning;
@@ -105,7 +106,7 @@ export default function ExpressHubScreen() {
 
       {/* Steps */}
       <View style={styles.steps}>
-        <Step index={1} label="Categoria" active />
+        <Step index={1} label="Profissão" active />
         <View style={styles.stepLine} />
         <Step index={2} label="Descrição" active={false} />
         <View style={styles.stepLine} />
@@ -121,11 +122,12 @@ export default function ExpressHubScreen() {
           </Pressable>
 
           <Text variant="titleMd">{currentArea.name}</Text>
+          <Text variant="bodySm" color={colors.neutral[500]}>Escolha a profissão de que você precisa.</Text>
 
           <View style={styles.list}>
             {currentCategories.length === 0 ? (
               <Text variant="bodySm" color={colors.neutral[500]}>
-                Nenhum serviço disponível nesta área.
+                Nenhuma profissão disponível nesta área.
               </Text>
             ) : (
               currentCategories.map((category) => {
@@ -172,7 +174,7 @@ export default function ExpressHubScreen() {
                   <View style={styles.areaRowText}>
                     <Text variant="titleSm">{area.name}</Text>
                     <Text variant="labelSm" color={colors.neutral[500]}>
-                      {categories.filter((c) => c.areaId === area.id).length} serviços
+                      {formatProfessionCount(categories.filter((c) => c.areaId === area.id).length)}
                     </Text>
                   </View>
                   <ChevronRight color={colors.neutral[400]} size={20} />

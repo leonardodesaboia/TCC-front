@@ -99,13 +99,13 @@ export default function EditProfessionalProfileScreen() {
           <Input
             value={bio}
             onChangeText={setBio}
-            placeholder="Conte um pouco sobre voce..."
+            placeholder="Conte um pouco sobre você..."
             multiline
             numberOfLines={3}
           />
         </FormField>
 
-        <FormField label="Anos de experiencia">
+        <FormField label="Anos de experiência">
           <Input
             value={yearsOfExperience}
             onChangeText={setYearsOfExperience}

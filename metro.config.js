@@ -12,8 +12,15 @@ const PROXIED_PREFIXES = [
   '/services',
 ];
 
-function shouldProxy(url) {
-  return typeof url === 'string' && PROXIED_PREFIXES.some((prefix) => url.startsWith(prefix));
+function shouldProxy(req) {
+  const url = req.url;
+  if (typeof url !== 'string' || !PROXIED_PREFIXES.some((prefix) => url.startsWith(prefix))) {
+    return false;
+  }
+  // Rotas do app como /services/new e /professionals/:id usam os mesmos prefixos da API.
+  // Quando o navegador pede uma página (recarregar ou abrir o link), quem responde é o app.
+  const accept = req.headers.accept || '';
+  return !accept.includes('text/html');
 }
 
 function createProxyMiddleware(middleware) {
@@ -22,7 +29,7 @@ function createProxyMiddleware(middleware) {
   const basePath = target.pathname === '/' ? '' : target.pathname.replace(/\/$/, '');
 
   return (req, res, next) => {
-    if (!shouldProxy(req.url)) {
+    if (!shouldProxy(req)) {
       return middleware(req, res, next);
     }
 

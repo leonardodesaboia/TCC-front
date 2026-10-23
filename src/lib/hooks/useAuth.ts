@@ -73,25 +73,35 @@ export function useRegisterProfessional() {
   const setUser = useAuthStore((s) => s.setUser);
   const queryClient = useQueryClient();
 
-  return useMutation<User, unknown, RegisterProfessionalRequest>({
+  return useMutation<{ user: User; documentsUploaded: boolean }, unknown, RegisterProfessionalRequest>({
     mutationFn: async (data) => {
       if (AUTH_BYPASS_ENABLED) {
         return {
-          ...createBypassUser(),
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
-          role: UserRole.PROFESSIONAL,
+          user: {
+            ...createBypassUser(),
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            role: UserRole.PROFESSIONAL,
+          },
+          documentsUploaded: true,
         };
       }
 
-      await authApi.registerProfessional(data);
-      return authApi.getProfile();
+      const { documentsUploaded } = await authApi.registerProfessional(data);
+      return { user: await authApi.getProfile(), documentsUploaded };
     },
-    onSuccess: async (user) => {
+    onSuccess: async ({ user, documentsUploaded }) => {
       setUser(user);
       queryClient.invalidateQueries({ queryKey: queryKeys.user });
-      toast.success('Conta profissional criada!', `Bem-vindo, ${user.name ?? ''}`);
+      if (documentsUploaded) {
+        toast.success('Conta profissional criada!', 'Seus documentos estão em análise.');
+      } else {
+        toast.info(
+          'Conta criada, mas faltam os documentos',
+          'Não foi possível enviar as fotos. Envie de novo em Perfil > Documentos.',
+        );
+      }
       router.replace(getPostAuthRoute(user));
     },
     onError: (error: unknown) => {

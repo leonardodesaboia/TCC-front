@@ -3,9 +3,10 @@ import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Header } from '@/components/layout/Header';
 import { Screen } from '@/components/layout/Screen';
+import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Button, Input, Text } from '@/components/ui';
 import { useProposeNewPrice } from '@/lib/hooks/useProfessionalArea';
-import { formatMoney } from '@/lib/utils/formatters';
+import { parseMoney } from '@/lib/utils/masks';
 import { colors, radius, spacing } from '@/theme';
 
 const MAX_REASON_LENGTH = 500;
@@ -16,7 +17,7 @@ export default function ProposeNewPriceScreen() {
   const [reason, setReason] = useState('');
   const proposeNewPrice = useProposeNewPrice(orderId);
 
-  const amount = parseInt(amountText.replace(/\D/g, '') || '0', 10) / 100;
+  const amount = parseMoney(amountText) ?? 0;
   const canSubmit = amount > 0 && reason.trim().length > 0;
 
   function handleSubmit() {
@@ -36,15 +37,7 @@ export default function ProposeNewPriceScreen() {
           pedido é cancelado sem custo para nenhuma das partes.
         </Text>
 
-        <Input
-          value={amountText}
-          onChangeText={(text) => {
-            const digits = text.replace(/\D/g, '');
-            setAmountText(digits ? formatMoney(parseInt(digits, 10) / 100) : '');
-          }}
-          placeholder="Novo valor (R$)"
-          keyboardType="numeric"
-        />
+        <MoneyInput value={amountText} onChangeText={setAmountText} placeholder="Novo valor, ex: 150" />
 
         <Input
           value={reason}

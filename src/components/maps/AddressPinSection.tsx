@@ -51,7 +51,7 @@ export function AddressPinSection({
         <View style={styles.flex1}>
           <Text variant="titleSm">Localização no mapa</Text>
           <Text variant="labelLg" color={colors.neutral[500]}>
-            Este ponto define quais profissionais são avisados num raio de 300 metros.
+            Este ponto define quais profissionais são avisados: os que estão a até 5 km daqui.
             Marque a entrada do local do atendimento.
           </Text>
         </View>
