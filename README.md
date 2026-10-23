@@ -31,7 +31,13 @@ Mantenha o computador e o celular na mesma rede Wi-Fi. Abra o QR code no Expo Go
 
 O Expo Go precisa ser compatível com **SDK 54**, a versão deste projeto. Consulte [o guia oficial de compatibilidade](https://docs.expo.dev/troubleshooting/expo-go-version-mismatch/) e [o instalador por SDK/plataforma](https://expo.dev/go). Caso a rede bloqueie a conexão com o Metro, encerre o servidor e use `npm run start:cloud -- --go --tunnel --clear`. O túnel muda o transporte do bundle, mantendo a API na nuvem.
 
-Para execução em pastas sincronizadas pelo OneDrive, prefira clonar em uma pasta local, por exemplo `C:\Projetos\TCC-front`. Após atualizar dependências, execute novamente `npm ci` e reinicie o Metro. Não compartilhe `node_modules` nem arquivos `.env` privados entre integrantes.
+Em pastas do OneDrive, `start:cloud` e `web:cloud` detectam a sincronização e iniciam automaticamente por uma cópia local em `%USERPROFILE%\.allset\expo\<identificador>` no Windows. O comando copia os fontes Git e arquivos novos não ignorados; não copia `node_modules`, `.git`, `.env` privados ou `.npmrc`. Instala as dependências na cópia local na primeira execução e repete `npm ci` ao mudar o lockfile. É possível executar `npm run start:cloud -- --go --clear` mesmo sem instalar dependências na pasta do OneDrive. Continue editando e usando Git na pasta original: os fontes são sincronizados a cada dois segundos, permitindo a atualização do Metro. Se mudar dependências ou os scripts do iniciador, reinicie o comando. Não edite a cópia de execução, pois os fontes serão substituídos pelas próximas alterações do checkout.
+
+Essa proteção evita ler as dependências do OneDrive. Os próprios fontes precisam estar disponíveis: se houver erro de leitura, marque a pasta do projeto como **Sempre manter neste dispositivo** no OneDrive e aguarde o download. O Git e o Node.js precisam estar instalados; a primeira instalação também precisa de internet. Configurações privadas de `.env` não são carregadas da cópia original: para trocar a API, defina `ALLSET_API_URL` no ambiente antes de iniciar.
+
+Também é possível clonar diretamente em uma pasta local, por exemplo `C:\Projetos\TCC-front`; fora do OneDrive o comando usa o próprio checkout e as dependências instaladas com `npm ci`. Não compartilhe `node_modules` nem arquivos `.env` privados entre integrantes. A cópia de execução mantém autenticação real e a API HTTPS já definida por `start:cloud`.
+
+Regressões do iniciador (sem instalar dependências): `node --test scripts/cloud-runtime.test.cjs`.
 
 GPS e câmera dependem das permissões do aparelho e precisam de teste físico. Push remoto exige uma build de desenvolvimento com configuração EAS própria; não faz parte da validação no Expo Go. A verificação de 23/10/2026 inclui Expo Doctor, testes, TypeScript e geração dos bundles Android/iOS, além do reteste da API hospedada, sem substituir sessões reais nos aparelhos da equipe.
 
