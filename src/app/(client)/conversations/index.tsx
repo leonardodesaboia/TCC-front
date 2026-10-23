@@ -13,7 +13,7 @@ import type { ConversationSummary } from '@/types/conversation';
 import { colors, radius, spacing } from '@/theme';
 
 function ConversationCard({ conversation, onPress }: { conversation: ConversationSummary; onPress: () => void }) {
-  const displayName = `Pedido ${conversation.orderId.slice(0, 8)}`;
+  const displayName = conversation.otherParticipantName ?? 'Conversa do pedido';
 
   return (
     <Pressable

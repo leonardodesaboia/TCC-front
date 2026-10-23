@@ -9,7 +9,7 @@ import { colors, radius, spacing } from '@/theme';
 type TabIcon = ComponentType<{ color?: string; size?: number; strokeWidth?: number }>;
 
 const PROFESSIONAL_TABS: Array<{ name: string; label: string; icon: TabIcon }> = [
-  { name: '(dashboard)', label: 'Inicio', icon: Home },
+  { name: '(dashboard)', label: 'Início', icon: Home },
   { name: '(orders)', label: 'Pedidos', icon: ClipboardList },
   { name: '(profile)', label: 'Perfil', icon: UserRound },
 ];

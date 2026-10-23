@@ -162,7 +162,7 @@ export default function CheckoutScreen() {
           <Input
             value={description}
             onChangeText={setDescription}
-            placeholder="Ex: Preciso trocar 3 tomadas na sala..."
+            placeholder="Ex: Descreva o problema, onde ele está e se já tem algum material em casa."
             multiline
             numberOfLines={4}
             maxLength={2000}

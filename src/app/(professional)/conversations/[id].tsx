@@ -60,14 +60,14 @@ export default function ProfessionalConversationDetailScreen() {
   }
 
   if (conversationQuery.isError || messagesQuery.isError) {
-    return <ErrorState message="Nao foi possivel carregar a conversa." onRetry={() => {
+    return <ErrorState message="Não foi possível carregar a conversa." onRetry={() => {
       void conversationQuery.refetch();
       void messagesQuery.refetch();
     }} />;
   }
 
   const conversation = conversationQuery.data;
-  if (!conversation) return <ErrorState message="Conversa nao encontrada." />;
+  if (!conversation) return <ErrorState message="Conversa não encontrada." />;
 
   const isClosed = conversation.orderStatus === 'completed'
     || conversation.orderStatus === 'cancelled'
@@ -82,7 +82,7 @@ export default function ProfessionalConversationDetailScreen() {
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
       <Header
-        title={`Conversa ${conversation.orderId.slice(0, 8)}`}
+        title={conversation.otherParticipantName ? `Conversa com ${conversation.otherParticipantName}` : 'Conversa do pedido'}
         showBack
         onBackPress={from === 'order' ? handleBack : undefined}
       />

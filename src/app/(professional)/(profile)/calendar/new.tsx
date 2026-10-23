@@ -9,6 +9,7 @@ import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { useMyProfessionalProfile } from '@/lib/hooks/useProfessionalArea';
 import { useCreateProfessionalCalendarBlock } from '@/lib/hooks/useProfessionalManagement';
+import { formatDateWithWeekday } from '@/lib/utils/formatters';
 import type { BlockType } from '@/types/professional-management';
 import { colors, radius, spacing } from '@/theme';
 
@@ -35,6 +36,14 @@ function maskDate(value: string): string {
   return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
 }
 
+/** Converte "dd/mm/aaaa" em Date (meio-dia, para não sofrer com fuso). Retorna null se a data não existir. */
+function parseDate(value: string): Date | null {
+  if (!isValidDate(value)) return null;
+  const [dd, mm, yyyy] = value.split('/').map(Number);
+  const date = new Date(yyyy, mm - 1, dd, 12);
+  return date.getDate() === dd && date.getMonth() === mm - 1 ? date : null;
+}
+
 function dateToApi(value: string): string {
   const [dd, mm, yyyy] = value.split('/');
   return `${yyyy}-${mm}-${dd}`;
@@ -46,19 +55,24 @@ export default function NewCalendarBlockScreen() {
   const profile = profileQuery.data;
   const createBlock = useCreateProfessionalCalendarBlock(profile?.id ?? '');
 
-  const [blockType, setBlockType] = useState<Extract<BlockType, 'recurring' | 'specific_date'>>('recurring');
+  const [blockType, setBlockType] = useState<Extract<BlockType, 'recurring' | 'specific_date'>>('specific_date');
   const [weekday, setWeekday] = useState<number | null>(null);
   const [specificDate, setSpecificDate] = useState('');
   const [startsAt, setStartsAt] = useState('');
   const [endsAt, setEndsAt] = useState('');
   const [reason, setReason] = useState('');
 
+  const parsedDate = parseDate(specificDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isPastDate = parsedDate !== null && parsedDate < today;
+
   if (profileQuery.isLoading) return <LoadingScreen message="Carregando..." />;
   if (profileQuery.isError || !profile) return <ErrorState message="Não foi possível carregar o formulário." />;
 
   const canSubmit =
     (blockType === 'recurring' && weekday != null) ||
-    (blockType === 'specific_date' && isValidDate(specificDate));
+    (blockType === 'specific_date' && parsedDate !== null && !isPastDate);
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -84,7 +98,7 @@ export default function NewCalendarBlockScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <FormField label="Tipo de bloqueio">
           <View style={styles.chipsRow}>
-            {(['recurring', 'specific_date'] as const).map((type) => (
+            {(['specific_date', 'recurring'] as const).map((type) => (
               <Pressable
                 key={type}
                 onPress={() => setBlockType(type)}
@@ -94,11 +108,16 @@ export default function NewCalendarBlockScreen() {
                   variant="labelLg"
                   color={blockType === type ? colors.neutral[50] : colors.neutral[700]}
                 >
-                  {type === 'recurring' ? 'Recorrente' : 'Data específica'}
+                  {type === 'recurring' ? 'Toda semana' : 'Data específica'}
                 </Text>
               </Pressable>
             ))}
           </View>
+          <Text variant="labelLg" color={colors.neutral[500]}>
+            {blockType === 'specific_date'
+              ? 'Bloqueia apenas o dia escolhido.'
+              : 'Bloqueia o mesmo dia em todas as semanas, sem data para acabar.'}
+          </Text>
         </FormField>
 
         {blockType === 'recurring' ? (
@@ -125,28 +144,41 @@ export default function NewCalendarBlockScreen() {
             <Input
               value={specificDate}
               onChangeText={(v) => setSpecificDate(maskDate(v))}
-              placeholder="31/12/2025"
+              placeholder="dd/mm/aaaa"
               keyboardType="numeric"
               maxLength={10}
             />
+            {parsedDate ? (
+              <Text variant="labelLg" color={isPastDate ? colors.error : colors.neutral[600]}>
+                {isPastDate
+                  ? 'Essa data já passou. Escolha uma data a partir de hoje.'
+                  : `Dia escolhido: ${formatDateWithWeekday(parsedDate)}`}
+              </Text>
+            ) : specificDate.length === 10 ? (
+              <Text variant="labelLg" color={colors.error}>Data inválida.</Text>
+            ) : null}
           </FormField>
         )}
 
-        <FormField label="Início (opcional — deixe vazio para bloquear o dia inteiro)">
+        <Text variant="labelLg" color={colors.neutral[500]}>
+          Para bloquear o dia inteiro, deixe os dois horários em branco.
+        </Text>
+
+        <FormField label="Horário de início (opcional)">
           <Input
             value={startsAt}
             onChangeText={(v) => setStartsAt(maskTime(v))}
-            placeholder="08:00"
+            placeholder="hh:mm"
             keyboardType="numeric"
             maxLength={5}
           />
         </FormField>
 
-        <FormField label="Fim (opcional)">
+        <FormField label="Horário de fim (opcional)">
           <Input
             value={endsAt}
             onChangeText={(v) => setEndsAt(maskTime(v))}
-            placeholder="12:00"
+            placeholder="hh:mm"
             keyboardType="numeric"
             maxLength={5}
           />

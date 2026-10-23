@@ -56,12 +56,24 @@ export interface OrderSummary {
   updatedAt: string;
   professionalName?: string | null;
   serviceName?: string | null;
+  scopeMismatch: boolean;
+  pendingPriceAmount?: number | null;
+  pendingPriceReason?: string | null;
+  pendingPriceProposedAt?: string | null;
+  pendingServiceId?: string | null;
+  pendingServiceReason?: string | null;
+  pendingServiceEstimatedDurationMinutes?: number | null;
+  pendingServiceProposedAt?: string | null;
 }
 
 export interface OrderDetails extends OrderSummary {
   clientId: string;
   serviceId?: string | null;
   expiresAt?: string | null;
+  /** Fim da janela em que profissionais podem enviar propostas (Express). */
+  proposalDeadline?: string | null;
+  /** Quantos profissionais foram avisados (Express, só para o cliente). */
+  notifiedProfessionals?: number | null;
   searchRadiusKm?: number | null;
   searchAttempts?: number | null;
   proCompletedAt?: string | null;
@@ -119,6 +131,8 @@ export interface OrderSummaryDto {
   addressSnapshot?: string | null;
   scheduledAt?: string | null;
   expiresAt?: string | null;
+  proposalDeadline?: string | null;
+  notifiedProfessionals?: number | null;
   urgencyFee?: number | string | null;
   baseAmount?: number | string | null;
   platformFee?: number | string | null;
@@ -137,6 +151,14 @@ export interface OrderSummaryDto {
   photos?: OrderPhotoDto[] | null;
   professionalName?: string | null;
   serviceName?: string | null;
+  scopeMismatch?: boolean | null;
+  pendingPriceAmount?: number | string | null;
+  pendingPriceReason?: string | null;
+  pendingPriceProposedAt?: string | null;
+  pendingServiceId?: string | null;
+  pendingServiceReason?: string | null;
+  pendingServiceEstimatedDurationMinutes?: number | string | null;
+  pendingServiceProposedAt?: string | null;
 }
 
 export interface OrderPhotoDto {
@@ -168,4 +190,27 @@ export interface ProRespondRequest {
 
 export interface CompleteOrderRequest {
   file: FormData;
+}
+
+export interface ReportScopeMismatchRequestDto {
+  description: string;
+}
+
+export interface ProposeNewPriceRequestDto {
+  newAmount: number;
+  reason: string;
+}
+
+export interface RespondNewPriceRequestDto {
+  accepted: boolean;
+}
+
+export interface ProposeServiceChangeRequestDto {
+  newServiceId: string;
+  reason: string;
+  estimatedDurationMinutes?: number | null;
+}
+
+export interface RespondServiceChangeRequestDto {
+  accepted: boolean;
 }

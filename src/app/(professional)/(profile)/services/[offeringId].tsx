@@ -6,6 +6,7 @@ import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Button, Input, Text } from '@/components/ui';
 import { FormField } from '@/components/forms/FormField';
+import { MoneyInput } from '@/components/forms/MoneyInput';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { useServiceCategories } from '@/lib/hooks/useCatalog';
@@ -15,6 +16,7 @@ import {
   useProfessionalOfferings,
   useUpdateProfessionalOffering,
 } from '@/lib/hooks/useProfessionalManagement';
+import { moneyToInput, parseMoney } from '@/lib/utils/masks';
 import type { PricingType } from '@/types/service-meta';
 import { colors, radius, spacing } from '@/theme';
 
@@ -42,7 +44,7 @@ export default function EditProfessionalServiceScreen() {
       setTitle(offering.title);
       setDescription(offering.description);
       setPricingType(offering.pricingType);
-      setPrice(offering.price != null ? String(offering.price) : '');
+      setPrice(offering.price != null ? moneyToInput(offering.price) : '');
       setDuration(String(offering.estimatedDurationMinutes ?? 0));
       setClearPrice(false);
     }
@@ -59,7 +61,7 @@ export default function EditProfessionalServiceScreen() {
   }
 
   const categoryName = categoriesQuery.data?.find((c) => c.id === offering.categoryId)?.name ?? 'Categoria';
-  const parsedPrice = price ? Number(price.replace(',', '.')) : null;
+  const parsedPrice = parseMoney(price);
   const parsedDuration = duration ? parseInt(duration, 10) : 0;
   const canSubmit =
     title.trim().length > 0 &&
@@ -113,7 +115,7 @@ export default function EditProfessionalServiceScreen() {
 
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
-      <Header title="Editar servico" showBack />
+      <Header title="Editar serviço" showBack />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.metaCard}>
@@ -161,14 +163,13 @@ export default function EditProfessionalServiceScreen() {
         </FormField>
 
         <FormField label={pricingType === 'hourly' ? 'Valor por hora (opcional)' : 'Valor (R$)'}>
-          <Input
+          <MoneyInput
             value={price}
             onChangeText={(value) => {
               setPrice(value);
               if (value) setClearPrice(false);
             }}
-            placeholder="Ex: 80"
-            keyboardType="decimal-pad"
+            placeholder="Ex: 100"
             editable={!clearPrice}
           />
           {pricingType === 'hourly' ? (

@@ -8,6 +8,7 @@ import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Avatar, Badge, Text } from '@/components/ui';
 import { useFavoriteProfessionals } from '@/lib/hooks/useFavorites';
+import { formatReviewCount } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 import type { ProfessionalSummary } from '@/types/professional';
 
@@ -37,7 +38,7 @@ function FavoriteProfessionalCard({
           {professional.areas[0]?.name ?? professional.profession}
         </Text>
         <Text variant="labelSm" color={colors.neutral[500]}>
-          ★ {professional.rating.toFixed(1)} ({professional.reviewCount} avaliações)
+          {professional.reviewCount > 0 ? `★ ${professional.rating.toFixed(1)} (${formatReviewCount(professional.reviewCount)})` : 'Novo, sem avaliações'}
         </Text>
       </View>
     </Pressable>

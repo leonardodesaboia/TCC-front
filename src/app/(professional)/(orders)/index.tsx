@@ -14,22 +14,22 @@ import type { ServiceCategory } from '@/types/catalog';
 import { formatMoney, formatDateShort } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 
-const FILTERS = ['Todos', 'Pendente', 'Aceito', 'Aguardando', 'Concluido', 'Cancelado'];
+const FILTERS = ['Todos', 'Pendente', 'Em andamento', 'Aguardando', 'Concluído', 'Cancelado'];
 
 const STATUS_MAP: Record<string, OrderStatus | undefined> = {
   Todos: undefined,
   Pendente: OrderStatus.PENDING,
-  Aceito: OrderStatus.ACCEPTED,
+  'Em andamento': OrderStatus.ACCEPTED,
   Aguardando: OrderStatus.COMPLETED_BY_PRO,
-  Concluido: OrderStatus.COMPLETED,
+  'Concluído': OrderStatus.COMPLETED,
   Cancelado: OrderStatus.CANCELLED,
 };
 
 const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'error' | 'info' | 'muted' }> = {
   [OrderStatus.PENDING]: { label: 'Pendente', variant: 'warning' },
-  [OrderStatus.ACCEPTED]: { label: 'Aceito', variant: 'info' },
+  [OrderStatus.ACCEPTED]: { label: 'Em andamento', variant: 'info' },
   [OrderStatus.COMPLETED_BY_PRO]: { label: 'Aguardando', variant: 'default' },
-  [OrderStatus.COMPLETED]: { label: 'Concluido', variant: 'success' },
+  [OrderStatus.COMPLETED]: { label: 'Concluído', variant: 'success' },
   [OrderStatus.CANCELLED]: { label: 'Cancelado', variant: 'muted' },
   [OrderStatus.DISPUTED]: { label: 'Em disputa', variant: 'error' },
 };
@@ -54,7 +54,7 @@ function OrderCard({
   onPress: () => void;
   highlight?: boolean;
 }) {
-  const categoryName = categories.find((c) => c.id === order.categoryId)?.name ?? 'Servico';
+  const categoryName = categories.find((c) => c.id === order.categoryId)?.name ?? 'Serviço';
   const snapshot = order.addressSnapshot;
   const badge = STATUS_BADGE[order.status] ?? STATUS_BADGE[OrderStatus.PENDING];
   const isExpressInvitation = isExpressInvitationOrder(order);
@@ -119,7 +119,7 @@ function OrderCard({
         <View style={styles.metaItem}>
           <MapPin color={colors.neutral[400]} size={14} />
           <Text variant="labelLg" color={colors.neutral[600]} numberOfLines={1}>
-            {snapshot ? `${snapshot.street}, ${snapshot.number} - ${snapshot.district}` : 'Endereco'}
+            {snapshot ? `${snapshot.street}, ${snapshot.number} - ${snapshot.district}` : 'Endereço'}
           </Text>
         </View>
       </View>
@@ -152,7 +152,7 @@ export default function ProfessionalOrdersScreen() {
   if (ordersQuery.isError || categoriesQuery.isError) {
     return (
       <ErrorState
-        message="Nao foi possivel carregar seus pedidos."
+        message="Não foi possível carregar seus pedidos."
         onRetry={() => {
           void ordersQuery.refetch();
           void categoriesQuery.refetch();

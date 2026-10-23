@@ -58,6 +58,13 @@ export default function AddressesScreen() {
                   <Text variant="labelLg" color={colors.neutral[500]}>
                     {address.district} · {address.city} - {address.state}
                   </Text>
+                  {!address.expressReady ? (
+                    <Text variant="labelSm" color={colors.error}>
+                      {address.lat === null || address.lng === null
+                        ? 'Sem ponto no mapa — não serve para Express.'
+                        : 'Ponto aproximado — confirme no mapa para usar no Express.'}
+                    </Text>
+                  ) : null}
                   {!address.isDefault ? (
                     <Text variant="labelSm" color={colors.primary.default}>
                       Toque para definir como padrão
@@ -103,22 +110,24 @@ export default function AddressesScreen() {
         <EmptyState
           icon={MapPin}
           title="Nenhum endereço cadastrado"
-          description="Adicione um endereço com coordenadas para conseguir abrir pedidos Express."
+          description="Cadastre o endereço onde o serviço vai ser feito e marque o local no mapa para poder pedir pelo Express."
           actionLabel="Adicionar endereço"
           onAction={() => router.push('/(client)/(profile)/addresses/new')}
         />
       )}
 
-      <View style={styles.footer}>
-        <Button
-          variant="secondary"
-          size="lg"
-          leftIcon={<Plus color={colors.primary.default} size={20} />}
-          onPress={() => router.push('/(client)/(profile)/addresses/new')}
-        >
-          Adicionar endereço
-        </Button>
-      </View>
+      {addresses.length > 0 ? (
+        <View style={styles.footer}>
+          <Button
+            variant="secondary"
+            size="lg"
+            leftIcon={<Plus color={colors.primary.default} size={20} />}
+            onPress={() => router.push('/(client)/(profile)/addresses/new')}
+          >
+            Adicionar endereço
+          </Button>
+        </View>
+      ) : null}
     </Screen>
   );
 }

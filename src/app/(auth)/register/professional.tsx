@@ -6,13 +6,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, Check, Eye, EyeOff } from 'lucide-react-native';
 import { type Control, useForm, useWatch } from 'react-hook-form';
 import { Screen } from '@/components/layout/Screen';
+import { FormField } from '@/components/forms/FormField';
 import { FormInput } from '@/components/forms/FormInput';
+import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Button, Input, Text } from '@/components/ui';
 import { getCategoryVisual } from '@/lib/catalog/category-visuals';
 import { useRegisterProfessional } from '@/lib/hooks/useAuth';
 import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
 import { toast } from '@/lib/utils/toast';
-import { maskCPF, maskDate, maskPhone, unmask } from '@/lib/utils/masks';
+import { maskCPF, maskDate, maskPhone, parseMoney, unmask } from '@/lib/utils/masks';
 import {
   proRegisterStep1Schema,
   proRegisterStep2Schema,
@@ -79,22 +81,6 @@ function PasswordRules({ control }: { control: Control<ProRegisterStep3Data> }) 
       {rules.map((rule) => <PasswordRule key={rule.label} {...rule} />)}
     </View>
   );
-}
-
-function formatMoneyInput(value: string): string {
-  const digits = value.replace(/\D/g, '');
-  if (!digits) return '';
-
-  const integer = digits.slice(0, -2) || '0';
-  const decimal = digits.slice(-2).padStart(2, '0');
-  const normalizedInteger = String(Number(integer));
-  return `${normalizedInteger},${decimal}`;
-}
-
-function parseMoneyInput(value: string): number | undefined {
-  const normalized = value.replace(/\./g, '').replace(',', '.');
-  const parsed = Number.parseFloat(normalized);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
 function getCategoryName(categoryId: string, categories: ServiceCategory[]) {
@@ -322,9 +308,10 @@ export default function RegisterProfessionalScreen() {
   }
 
   function updateSpecialtyField(categoryId: string, field: 'yearsOfExperience' | 'hourlyRate', value: string) {
+    // O valor/hora já chega mascarado pelo MoneyInput.
     const normalized = field === 'yearsOfExperience'
       ? value.replace(/\D/g, '').slice(0, 2)
-      : formatMoneyInput(value);
+      : value;
 
     setSelectedSpecialties((current) =>
       current.map((item) =>
@@ -428,7 +415,7 @@ export default function RegisterProfessionalScreen() {
         areaId: categories.find((category) => category.id === item.categoryId)?.areaId,
         areaName: getAreaName(item.categoryId, categories, areas),
         yearsOfExperience: Number.parseInt(item.yearsOfExperience, 10),
-        hourlyRate: parseMoneyInput(item.hourlyRate),
+        hourlyRate: parseMoney(item.hourlyRate) ?? undefined,
       })),
       documents: [
         {
@@ -656,19 +643,22 @@ export default function RegisterProfessionalScreen() {
                     </Pressable>
                   </View>
 
-                  <Input
-                    value={specialty.yearsOfExperience}
-                    onChangeText={(value) => updateSpecialtyField(specialty.categoryId, 'yearsOfExperience', value)}
-                    placeholder="Anos de experiência nessa profissão"
-                    keyboardType="numeric"
-                  />
+                  <FormField label="Anos de experiência nessa profissão">
+                    <Input
+                      value={specialty.yearsOfExperience}
+                      onChangeText={(value) => updateSpecialtyField(specialty.categoryId, 'yearsOfExperience', value)}
+                      placeholder="Ex: 5"
+                      keyboardType="numeric"
+                    />
+                  </FormField>
 
-                  <Input
-                    value={specialty.hourlyRate}
-                    onChangeText={(value) => updateSpecialtyField(specialty.categoryId, 'hourlyRate', value)}
-                    placeholder="Valor/hora da profissão (opcional)"
-                    keyboardType="numeric"
-                  />
+                  <FormField label="Valor por hora (opcional)">
+                    <MoneyInput
+                      value={specialty.hourlyRate}
+                      onChangeText={(value) => updateSpecialtyField(specialty.categoryId, 'hourlyRate', value)}
+                      placeholder="Ex: 60"
+                    />
+                  </FormField>
                 </View>
               ))}
             </View>

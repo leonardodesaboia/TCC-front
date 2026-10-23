@@ -9,6 +9,7 @@ import {
   FLUSH_DISTANCE_M,
   FLUSH_TIME_MS,
   RECENCY_CHECK_INTERVAL_MS,
+  PROACTIVE_REFRESH_MS,
   STALE_THRESHOLD_MS,
   TOGGLE_OFF_RETRY_DELAYS_MS,
   WATCH_DISTANCE_INTERVAL_M,
@@ -74,7 +75,8 @@ export function ExpressAvailabilityProvider({
   const queryClient = useQueryClient();
   const initialCapturedDate = initialGeoCapturedAt ? new Date(initialGeoCapturedAt) : null;
   const [status, setStatus] = useState<ExpressAvailabilityStatus>(
-    initialGeoActive ? (isStale(initialCapturedDate) ? 'stale' : 'capturing') : 'idle',
+    // Com o Express ligado, a primeira coisa que o app faz é buscar a posição: "Localizando...".
+    initialGeoActive ? 'capturing' : 'idle',
   );
   const [geoActive, setGeoActive] = useState(initialGeoActive);
   const [lastCapturedAt, setLastCapturedAt] = useState<Date | null>(initialCapturedDate);
@@ -165,7 +167,10 @@ export function ExpressAvailabilityProvider({
     lastFlushRef.current = { at: capturedAtMs, coords };
     setGeoActive(true);
     setStatus('active');
-    setLastCapturedAt(new Date(capturedAt));
+    // A recência mostrada ao profissional é a do último envio que deu certo. O horário que o
+    // aparelho atribui à leitura pode ser antigo (posição em cache) e deixava o status
+    // "desatualizado" para sempre, mesmo com a localização chegando ao servidor.
+    setLastCapturedAt(new Date());
     setLastAccuracyMeters(coords.accuracyMeters ?? null);
     consecutiveFailuresRef.current = 0;
     invalidateProfileQueries();
@@ -242,11 +247,7 @@ export function ExpressAvailabilityProvider({
       return;
     }
 
-    if (isStale(lastCapturedAt)) {
-      setStatus('stale');
-    } else {
-      setStatus('capturing');
-    }
+    setStatus('capturing');
 
     const coords = await captureOnce(true, trackingToken);
     if (!isTrackingTokenCurrent(trackingToken)) return;
@@ -328,15 +329,18 @@ export function ExpressAvailabilityProvider({
     setGeoActive(initialGeoActive);
     setLastCapturedAt(capturedDate);
     setLastAccuracyMeters(initialGeoAccuracyMeters);
-    setStatus(initialGeoActive ? (isStale(capturedDate) ? 'stale' : 'capturing') : 'idle');
+    setStatus(initialGeoActive ? 'capturing' : 'idle');
   }, [initialGeoAccuracyMeters, initialGeoActive, initialGeoCapturedAt, professionalId]);
 
   useEffect(() => {
     if (!geoActive) return;
 
     const intervalId = setInterval(() => {
-      if (!isStale(lastCapturedAt)) return;
-      setStatus((current) => (current === 'active' ? 'stale' : current));
+      const age = lastCapturedAt ? Date.now() - lastCapturedAt.getTime() : Infinity;
+      if (age < PROACTIVE_REFRESH_MS) return;
+      if (isStale(lastCapturedAt)) {
+        setStatus((current) => (current === 'active' ? 'stale' : current));
+      }
       void captureOnce(true);
     }, RECENCY_CHECK_INTERVAL_MS);
 

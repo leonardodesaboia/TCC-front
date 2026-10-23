@@ -6,6 +6,7 @@ export interface ConversationSummary {
   id: string;
   orderId: string;
   otherParticipantId: string;
+  otherParticipantName?: string;
   lastMessage?: string;
   unreadCount: number;
 }
@@ -14,6 +15,7 @@ export interface ConversationSummaryDto {
   id: string;
   orderId: string;
   otherParticipantId: string;
+  otherParticipantName?: string | null;
   lastMessage?: MessageDto | null;
   unreadCount?: number | string | null;
 }
@@ -25,6 +27,7 @@ export interface Conversation {
   professionalUserId: string;
   createdAt: string;
   orderStatus?: string | null;
+  otherParticipantName?: string | null;
 }
 
 export interface ConversationDto {
@@ -34,6 +37,7 @@ export interface ConversationDto {
   professionalUserId: string;
   createdAt: string;
   orderStatus?: string | null;
+  otherParticipantName?: string | null;
 }
 
 export interface Message {

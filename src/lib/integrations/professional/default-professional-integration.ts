@@ -21,6 +21,7 @@ interface ProfessionalResponseDto {
   yearsOfExperience?: number | null;
   baseHourlyRate?: number | string | null;
   verificationStatus?: string | null;
+  rejectionReason?: string | null;
   geoActive?: boolean | null;
   geoCapturedAt?: string | null;
   geoAccuracyMeters?: number | string | null;
@@ -38,6 +39,7 @@ function mapProfileData(dto: ProfessionalResponseDto): ProfessionalProfileData {
     yearsOfExperience: dto.yearsOfExperience ?? undefined,
     baseHourlyRate: dto.baseHourlyRate != null ? toNumber(dto.baseHourlyRate) : undefined,
     verificationStatus: dto.verificationStatus ?? undefined,
+    rejectionReason: dto.rejectionReason ?? undefined,
     geoActive: dto.geoActive ?? undefined,
     geoCapturedAt: dto.geoCapturedAt ?? undefined,
     geoAccuracyMeters: dto.geoAccuracyMeters != null ? toNumber(dto.geoAccuracyMeters) : undefined,
@@ -103,6 +105,9 @@ export const defaultProfessionalIntegration: ProfessionalIntegration = {
     respondOnDemand: (orderId, accepted) => ordersApi.respondOnDemand(orderId, accepted),
     complete: (orderId, formData) => ordersApi.complete(orderId, formData),
     cancel: (orderId, reason) => ordersApi.cancel(orderId, reason),
+    reportScopeMismatch: (orderId, description) => ordersApi.reportScopeMismatch(orderId, description),
+    proposeNewPrice: (orderId, payload) => ordersApi.proposeNewPrice(orderId, payload),
+    proposeServiceChange: (orderId, payload) => ordersApi.proposeServiceChange(orderId, payload),
   },
   profile: {
     getMyProfile: async () => {

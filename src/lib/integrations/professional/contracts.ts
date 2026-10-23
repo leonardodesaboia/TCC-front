@@ -2,6 +2,8 @@ import type {
   OrderDetails,
   OrderFiltersDto,
   OrderSummary,
+  ProposeNewPriceRequestDto,
+  ProposeServiceChangeRequestDto,
   ProRespondRequest,
 } from '@/types/order';
 import type { ProfessionalSpecialty } from '@/types/professional-management';
@@ -13,6 +15,7 @@ export interface ProfessionalProfileData {
   yearsOfExperience?: number;
   baseHourlyRate?: number;
   verificationStatus?: string;
+  rejectionReason?: string;
   geoActive?: boolean;
   geoCapturedAt?: string;
   geoAccuracyMeters?: number;
@@ -29,6 +32,9 @@ export interface ProfessionalOrdersIntegration {
   respondOnDemand(orderId: string, accepted: boolean): Promise<OrderDetails>;
   complete(orderId: string, formData: FormData): Promise<OrderDetails>;
   cancel(orderId: string, reason: string): Promise<OrderDetails>;
+  reportScopeMismatch(orderId: string, description: string): Promise<OrderDetails>;
+  proposeNewPrice(orderId: string, payload: ProposeNewPriceRequestDto): Promise<OrderDetails>;
+  proposeServiceChange(orderId: string, payload: ProposeServiceChangeRequestDto): Promise<OrderDetails>;
 }
 
 export interface ProfessionalProfileIntegration {

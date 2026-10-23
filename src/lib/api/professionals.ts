@@ -106,7 +106,7 @@ export function mapProfessionalSummary(
     city: undefined,
     rating: record.averageRating ?? 0,
     reviewCount: record.reviewCount ?? 0,
-    availabilityLabel: record.geoActive ? 'Disponivel agora' : undefined,
+    availabilityLabel: record.geoActive ? 'Disponível agora' : undefined,
     badgeLabel,
   };
 }

@@ -72,7 +72,7 @@ export default function ProfessionalProfileScreen() {
             <View style={styles.ratingRow}>
               <Star color={colors.warning} fill={colors.warning} size={14} />
               <Text variant="labelLg" color={colors.neutral[500]}>
-                {profile.averageRating.toFixed(1)} ({profile.reviewCount} avaliacoes)
+                {profile.averageRating.toFixed(1)} ({profile.reviewCount} {profile.reviewCount === 1 ? 'avaliação' : 'avaliações'})
               </Text>
             </View>
           ) : null}
@@ -94,7 +94,7 @@ export default function ProfessionalProfileScreen() {
         </Text>
         <MenuItem
           icon={<Wrench color={colors.neutral[600]} size={20} />}
-          label="Meus servicos"
+          label="Meus serviços"
           onPress={() => router.push('/(professional)/(profile)/services' as any)}
         />
         <Divider />
@@ -107,7 +107,7 @@ export default function ProfessionalProfileScreen() {
         <MenuItem
           icon={<FileText color={colors.neutral[600]} size={20} />}
           label="Documentos"
-          onPress={() => {}}
+          onPress={() => router.push('/(professional)/(profile)/documents' as any)}
         />
       </View>
 
@@ -118,13 +118,13 @@ export default function ProfessionalProfileScreen() {
         </Text>
         <MenuItem
           icon={<MapPin color={colors.neutral[600]} size={20} />}
-          label="Meus enderecos"
+          label="Meus endereços"
           onPress={() => {}}
         />
         <Divider />
         <MenuItem
           icon={<Bell color={colors.neutral[600]} size={20} />}
-          label="Notificacoes"
+          label="Notificações"
           onPress={() => router.push('/(professional)/notifications' as any)}
         />
         <Divider />
@@ -142,7 +142,7 @@ export default function ProfessionalProfileScreen() {
         </Text>
         <MenuItem
           icon={<Settings color={colors.neutral[600]} size={20} />}
-          label="Configuracoes"
+          label="Configurações"
           onPress={() => {}}
         />
         <Divider />

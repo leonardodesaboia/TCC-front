@@ -30,9 +30,12 @@ export const defaultClientIntegration: ClientIntegration = {
     cancel: (orderId, reason) => ordersApi.cancel(orderId, reason),
     confirm: (orderId) => ordersApi.confirm(orderId),
     uploadPhoto: (orderId, formData) => ordersApi.uploadPhoto(orderId, formData),
+    respondNewPrice: (orderId, payload) => ordersApi.respondNewPrice(orderId, payload),
+    respondServiceChange: (orderId, payload) => ordersApi.respondServiceChange(orderId, payload),
   },
   addresses: {
     lookup: (payload) => addressesApi.lookup(payload),
+    reverse: (payload) => addressesApi.reverse(payload),
     getAll: () => addressesApi.getAll(),
     create: (payload) => addressesApi.create(payload),
     update: (id, payload) => addressesApi.update(id, payload),

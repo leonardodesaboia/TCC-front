@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Camera, ChevronRight, DollarSign, MapPin, MessageCircle, Star } from 'lucide-react-native';
+import { CalendarDays, Camera, ChevronRight, Clock, MapPin, MessageCircle, Star, Users } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Avatar, Badge, Button, Divider, Text } from '@/components/ui';
@@ -9,10 +9,12 @@ import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { OrderStatusBadge } from '@/components/client/orders/OrderStatusBadge';
 import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
-import { useCancelOrder, useChooseOrderProposal, useConfirmOrder, useOrder, useOrderProposals } from '@/lib/hooks/useOrders';
+import { useCancelOrder, useChooseOrderProposal, useConfirmOrder, useOrder, useOrderProposals, useRespondNewPrice, useRespondServiceChange } from '@/lib/hooks/useOrders';
 import { useProfessional } from '@/lib/hooks/useProfessionals';
+import { useProfessionalService } from '@/lib/hooks/useServices';
 import { useOrderReviews } from '@/lib/hooks/useReviews';
-import { formatMoney, formatDateTime } from '@/lib/utils/formatters';
+import { useNow } from '@/lib/hooks/useNow';
+import { formatMoney, formatDateTime, formatRemaining, formatReviewCount } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 import { OrderMode, OrderStatus } from '@/types/order';
 
@@ -54,7 +56,7 @@ function buildTimeline(status: OrderStatus, mode?: OrderMode): TimelineStep[] {
       active: status === OrderStatus.COMPLETED_BY_PRO,
     },
     {
-      label: isOnDemand ? 'Confirmado pelo cliente' : 'Proposta confirmada pelo cliente',
+      label: 'Serviço confirmado por você',
       completed: status === OrderStatus.COMPLETED,
       active: false,
     },
@@ -93,7 +95,7 @@ function ProposalCard({ professionalId, proposedAmount, respondedAt, onAccept, i
             <View style={styles.proposalRating}>
               <Star color={colors.warning} fill={colors.warning} size={12} />
               <Text variant="labelLg" color={colors.neutral[500]}>
-                {pro.rating.toFixed(1)} ({pro.reviewCount})
+                {pro.reviewCount > 0 ? `${pro.rating.toFixed(1)} (${pro.reviewCount})` : 'Novo, sem avaliações'}
               </Text>
             </View>
           ) : null}
@@ -137,7 +139,7 @@ function AcceptedProfessionalCard({ professionalId, orderId, professionalName }:
               <View style={styles.proposalRating}>
                 <Star color={colors.warning} fill={colors.warning} size={12} />
                 <Text variant="labelLg" color={colors.neutral[500]}>
-                  {pro.rating.toFixed(1)} ({pro.reviewCount} avaliações)
+                  {pro.reviewCount > 0 ? `${pro.rating.toFixed(1)} (${formatReviewCount(pro.reviewCount)})` : 'Novo, sem avaliações'}
                 </Text>
               </View>
             </>
@@ -177,15 +179,22 @@ export default function OrderDetailScreen() {
   const chooseProposal = useChooseOrderProposal(orderId);
   const cancelOrder = useCancelOrder(orderId);
   const confirmOrder = useConfirmOrder(orderId);
+  const respondNewPrice = useRespondNewPrice(orderId);
+  const respondServiceChange = useRespondServiceChange(orderId);
+  const pendingServiceQuery = useProfessionalService(
+    orderQuery.data?.professionalId ?? '',
+    orderQuery.data?.pendingServiceId ?? '',
+  );
   const areasQuery = useServiceAreas();
   const categoriesQuery = useServiceCategories();
   const reviewsQuery = useOrderReviews(orderId);
+  const now = useNow(1000, orderQuery.data?.status === OrderStatus.PENDING);
 
-  if (orderQuery.isLoading || areasQuery.isLoading || categoriesQuery.isLoading || reviewsQuery.isLoading) {
+  if (orderQuery.isLoading) {
     return <LoadingScreen message="Carregando pedido..." />;
   }
 
-  if (orderQuery.isError || areasQuery.isError || categoriesQuery.isError || reviewsQuery.isError) {
+  if (orderQuery.isError) {
     return (
       <ErrorState
         message="Não foi possível carregar esse pedido."
@@ -217,6 +226,12 @@ export default function OrderDetailScreen() {
   const hasReview = (reviewsQuery.data ?? []).some((review) => !!review.comment);
   const requestPhotos = order.photos.filter((photo) => photo.type === 'request');
   const completionPhotos = order.photos.filter((photo) => photo.type === 'completion_proof');
+  const proposalDeadlineMs = order.proposalDeadline ? new Date(order.proposalDeadline).getTime() : null;
+  const expiresAtMs = order.expiresAt ? new Date(order.expiresAt).getTime() : null;
+  const inProposalPhase = proposalDeadlineMs !== null && now < proposalDeadlineMs;
+  const inChoicePhase = !inProposalPhase && expiresAtMs !== null && now < expiresAtMs;
+  const notified = order.notifiedProfessionals;
+
   const hasActions =
     order.status === OrderStatus.COMPLETED_BY_PRO ||
     order.status === OrderStatus.COMPLETED ||
@@ -239,6 +254,46 @@ export default function OrderDetailScreen() {
       [
         { text: 'Não', style: 'cancel' },
         { text: 'Sim, cancelar', style: 'destructive', onPress: confirmCancel },
+      ],
+    );
+  }
+
+  function handleRejectNewPrice() {
+    const confirmReject = () => respondNewPrice.mutate(false);
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Recusar cancela o pedido, sem custo para você. Confirmar?')) {
+        confirmReject();
+      }
+      return;
+    }
+
+    Alert.alert(
+      'Recusar novo preço',
+      'Recusar cancela o pedido, sem custo para você. Confirmar?',
+      [
+        { text: 'Voltar', style: 'cancel' },
+        { text: 'Recusar e cancelar', style: 'destructive', onPress: confirmReject },
+      ],
+    );
+  }
+
+  function handleRejectServiceChange() {
+    const confirmReject = () => respondServiceChange.mutate(false);
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Recusar cancela o pedido, sem custo para você. Confirmar?')) {
+        confirmReject();
+      }
+      return;
+    }
+
+    Alert.alert(
+      'Recusar troca de serviço',
+      'Recusar cancela o pedido, sem custo para você. Confirmar?',
+      [
+        { text: 'Voltar', style: 'cancel' },
+        { text: 'Recusar e cancelar', style: 'destructive', onPress: confirmReject },
       ],
     );
   }
@@ -268,7 +323,16 @@ export default function OrderDetailScreen() {
               Agendado para: {formatDateTime(order.scheduledAt)}
             </Text>
           ) : null}
-          {order.status === OrderStatus.CANCELLED && order.cancelReason ? (
+          {order.status === OrderStatus.CANCELLED && order.scopeMismatch ? (
+            <View style={styles.scopeMismatchCard}>
+              <Text variant="labelLg" color={colors.warning}>Cancelado sem custo — escopo divergente</Text>
+              {order.cancelReason ? (
+                <Text variant="bodySm" color={colors.neutral[700]} style={styles.centered}>
+                  {order.cancelReason}
+                </Text>
+              ) : null}
+            </View>
+          ) : order.status === OrderStatus.CANCELLED && order.cancelReason ? (
             <View style={styles.cancelCard}>
               <Text variant="labelLg" color={colors.error}>Motivo do cancelamento</Text>
               <Text variant="bodySm" color={colors.neutral[700]} style={styles.centered}>
@@ -280,7 +344,7 @@ export default function OrderDetailScreen() {
 
         {requestPhotos.length > 0 ? (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+            <View style={styles.sectionHeaderStart}>
               <Camera color={colors.neutral[700]} size={18} />
               <Text variant="titleSm">Foto do pedido</Text>
             </View>
@@ -336,6 +400,36 @@ export default function OrderDetailScreen() {
               <Text variant="titleSm">Propostas recebidas</Text>
               <Badge label={`${proposals.length}`} variant="default" />
             </View>
+            <View style={styles.windowCard}>
+              {notified != null ? (
+                <View style={styles.windowRow}>
+                  <Users color={colors.neutral[500]} size={16} />
+                  <Text variant="labelLg" color={colors.neutral[700]}>
+                    {notified === 1
+                      ? '1 profissional próximo foi avisado.'
+                      : `${notified} profissionais próximos foram avisados.`}
+                  </Text>
+                </View>
+              ) : null}
+              {inProposalPhase && proposalDeadlineMs !== null ? (
+                <View style={styles.windowRow}>
+                  <Clock color={colors.warning} size={16} />
+                  <Text variant="labelLg" color={colors.neutral[700]}>
+                    Recebendo propostas por mais {formatRemaining(proposalDeadlineMs - now)}. Você já pode escolher uma.
+                  </Text>
+                </View>
+              ) : null}
+              {inChoicePhase && expiresAtMs !== null ? (
+                <View style={styles.windowRow}>
+                  <Clock color={colors.error} size={16} />
+                  <Text variant="labelLg" color={colors.neutral[700]}>
+                    {proposals.length > 0
+                      ? `Não chegam mais propostas. Escolha uma em até ${formatRemaining(expiresAtMs - now)}, senão o pedido é cancelado.`
+                      : 'O prazo para propostas terminou sem respostas. O pedido será cancelado.'}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
             {proposals.length > 0 ? (
               <View style={styles.proposalList}>
                 {proposals.map((proposal) => (
@@ -378,9 +472,101 @@ export default function OrderDetailScreen() {
           </>
         ) : null}
 
+        {order.status === OrderStatus.ACCEPTED && order.pendingPriceAmount != null ? (
+          <>
+            <View style={styles.section}>
+              <Text variant="titleSm">Novo preço proposto</Text>
+              <View style={styles.newPriceCard}>
+                <Text variant="bodySm" color={colors.neutral[600]}>
+                  O profissional encontrou um escopo diferente do combinado e propôs um novo
+                  valor para o serviço:
+                </Text>
+                {order.pendingPriceReason ? (
+                  <Text variant="bodySm" color={colors.neutral[700]}>
+                    "{order.pendingPriceReason}"
+                  </Text>
+                ) : null}
+                <Text variant="titleLg" color={colors.primary.default}>
+                  {formatMoney(order.pendingPriceAmount)}
+                </Text>
+                <View style={styles.actionsRow}>
+                  <Button
+                    variant="dangerOutline"
+                    size="sm"
+                    fullWidth={false}
+                    onPress={handleRejectNewPrice}
+                    loading={respondNewPrice.isPending}
+                  >
+                    Recusar
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    fullWidth={false}
+                    onPress={() => respondNewPrice.mutate(true)}
+                    loading={respondNewPrice.isPending}
+                  >
+                    Aceitar novo preço
+                  </Button>
+                </View>
+              </View>
+            </View>
+            <Divider />
+          </>
+        ) : null}
+
+        {order.status === OrderStatus.ACCEPTED && order.pendingServiceId != null ? (
+          <>
+            <View style={styles.section}>
+              <Text variant="titleSm">Troca de serviço proposta</Text>
+              <View style={styles.newPriceCard}>
+                <Text variant="bodySm" color={colors.neutral[600]}>
+                  O profissional encontrou um escopo diferente do combinado e propôs trocar
+                  para outro serviço:
+                </Text>
+                {order.pendingServiceReason ? (
+                  <Text variant="bodySm" color={colors.neutral[700]}>
+                    "{order.pendingServiceReason}"
+                  </Text>
+                ) : null}
+                {pendingServiceQuery.data ? (
+                  <>
+                    <Text variant="titleSm">{pendingServiceQuery.data.name}</Text>
+                    <Text variant="titleLg" color={colors.primary.default}>
+                      {formatMoney(pendingServiceQuery.data.effectivePrice)}
+                      {pendingServiceQuery.data.pricingType === 'hourly' ? '/h' : ''}
+                    </Text>
+                  </>
+                ) : null}
+                <View style={styles.actionsRow}>
+                  <Button
+                    variant="dangerOutline"
+                    size="sm"
+                    fullWidth={false}
+                    onPress={handleRejectServiceChange}
+                    loading={respondServiceChange.isPending}
+                  >
+                    Recusar
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    fullWidth={false}
+                    onPress={() => respondServiceChange.mutate(true)}
+                    loading={respondServiceChange.isPending}
+                  >
+                    Aceitar troca
+                  </Button>
+                </View>
+              </View>
+            </View>
+            <Divider />
+          </>
+        ) : null}
+
         {completionPhotos.length > 0 ? (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+            <View style={styles.sectionHeaderStart}>
               <Camera color={colors.neutral[700]} size={18} />
               <Text variant="titleSm">Fotos de conclusão</Text>
             </View>
@@ -410,7 +596,7 @@ export default function OrderDetailScreen() {
               : 'Endereço indisponível'}
           />
           <InfoRow
-            icon={<DollarSign color={colors.neutral[400]} size={18} />}
+            icon={<CalendarDays color={colors.neutral[400]} size={18} />}
             label="Criado em"
             value={formatDateTime(order.createdAt)}
           />
@@ -479,12 +665,12 @@ export default function OrderDetailScreen() {
                 ) : null}
                 {order.status === OrderStatus.COMPLETED ? (
                   <Button
-                    variant="secondary"
+                    variant={hasReview ? 'secondary' : 'primary'}
                     size="sm"
                     fullWidth={false}
                     onPress={() => router.push(`/(client)/(orders)/review/${orderId}` as never)}
                   >
-                    {hasReview ? 'Ver avaliação' : 'Avaliar pedido'}
+                    {hasReview ? 'Ver avaliação' : 'Avaliar o profissional'}
                   </Button>
                 ) : null}
                 {order.status === OrderStatus.CANCELLED && order.mode === OrderMode.EXPRESS && areaName ? (
@@ -512,7 +698,7 @@ export default function OrderDetailScreen() {
           </>
         ) : null}
 
-        {order.status !== OrderStatus.CANCELLED && order.status !== OrderStatus.COMPLETED && order.status !== OrderStatus.DISPUTED ? (
+        {order.status === OrderStatus.PENDING || order.status === OrderStatus.ACCEPTED ? (
           <View style={styles.cancelAction}>
             <Button
               variant="dangerOutline"
@@ -538,6 +724,14 @@ const styles = StyleSheet.create({
   badgesRow: { flexDirection: 'row', gap: spacing[2] },
   section: { gap: spacing[3] },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  sectionHeaderStart: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
+  windowCard: {
+    gap: spacing[2],
+    borderRadius: radius.lg,
+    backgroundColor: colors.neutral[100],
+    padding: spacing[3],
+  },
+  windowRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing[2] },
   centered: { textAlign: 'center' },
   timeline: { gap: 0 },
   timelineStep: { flexDirection: 'row', minHeight: 44 },
@@ -634,6 +828,25 @@ const styles = StyleSheet.create({
     gap: spacing[1],
     alignItems: 'center',
   },
+  scopeMismatchCard: {
+    width: '100%',
+    backgroundColor: colors.warningLight,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.warningBorder,
+    padding: spacing[4],
+    gap: spacing[1],
+    alignItems: 'center',
+  },
+  newPriceCard: {
+    backgroundColor: colors.neutral[50],
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    padding: spacing[4],
+    gap: spacing[3],
+  },
+  actionsRow: { flexDirection: 'row', gap: spacing[2] },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
   cancelAction: {
     paddingTop: spacing[3],

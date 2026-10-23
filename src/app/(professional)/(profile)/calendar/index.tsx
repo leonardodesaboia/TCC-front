@@ -12,26 +12,28 @@ import {
   useDeleteProfessionalCalendarBlock,
 } from '@/lib/hooks/useProfessionalManagement';
 import type { BlockedPeriod } from '@/types/professional-management';
-import { formatDateFull } from '@/lib/utils/formatters';
+import { formatDateWithWeekday } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 
 const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-function formatTime(time?: string) {
-  if (!time) return 'Dia inteiro';
-  return time.slice(0, 5);
+/** "Dia inteiro" quando não há horário; senão "08:00 – 12:00" (ou só o lado informado). */
+function formatPeriod(startsAt?: string, endsAt?: string): string {
+  if (!startsAt && !endsAt) return 'Dia inteiro';
+  if (startsAt && endsAt) return `${startsAt.slice(0, 5)} – ${endsAt.slice(0, 5)}`;
+  return startsAt ? `A partir de ${startsAt.slice(0, 5)}` : `Até ${endsAt!.slice(0, 5)}`;
 }
 
 function blockSummary(block: BlockedPeriod): string {
   if (block.blockType === 'recurring') {
     const day = block.weekday != null ? WEEKDAY_LABELS[block.weekday] : '?';
-    return `${day} • ${formatTime(block.startsAt)} – ${formatTime(block.endsAt)}`;
+    return `Toda semana, ${day} • ${formatPeriod(block.startsAt, block.endsAt)}`;
   }
   if (block.blockType === 'specific_date') {
     const date = block.specificDate
-      ? formatDateFull(new Date(`${block.specificDate}T12:00:00`))
+      ? formatDateWithWeekday(new Date(`${block.specificDate}T12:00:00`))
       : '?';
-    return `${date} • ${formatTime(block.startsAt)} – ${formatTime(block.endsAt)}`;
+    return `${date} • ${formatPeriod(block.startsAt, block.endsAt)}`;
   }
   if (block.orderStartsAt) {
     return new Date(block.orderStartsAt).toLocaleString('pt-BR', {
@@ -61,7 +63,7 @@ export default function CalendarBlocksScreen() {
   const order = blocks.filter((b) => b.blockType === 'order');
 
   const sections = [
-    { title: 'Recorrentes', data: recurring },
+    { title: 'Toda semana', data: recurring },
     { title: 'Datas específicas', data: specificDate },
     { title: 'Por pedido', data: order },
   ].filter((s) => s.data.length > 0);

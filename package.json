@@ -8,6 +8,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web --port 8080",
+    "web:cloud": "node scripts/start-cloud.cjs --web",
+    "start:cloud": "node scripts/start-cloud.cjs",
     "web:bypass-auth": "EXPO_PUBLIC_SKIP_AUTH=true expo start --web --port 8080",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

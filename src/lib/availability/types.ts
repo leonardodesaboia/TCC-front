@@ -23,6 +23,12 @@ export interface ExpressAvailabilityActions {
 export type ExpressAvailabilityContextValue = ExpressAvailabilityState & ExpressAvailabilityActions;
 
 export const STALE_THRESHOLD_MS = 4 * 60 * 1000;
+/**
+ * Parado no lugar, o GPS não emite posições novas (o watch filtra por distância), então nada era
+ * enviado até a posição ficar "desatualizada". A partir deste tempo o app já pede uma leitura nova,
+ * para o status só ficar desatualizado se essa atualização falhar.
+ */
+export const PROACTIVE_REFRESH_MS = 2 * 60 * 1000;
 export const RECENCY_CHECK_INTERVAL_MS = 30 * 1000;
 export const FLUSH_TIME_MS = 60 * 1000;
 export const FLUSH_DISTANCE_M = 50;

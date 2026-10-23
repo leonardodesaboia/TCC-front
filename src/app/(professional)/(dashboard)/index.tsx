@@ -6,6 +6,7 @@ import {
   ChevronRight,
   ClipboardList,
   Clock,
+  ShieldAlert,
   MapPin,
   Star,
   Zap,
@@ -118,6 +119,26 @@ export default function ProfessionalDashboardScreen() {
         </Pressable>
       </View>
 
+      {profile && profile.verificationStatus !== 'approved' ? (
+        <Pressable
+          onPress={() => router.push('/(professional)/(profile)/documents' as any)}
+          style={({ pressed }) => [styles.verificationBanner, pressed && styles.pressed]}
+        >
+          <ShieldAlert color={profile.verificationStatus === 'rejected' ? colors.error : colors.warning} size={20} />
+          <View style={styles.verificationText}>
+            <Text variant="titleSm">
+              {profile.verificationStatus === 'rejected' ? 'Documentos recusados' : 'Conta em análise'}
+            </Text>
+            <Text variant="labelLg" color={colors.neutral[700]}>
+              {profile.verificationStatus === 'rejected'
+                ? 'Envie novos documentos para voltar a receber pedidos.'
+                : 'Você só recebe pedidos depois que seus documentos forem aprovados. Toque para ver.'}
+            </Text>
+          </View>
+          <ChevronRight color={colors.neutral[400]} size={18} />
+        </Pressable>
+      ) : null}
+
       <View style={styles.metricsRow}>
         <View style={styles.metricChip}>
           <Zap color={colors.primary.default} size={14} />
@@ -125,7 +146,7 @@ export default function ProfessionalDashboardScreen() {
             {activeOrders.length}
           </Text>
           <Text variant="labelSm" color={colors.neutral[500]} style={styles.metricLabel}>
-            Ativos
+            Em andamento
           </Text>
         </View>
         <View style={styles.metricChip}>
@@ -146,7 +167,7 @@ export default function ProfessionalDashboardScreen() {
             {completedOrders.length}
           </Text>
           <Text variant="labelSm" color={colors.neutral[500]} style={styles.metricLabel}>
-            Concluidos
+            Concluídos
           </Text>
         </View>
       </View>
@@ -329,6 +350,17 @@ export default function ProfessionalDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
+  verificationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    backgroundColor: colors.warningLight,
+    borderWidth: 1,
+    borderColor: colors.warningBorder,
+    borderRadius: radius.lg,
+    padding: spacing[4],
+  },
+  verificationText: { flex: 1, gap: spacing[1] },
   screen: { gap: spacing[6] },
   greeting: {
     flexDirection: 'row',
@@ -372,9 +404,10 @@ const styles = StyleSheet.create({
   metricChip: {
     flex: 1,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: spacing[1.5],
-    borderRadius: radius.full,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.neutral[200],
     backgroundColor: colors.neutral[100],
@@ -383,12 +416,12 @@ const styles = StyleSheet.create({
     minWidth: 0,
     overflow: 'hidden',
   },
+  // Ícone e número na primeira linha, rótulo inteiro na segunda: "Em andamento" não cabe ao lado.
   metricValue: {
-    flexShrink: 1,
-    minWidth: 0,
+    flexShrink: 0,
   },
   metricLabel: {
-    flexShrink: 0,
+    width: '100%',
   },
   section: { gap: spacing[3] },
   sectionHeader: {

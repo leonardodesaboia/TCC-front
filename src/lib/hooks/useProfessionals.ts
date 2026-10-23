@@ -10,10 +10,11 @@ function normalize(value?: string) {
   return value?.trim().toLowerCase() ?? '';
 }
 
-export function useSearchProfessionals(params: SearchProfessionalsParamsDto) {
+export function useSearchProfessionals(params: SearchProfessionalsParamsDto, enabled = true) {
   return useQuery({
     queryKey: queryKeys.professionals.search(params),
     queryFn: () => clientIntegration.professionals.search(params),
+    enabled,
   });
 }
 

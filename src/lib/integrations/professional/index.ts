@@ -37,6 +37,12 @@ export const professionalIntegration = {
       orders().complete(...args),
     cancel: (...args: Parameters<ProfessionalOrdersIntegration['cancel']>) =>
       orders().cancel(...args),
+    reportScopeMismatch: (...args: Parameters<ProfessionalOrdersIntegration['reportScopeMismatch']>) =>
+      orders().reportScopeMismatch(...args),
+    proposeNewPrice: (...args: Parameters<ProfessionalOrdersIntegration['proposeNewPrice']>) =>
+      orders().proposeNewPrice(...args),
+    proposeServiceChange: (...args: Parameters<ProfessionalOrdersIntegration['proposeServiceChange']>) =>
+      orders().proposeServiceChange(...args),
   },
   profile: {
     getMyProfile: (...args: Parameters<ProfessionalProfileIntegration['getMyProfile']>) =>

@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Search,
 } from 'lucide-react-native';
+import { ProfessionalList } from '@/components/client/search/ProfessionalList';
 import { SearchBar } from '@/components/client/search/SearchBar';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorState } from '@/components/feedback/ErrorState';
@@ -14,6 +15,8 @@ import { Text } from '@/components/ui';
 import { getAreaVisual } from '@/lib/catalog/area-visuals';
 import { getCategoryVisual } from '@/lib/catalog/category-visuals';
 import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
+import { useSearchProfessionals } from '@/lib/hooks/useProfessionals';
+import { formatProfessionCount } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 
 export default function SearchScreen() {
@@ -29,6 +32,10 @@ export default function SearchScreen() {
 
   const areasQuery = useServiceAreas();
   const categoriesQuery = useServiceCategories();
+  // A partir de 2 letras a busca também procura profissionais pelo nome (e por profissão/área).
+  const searchingProfessionals = deferredQuery.length >= 2 && !selectedArea;
+  const professionalsQuery = useSearchProfessionals({ query: deferredQuery }, searchingProfessionals);
+  const matchedProfessionals = searchingProfessionals ? (professionalsQuery.data ?? []).slice(0, 5) : [];
 
   const areas = areasQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
@@ -129,7 +136,26 @@ export default function SearchScreen() {
         </>
       ) : (
         <>
-          <Text variant="titleMd">Áreas de serviço</Text>
+          {matchedProfessionals.length > 0 ? (
+            <View style={styles.professionalsBlock}>
+              <Text variant="titleMd">Profissionais</Text>
+              <ProfessionalList
+                professionals={matchedProfessionals.map((professional) => ({
+                  id: professional.id,
+                  name: professional.name,
+                  area: professional.areas[0]?.name ?? professional.profession,
+                  specialties: professional.specialties,
+                  rating: professional.rating.toFixed(1),
+                  reviewCount: String(professional.reviewCount),
+                  badge: professional.badgeLabel,
+                }))}
+                onPressProfessional={(professionalId) =>
+                  router.push({ pathname: '/(client)/(search)/professionals/[id]', params: { id: professionalId } } as never)
+                }
+              />
+            </View>
+          ) : null}
+          <Text variant="titleMd">Áreas</Text>
           {filteredAreas.length > 0 ? (
             <View style={styles.grid}>
               {filteredAreas.map((area) => {
@@ -146,7 +172,7 @@ export default function SearchScreen() {
                     </View>
                     <Text variant="titleSm">{area.name}</Text>
                     <Text variant="labelSm" color={colors.neutral[500]}>
-                      {categories.filter((category) => category.areaId === area.id).length} serviços
+                      {formatProfessionCount(categories.filter((category) => category.areaId === area.id).length)}
                     </Text>
                   </Pressable>
                 );
@@ -155,7 +181,7 @@ export default function SearchScreen() {
           ) : (
             <EmptyState
               icon={Search}
-              title="Nenhuma área encontrada"
+              title={matchedProfessionals.length > 0 ? 'Nenhuma área com esse nome' : 'Nada encontrado'}
               description="Tente buscar por outra palavra."
               actionLabel="Limpar busca"
               onAction={() => setQuery('')}
@@ -169,6 +195,7 @@ export default function SearchScreen() {
 
 const styles = StyleSheet.create({
   screen: { gap: spacing[4] },
+  professionalsBlock: { gap: spacing[3] },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[3] },
   areaCard: {
     width: '47%',

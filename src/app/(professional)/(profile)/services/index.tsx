@@ -19,13 +19,13 @@ export default function ProfessionalServicesScreen() {
   const offeringsQuery = useProfessionalOfferings(profile?.id ?? '');
 
   if (profileQuery.isLoading || offeringsQuery.isLoading) {
-    return <LoadingScreen message="Carregando servicos..." />;
+    return <LoadingScreen message="Carregando serviços..." />;
   }
 
   if (profileQuery.isError || offeringsQuery.isError) {
     return (
       <ErrorState
-        message="Erro ao carregar servicos."
+        message="Erro ao carregar serviços."
         onRetry={() => {
           void profileQuery.refetch();
           void offeringsQuery.refetch();
@@ -39,7 +39,7 @@ export default function ProfessionalServicesScreen() {
 
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
-      <Header title="Meus servicos" showBack />
+      <Header title="Meus serviços" showBack />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -77,7 +77,7 @@ export default function ProfessionalServicesScreen() {
                 </View>
                 {offering.estimatedDurationMinutes > 0 ? (
                   <Text variant="labelLg" color={colors.neutral[400]}>
-                    Duracao estimada: {offering.estimatedDurationMinutes} min
+                    Duração estimada: {offering.estimatedDurationMinutes} min
                   </Text>
                 ) : null}
               </Pressable>
@@ -86,8 +86,8 @@ export default function ProfessionalServicesScreen() {
         ) : (
           <EmptyState
             icon={Wrench}
-            title="Nenhum servico cadastrado"
-            description="Cadastre seus servicos para receber pedidos de clientes."
+            title="Nenhum serviço cadastrado"
+            description="Cadastre seus serviços para receber pedidos de clientes."
           />
         )}
       </ScrollView>
@@ -99,7 +99,7 @@ export default function ProfessionalServicesScreen() {
           leftIcon={<Plus color="#FFFFFF" size={18} />}
           onPress={() => router.push('/(professional)/(profile)/services/new' as any)}
         >
-          Novo servico
+          Novo serviço
         </Button>
       </View>
     </Screen>

@@ -10,8 +10,13 @@ import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Badge, Button, Divider, Input, Text } from '@/components/ui';
 import { useAddresses } from '@/lib/hooks/useAddresses';
+import { getDescriptionExample } from '@/lib/catalog/description-examples';
 import { useCreateOrder } from '@/lib/hooks/useOrders';
+import { formatMoney } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
+
+/** Valor fixo da taxa de urgência do Express, em reais. */
+const URGENCY_FEE = 15;
 
 export default function ExpressCreateScreen() {
   const { areaId, categoryId, areaName, categoryName } = useLocalSearchParams<{
@@ -43,13 +48,15 @@ export default function ExpressCreateScreen() {
     [addresses, selectedAddressId],
   );
 
+  // `expressReady` vem da API: ter coordenada não basta, ela precisa ser de
+  // procedência confiável. Endereço antigo com ponto aproximado é recusado no
+  // servidor de qualquer jeito — melhor avisar antes de a pessoa preencher tudo.
   const canSubmit =
     description.trim().length >= 10 &&
     !!selectedAddress &&
     !!areaId &&
     !!categoryId &&
-    Number.isFinite(selectedAddress.lat) &&
-    Number.isFinite(selectedAddress.lng);
+    selectedAddress.expressReady;
 
   async function pickImage() {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -71,7 +78,7 @@ export default function ExpressCreateScreen() {
         categoryId,
         description: description.trim(),
         addressId: selectedAddressId,
-        urgencyFee: addUrgency ? 15 : undefined,
+        urgencyFee: addUrgency ? URGENCY_FEE : undefined,
         imageUri: imageUri ?? undefined,
       });
     } catch {
@@ -107,7 +114,7 @@ export default function ExpressCreateScreen() {
           <Input
             value={description}
             onChangeText={setDescription}
-            placeholder="Ex: Preciso trocar duas tomadas na sala e uma na cozinha. A fiação já está pronta."
+            placeholder={getDescriptionExample(areaName)}
             multiline
             numberOfLines={5}
             textAlignVertical="top"
@@ -153,10 +160,20 @@ export default function ExpressCreateScreen() {
                     {address.street}, {address.number}
                     {address.complement ? `, ${address.complement}` : ''} - {address.district}, {address.city}
                   </Text>
-                  {!Number.isFinite(address.lat) || !Number.isFinite(address.lng) ? (
-                    <Text variant="labelSm" color={colors.error}>
-                      Este endereço não possui coordenadas e não serve para Express.
-                    </Text>
+                  {!address.expressReady ? (
+                    <Pressable
+                      hitSlop={6}
+                      onPress={(event) => {
+                        event.stopPropagation();
+                        router.push(`/(client)/(profile)/addresses/${address.id}`);
+                      }}
+                    >
+                      <Text variant="labelSm" color={colors.error}>
+                        {address.lat === null || address.lng === null
+                          ? 'Sem ponto no mapa. Toque para marcar e usar no Express.'
+                          : 'Ponto aproximado. Toque para confirmar no mapa e usar no Express.'}
+                      </Text>
+                    </Pressable>
                   ) : null}
                 </View>
                 {selectedAddressId === address.id ? (
@@ -172,7 +189,7 @@ export default function ExpressCreateScreen() {
             <EmptyState
               icon={MapPin}
               title="Nenhum endereço disponível"
-              description="Cadastre um endereço com latitude e longitude antes de abrir um pedido Express."
+              description="Cadastre um endereço e confirme o ponto no mapa antes de abrir um pedido Express."
               actionLabel="Cadastrar endereço"
               onAction={() => router.push('/(client)/(profile)/addresses/new')}
             />
@@ -191,9 +208,9 @@ export default function ExpressCreateScreen() {
             style={[styles.urgencyCard, addUrgency && styles.urgencyCardSelected]}
           >
             <View style={styles.addressInfo}>
-              <Text variant="titleSm">Adicionar urgência</Text>
+              <Text variant="titleSm">Adicionar urgência (+ {formatMoney(URGENCY_FEE)})</Text>
               <Text variant="labelLg" color={colors.neutral[500]}>
-                Seu pedido terá prioridade na fila. Profissionais serão notificados primeiro.
+                Os profissionais veem que o pedido é urgente. O valor é somado ao preço da proposta que você escolher.
               </Text>
             </View>
             {addUrgency ? (
@@ -206,7 +223,7 @@ export default function ExpressCreateScreen() {
           </Pressable>
           {addUrgency ? (
             <Text variant="labelLg" color={colors.warning}>
-              + R$ 15,00 de taxa de urgência
+              + {formatMoney(URGENCY_FEE)} de taxa de urgência no total
             </Text>
           ) : null}
         </View>
@@ -234,7 +251,7 @@ export default function ExpressCreateScreen() {
         <View style={styles.guaranteeCard}>
           <Shield color={colors.primary.default} size={20} />
           <Text variant="labelLg" color={colors.neutral[600]} style={styles.guaranteeFlex}>
-            Pagamento protegido. O valor só é liberado após a confirmação do serviço.
+            Você só confirma o serviço depois de ver a foto de conclusão enviada pelo profissional. Se algo der errado, pode abrir uma disputa.
           </Text>
         </View>
 

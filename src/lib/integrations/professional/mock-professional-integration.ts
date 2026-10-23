@@ -7,7 +7,7 @@ const MOCK_USER_ID = 'dev-professional';
 const mockProfile: ProfessionalProfileData = {
   id: MOCK_PRO_ID,
   userId: MOCK_USER_ID,
-  bio: 'Eletricista com mais de 10 anos de experiencia.',
+  bio: 'Eletricista com mais de 10 anos de experiência.',
   yearsOfExperience: 10,
   baseHourlyRate: 80,
   verificationStatus: 'approved',
@@ -40,13 +40,14 @@ let mockOrders: OrderSummary[] = [
     totalAmount: 132,
     createdAt: '2026-04-28T09:00:00.000Z',
     updatedAt: '2026-04-28T09:00:00.000Z',
+    scopeMismatch: false,
   },
   {
     id: 'ord-pro-2',
     status: 'accepted' as any,
     categoryId: 'cat-1',
     areaId: 'area-1',
-    description: 'Instalacao de lustre no quarto',
+    description: 'Instalação de lustre no quarto',
     professionalId: MOCK_PRO_ID,
     addressId: 'addr-2',
     addressSnapshot: {
@@ -63,6 +64,7 @@ let mockOrders: OrderSummary[] = [
     totalAmount: 103,
     createdAt: '2026-04-27T14:00:00.000Z',
     updatedAt: '2026-04-27T14:30:00.000Z',
+    scopeMismatch: false,
   },
   {
     id: 'ord-pro-3',
@@ -86,6 +88,7 @@ let mockOrders: OrderSummary[] = [
     totalAmount: 165,
     createdAt: '2026-04-25T10:00:00.000Z',
     updatedAt: '2026-04-25T12:00:00.000Z',
+    scopeMismatch: false,
   },
 ];
 
@@ -99,7 +102,7 @@ export const mockProfessionalIntegration: ProfessionalIntegration = {
     },
     getById: async (id) => {
       const order = mockOrders.find((o) => o.id === id);
-      if (!order) throw new Error('Pedido nao encontrado');
+      if (!order) throw new Error('Pedido não encontrado');
       return {
         ...order,
         clientId: 'client-1',
@@ -136,7 +139,58 @@ export const mockProfessionalIntegration: ProfessionalIntegration = {
     cancel: async (orderId, _reason) => {
       mockOrders = mockOrders.map((o) =>
         o.id === orderId
-          ? { ...o, status: 'cancelled' as any, updatedAt: new Date().toISOString() }
+          ? {
+              ...o,
+              status: 'cancelled' as any,
+              updatedAt: new Date().toISOString(),
+              pendingPriceAmount: undefined,
+              pendingPriceReason: undefined,
+              pendingPriceProposedAt: undefined,
+              pendingServiceId: undefined,
+              pendingServiceReason: undefined,
+              pendingServiceEstimatedDurationMinutes: undefined,
+              pendingServiceProposedAt: undefined,
+            }
+          : o,
+      );
+      const order = mockOrders.find((o) => o.id === orderId)!;
+      return { ...order, clientId: 'client-1', photos: [] } as OrderDetails;
+    },
+    reportScopeMismatch: async (orderId, description) => {
+      mockOrders = mockOrders.map((o) =>
+        o.id === orderId
+          ? { ...o, status: 'cancelled' as any, scopeMismatch: true, cancelReason: description, updatedAt: new Date().toISOString() }
+          : o,
+      );
+      const order = mockOrders.find((o) => o.id === orderId)!;
+      return { ...order, clientId: 'client-1', photos: [] } as OrderDetails;
+    },
+    proposeNewPrice: async (orderId, payload) => {
+      mockOrders = mockOrders.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              pendingPriceAmount: payload.newAmount,
+              pendingPriceReason: payload.reason,
+              pendingPriceProposedAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            }
+          : o,
+      );
+      const order = mockOrders.find((o) => o.id === orderId)!;
+      return { ...order, clientId: 'client-1', photos: [] } as OrderDetails;
+    },
+    proposeServiceChange: async (orderId, payload) => {
+      mockOrders = mockOrders.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              pendingServiceId: payload.newServiceId,
+              pendingServiceReason: payload.reason,
+              pendingServiceEstimatedDurationMinutes: payload.estimatedDurationMinutes ?? undefined,
+              pendingServiceProposedAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            }
           : o,
       );
       const order = mockOrders.find((o) => o.id === orderId)!;
