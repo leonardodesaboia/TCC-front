@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { pickImage } from '@/lib/utils/image-picker';
-import { Calendar, Camera, Check, Clock, MapPin, Shield, X } from 'lucide-react-native';
+import { Calendar, Camera, Check, Plus, Clock, MapPin, Shield, X } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorState } from '@/components/feedback/ErrorState';
@@ -11,6 +11,7 @@ import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Avatar, Button, Divider, Input, Text } from '@/components/ui';
 import { useAddresses } from '@/lib/hooks/useAddresses';
+import { consumePendingAddressSelection } from '@/lib/navigation/pending-address';
 import { useCreateOnDemandOrder } from '@/lib/hooks/useOrders';
 import { useProfessional } from '@/lib/hooks/useProfessionals';
 import { useProfessionalCalendarBlocks } from '@/lib/hooks/useProfessionalManagement';
@@ -53,6 +54,14 @@ export default function CheckoutScreen() {
       setSelectedAddress(addresses.find((item) => item.isDefault)?.id ?? addresses[0]?.id ?? null);
     }
   }, [addresses, selectedAddress]);
+
+  // Voltando do cadastro de endereço aberto aqui: o endereço novo já vem selecionado.
+  useFocusEffect(
+    useCallback(() => {
+      const createdId = consumePendingAddressSelection();
+      if (createdId) setSelectedAddress(createdId);
+    }, []),
+  );
 
   if (!professionalId) {
     return <ErrorState message="Abra o checkout a partir da tela do profissional." />;
@@ -313,13 +322,23 @@ export default function CheckoutScreen() {
                 )}
               </Pressable>
             ))
+          ) : null}
+          {addresses.length > 0 ? (
+            <Pressable
+              onPress={() => router.push('/(client)/(orders)/checkout/new-address')}
+              style={styles.addAddressBtn}
+              accessibilityRole="button"
+            >
+              <Plus color={colors.primary.default} size={18} />
+              <Text variant="titleSm" color={colors.primary.default}>Adicionar novo endereço</Text>
+            </Pressable>
           ) : (
             <EmptyState
               icon={MapPin}
               title="Sem endereço cadastrado"
               description="Cadastre um endereço antes de continuar."
               actionLabel="Cadastrar endereço"
-              onAction={() => router.push('/(client)/(profile)/addresses/new')}
+              onAction={() => router.push('/(client)/(orders)/checkout/new-address')}
             />
           )}
         </View>
@@ -432,6 +451,17 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral[200],
     backgroundColor: colors.neutral[50],
     padding: spacing[4],
+  },
+  addAddressBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.primary.default,
+    padding: spacing[3],
   },
   addressCardSelected: { borderColor: colors.primary.default, backgroundColor: colors.primary.light },
   addressInfo: { flex: 1, gap: spacing[1] },

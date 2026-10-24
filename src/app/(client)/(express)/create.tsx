@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { pickImage } from '@/lib/utils/image-picker';
-import { Camera, Check, DollarSign, MapPin, Shield, X } from 'lucide-react-native';
+import { Camera, Check, Plus, DollarSign, MapPin, Shield, X } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { EmptyState } from '@/components/feedback/EmptyState';
@@ -10,6 +10,7 @@ import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Badge, Button, Divider, Input, Text } from '@/components/ui';
 import { useAddresses } from '@/lib/hooks/useAddresses';
+import { consumePendingAddressSelection } from '@/lib/navigation/pending-address';
 import { getDescriptionExample } from '@/lib/catalog/description-examples';
 import { useCreateOrder } from '@/lib/hooks/useOrders';
 import { formatMoney } from '@/lib/utils/formatters';
@@ -42,6 +43,14 @@ export default function ExpressCreateScreen() {
       setSelectedAddressId(addresses.find((item) => item.isDefault)?.id ?? addresses[0]?.id ?? null);
     }
   }, [addresses, selectedAddressId]);
+
+  // Voltando do cadastro de endereço aberto aqui: o endereço novo já vem selecionado.
+  useFocusEffect(
+    useCallback(() => {
+      const createdId = consumePendingAddressSelection();
+      if (createdId) setSelectedAddressId(createdId);
+    }, []),
+  );
 
   const selectedAddress = useMemo(
     () => addresses.find((item) => item.id === selectedAddressId) ?? null,
@@ -159,7 +168,7 @@ export default function ExpressCreateScreen() {
                       hitSlop={6}
                       onPress={(event) => {
                         event.stopPropagation();
-                        router.push(`/(client)/(profile)/addresses/${address.id}`);
+                        router.push(`/(client)/(express)/edit-address/${address.id}`);
                       }}
                     >
                       <Text variant="labelSm" color={colors.error}>
@@ -179,13 +188,23 @@ export default function ExpressCreateScreen() {
                 )}
               </Pressable>
             ))
+          ) : null}
+          {addresses.length > 0 ? (
+            <Pressable
+              onPress={() => router.push('/(client)/(express)/new-address')}
+              style={styles.addAddressBtn}
+              accessibilityRole="button"
+            >
+              <Plus color={colors.primary.default} size={18} />
+              <Text variant="titleSm" color={colors.primary.default}>Adicionar novo endereço</Text>
+            </Pressable>
           ) : (
             <EmptyState
               icon={MapPin}
               title="Nenhum endereço disponível"
               description="Cadastre um endereço e confirme o ponto no mapa antes de abrir um pedido Express."
               actionLabel="Cadastrar endereço"
-              onAction={() => router.push('/(client)/(profile)/addresses/new')}
+              onAction={() => router.push('/(client)/(express)/new-address')}
             />
           )}
         </View>
@@ -324,6 +343,17 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral[200],
     backgroundColor: colors.neutral[50],
     padding: spacing[4],
+  },
+  addAddressBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.primary.default,
+    padding: spacing[3],
   },
   addressCardSelected: { borderColor: colors.primary.default, backgroundColor: colors.primary.light },
   addressInfo: { flex: 1, gap: spacing[1] },

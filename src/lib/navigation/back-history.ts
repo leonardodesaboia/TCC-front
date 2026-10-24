@@ -85,6 +85,17 @@ export function forgetCurrentRoute() {
   stack.pop();
 }
 
+/**
+ * Tocar na aba em que já se está volta para a raiz dela: as telas internas dessa aba
+ * saem do histórico, para o voltar do celular ir para a aba anterior e não reabrir
+ * a tela que acabou de ser fechada.
+ */
+export function forgetTabScreens(tabName: string) {
+  while (stack.length > 0 && stack[stack.length - 1].segmentKey.split('/')[1] === tabName) {
+    stack.pop();
+  }
+}
+
 export function resetNavigationHistory() {
   stack.length = 0;
 }

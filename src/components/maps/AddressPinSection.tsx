@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { Crosshair, LocateFixed, MapPin } from 'lucide-react-native';
+import { LocateFixed, MapPin } from 'lucide-react-native';
 import { Button, Text } from '@/components/ui';
 import { PinLocationPicker } from '@/components/maps/PinLocationPicker';
 import type { useAddressPin } from '@/lib/hooks/useAddressPin';
@@ -20,10 +20,10 @@ interface AddressPinSectionProps {
  * Seção de escolha do ponto no mapa, compartilhada pelas telas de novo endereço e
  * de edição.
  *
- * <p>Ordem dos botões é intencional: o GPS vem primeiro porque acerta o local sem
- * pedir nada da pessoa; a sugestão pelo endereço escrito vem por último porque é
- * a menos confiável das três — e agora diz quando o resultado é aproximado, em vez
- * de apresentar um chute como se fosse endereço confirmado.
+ * <p>O GPS fica no topo do formulário ({@link AddressGpsShortcut}): ele acerta o
+ * local e ainda preenche os campos, então precisa aparecer antes deles. Aqui ficam
+ * o mapa e a sugestão pelo endereço escrito — a menos confiável, que diz quando o
+ * resultado é aproximado, em vez de apresentar um chute como endereço confirmado.
  *
  * <p>Com o formulário completo, a sugestão já veio sozinha e o mapa abriu no lugar
  * certo. O botão continua existindo para quem digitou só o CEP e não quer preencher
@@ -58,16 +58,6 @@ export function AddressPinSection({
       </View>
 
       <View style={styles.actions}>
-        <Button
-          variant="secondary"
-          size="md"
-          leftIcon={<Crosshair color={colors.primary.default} size={18} />}
-          onPress={() => void pinState.captureFromGps()}
-          loading={pinState.isCapturingGps}
-        >
-          Usar minha localização
-        </Button>
-
         <View style={styles.secondaryActions}>
           <View style={styles.flex1}>
             <Button variant="ghost" size="md" onPress={pinState.openMap}>
@@ -92,19 +82,6 @@ export function AddressPinSection({
       {isSuggesting ? (
         <Text variant="labelSm" color={colors.neutral[500]}>
           Procurando este endereço no mapa...
-        </Text>
-      ) : null}
-
-      {pinState.gpsStatus === 'denied' ? (
-        <Text variant="labelLg" color={colors.neutral[500]}>
-          Sem acesso à localização. Sem problema: marque o ponto no mapa ou use a sugestão
-          pelo endereço.
-        </Text>
-      ) : null}
-
-      {pinState.gpsStatus === 'error' ? (
-        <Text variant="labelLg" color={colors.neutral[500]}>
-          Não foi possível ler o GPS agora. Marque o ponto no mapa.
         </Text>
       ) : null}
 
@@ -144,7 +121,7 @@ export function AddressPinSection({
         <View style={styles.emptyMap}>
           <MapPin color={colors.neutral[400]} size={22} />
           <Text variant="labelLg" color={colors.neutral[500]}>
-            Use o GPS ou abra o mapa e toque no ponto do atendimento.
+            Use sua localização (no topo) ou abra o mapa e toque no ponto do atendimento.
           </Text>
         </View>
       )}

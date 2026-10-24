@@ -4,6 +4,7 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { ClipboardList, Home, UserRound } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui';
+import { handleTabPress } from '@/components/layout/tab-press';
 import { colors, radius, spacing } from '@/theme';
 
 type TabIcon = ComponentType<{ color?: string; size?: number; strokeWidth?: number }>;
@@ -36,7 +37,7 @@ export function ProfessionalTabBar({ state, descriptors, navigation }: BottomTab
               accessibilityRole="tab"
               accessibilityState={{ selected: isFocused }}
               accessibilityLabel={descriptor.options.tabBarAccessibilityLabel ?? tab.label}
-              onPress={() => navigation.navigate(route.name, route.params)}
+              onPress={() => handleTabPress(navigation, route, isFocused)}
               style={styles.tab}
             >
               <View style={[styles.iconContainer, isFocused && styles.iconContainerActive]}>
