@@ -209,6 +209,7 @@ export default function ProfessionalsByCategoryScreen() {
           professionals={filteredProfessionals.map((professional) => ({
             id: professional.id,
             name: professional.name,
+            avatarUrl: professional.avatarUrl,
             area: professional.areas[0]?.name ?? professional.profession,
             specialties: professional.specialties,
             rating: professional.rating.toFixed(1),

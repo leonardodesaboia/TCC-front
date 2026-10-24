@@ -71,8 +71,17 @@ export function useGoBack() {
       return;
     }
 
-    stack.pop();
+    const current = stack.pop();
     const previous = stack[stack.length - 1];
+
+    // Tela anterior na mesma aba fica logo abaixo na pilha: desempilhar mantém o que
+    // foi digitado nela (ex.: voltar do novo endereço para o pedido em andamento).
+    // `navigate` montaria uma tela nova, em branco.
+    const sameTab = current?.segmentKey.split('/')[1] === previous.segmentKey.split('/')[1];
+    if (sameTab && router.canGoBack()) {
+      router.back();
+      return;
+    }
     router.navigate({ pathname: previous.pathname, params: previous.params } as never);
   }, [router]);
 }

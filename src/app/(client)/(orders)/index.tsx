@@ -55,6 +55,7 @@ export default function OrdersScreen() {
       id: order.id,
       categoryName,
       description: order.description,
+      professionalId: order.professionalId ?? undefined,
       professionalName: order.professionalName ?? undefined,
       serviceName: order.serviceName ?? undefined,
       status: order.status,

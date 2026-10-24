@@ -9,7 +9,8 @@ import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
-import { Avatar, Badge, Text } from '@/components/ui';
+import { Badge, Text } from '@/components/ui';
+import { OrderProfessionalAvatar } from '@/components/client/ProfessionalAvatar';
 import { useConversations } from '@/lib/hooks/useConversations';
 import type { ConversationSummary } from '@/types/conversation';
 import { colors, radius, spacing } from '@/theme';
@@ -22,7 +23,8 @@ function ConversationCard({ conversation, onPress }: { conversation: Conversatio
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
-      <Avatar
+      <OrderProfessionalAvatar
+        orderId={conversation.orderId}
         name={displayName}
         size="md"
         backgroundColor={colors.primary.default}

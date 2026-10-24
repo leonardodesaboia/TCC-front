@@ -10,6 +10,7 @@ import { Header } from '@/components/layout/Header';
 import { Screen } from '@/components/layout/Screen';
 import { Button, Input, Text } from '@/components/ui';
 import { useOrderReviews, useCreateOrderReview } from '@/lib/hooks/useReviews';
+import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function OrderReviewScreen() {
@@ -21,9 +22,11 @@ export default function OrderReviewScreen() {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
 
-  const alreadyHasCommentReview = useMemo(
-    () => (reviewsQuery.data ?? []).some((review) => !!review.comment),
-    [reviewsQuery.data],
+  const { user } = useAuth();
+  // O comentário é opcional: o que conta é já existir avaliação enviada por este cliente.
+  const alreadyReviewed = useMemo(
+    () => (reviewsQuery.data ?? []).some((review) => review.reviewerId === user?.id),
+    [reviewsQuery.data, user?.id],
   );
 
   if (reviewsQuery.isLoading) {
@@ -34,7 +37,7 @@ export default function OrderReviewScreen() {
     return <ErrorState message="Não foi possível carregar avaliações do pedido." onRetry={() => reviewsQuery.refetch()} />;
   }
 
-  if (alreadyHasCommentReview) {
+  if (alreadyReviewed) {
     return (
       <Screen edges={['top']}>
         <Header title="Avaliação" showBack />
@@ -76,7 +79,7 @@ export default function OrderReviewScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text variant="titleSm">Comentário (obrigatório)</Text>
+        <Text variant="titleSm">Comentário (opcional)</Text>
         <Input
           value={comment}
           onChangeText={setComment}
@@ -88,26 +91,22 @@ export default function OrderReviewScreen() {
       </View>
 
       <View style={styles.footer}>
-        {rating === 0 || comment.trim().length === 0 ? (
+        {rating === 0 ? (
           <Text variant="labelLg" color={colors.neutral[500]} style={styles.missing}>
-            {rating === 0 && comment.trim().length === 0
-              ? 'Falta escolher a nota e escrever o comentário.'
-              : rating === 0
-                ? 'Falta escolher a nota.'
-                : 'Falta escrever o comentário.'}
+            Falta escolher a nota.
           </Text>
         ) : null}
         <Button
           onPress={async () => {
             try {
-              await createReview.mutateAsync({ rating, comment: comment.trim() });
+              await createReview.mutateAsync({ rating, comment: comment.trim() || undefined });
               goBack();
             } catch {
               // O aviso de erro já é mostrado pelo hook; a tela fica aberta para tentar de novo.
             }
           }}
           loading={createReview.isPending}
-          disabled={rating === 0 || comment.trim().length === 0}
+          disabled={rating === 0}
         >
           Enviar avaliação
         </Button>
