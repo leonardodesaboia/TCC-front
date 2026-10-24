@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/lib/navigation/back-history';
 import { Trash2 } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
@@ -21,7 +22,7 @@ import type { PricingType } from '@/types/service-meta';
 import { colors, radius, spacing } from '@/theme';
 
 export default function EditProfessionalServiceScreen() {
-  const router = useRouter();
+  const goBack = useGoBack();
   const { offeringId } = useLocalSearchParams<{ offeringId: string }>();
   const profileQuery = useMyProfessionalProfile();
   const profile = profileQuery.data;
@@ -80,7 +81,7 @@ export default function EditProfessionalServiceScreen() {
         clearPrice,
         estimatedDurationMinutes: pricingType === 'hourly' ? null : parsedDuration,
       });
-      router.back();
+      goBack();
     } catch {
       // toast já exibido pelo hook
     }
@@ -90,7 +91,7 @@ export default function EditProfessionalServiceScreen() {
     const confirmDelete = async () => {
       try {
         await deleteOffering.mutateAsync(offeringId);
-        router.back();
+        goBack();
       } catch {
         // toast já exibido
       }

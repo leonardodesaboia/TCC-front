@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { usePullToRefresh } from '@/lib/hooks/usePullToRefresh';
 import { useRouter } from 'expo-router';
 import { CheckCircle2, MapPin, Pencil, Plus, Trash2 } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
@@ -13,6 +14,7 @@ import { colors, radius, spacing } from '@/theme';
 export default function AddressesScreen() {
   const router = useRouter();
   const addressesQuery = useAddresses();
+  const pullToRefresh = usePullToRefresh(addressesQuery);
   const deleteAddress = useDeleteAddress();
   const setDefaultAddress = useSetDefaultAddress();
 
@@ -27,7 +29,7 @@ export default function AddressesScreen() {
   const addresses = addressesQuery.data ?? [];
 
   return (
-    <Screen edges={['top']}>
+    <Screen edges={['top']} refreshControl={<RefreshControl refreshing={pullToRefresh.refreshing} onRefresh={pullToRefresh.onRefresh} />}>
       <Header title="Meus endereços" showBack />
 
       {addresses.length > 0 ? (

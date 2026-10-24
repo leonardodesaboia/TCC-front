@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
+import { pickImage } from '@/lib/utils/image-picker';
 import { Calendar, Camera, Check, Clock, MapPin, Shield, X } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { EmptyState } from '@/components/feedback/EmptyState';
@@ -117,15 +117,9 @@ export default function CheckoutScreen() {
 
 
 
-  async function pickImage() {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setImageUri(result.assets[0].uri);
-    }
+  async function handlePickImage() {
+    const asset = await pickImage({ allowsEditing: true });
+    if (asset) setImageUri(asset.uri);
   }
 
   function handleSubmit() {
@@ -180,7 +174,7 @@ export default function CheckoutScreen() {
               </Pressable>
             </View>
           ) : (
-            <Pressable style={styles.imagePickerBtn} onPress={pickImage}>
+            <Pressable style={styles.imagePickerBtn} onPress={handlePickImage}>
               <Camera color={colors.neutral[500]} size={18} />
               <Text variant="labelLg" color={colors.neutral[500]}>Adicionar foto do problema (opcional)</Text>
             </Pressable>

@@ -18,7 +18,7 @@ export function Header({ title, showBack = false, rightAction, onBackPress }: He
   return (
     <View style={styles.container}>
       {showBack ? (
-        <Pressable onPress={goBack} style={styles.backButton} hitSlop={8}>
+        <Pressable onPress={goBack} style={styles.backButton} hitSlop={8} accessibilityRole="button" accessibilityLabel="Voltar">
           <ArrowLeft color={colors.neutral[900]} size={22} />
         </Pressable>
       ) : (

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useGoBack } from '@/lib/navigation/back-history';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Button, Input, Text } from '@/components/ui';
@@ -20,7 +20,7 @@ const REVERSE_DEBOUNCE_MS = 700;
 const AUTO_LOOKUP_DEBOUNCE_MS = 900;
 
 export default function NewAddressScreen() {
-  const router = useRouter();
+  const goBack = useGoBack();
   const createAddress = useCreateAddress();
   const existingAddresses = useAddresses();
   const lookupAddress = useLookupAddress();
@@ -180,21 +180,25 @@ export default function NewAddressScreen() {
   async function handleSave() {
     if (!canSave || !coordinatePayload) return;
 
-    await createAddress.mutateAsync({
-      label: label.trim(),
-      zipCode: normalizeZipCode(zipCode),
-      street: street.trim(),
-      number: number.trim(),
-      complement: complement.trim() || undefined,
-      district: district.trim(),
-      city: city.trim(),
-      state: normalizeStateCode(state),
-      ...coordinatePayload,
-      // O primeiro endereço vira o padrão: é o que o Express e o agendamento já sugerem.
-      isDefault: (existingAddresses.data ?? []).length === 0,
-    });
+    try {
+      await createAddress.mutateAsync({
+        label: label.trim(),
+        zipCode: normalizeZipCode(zipCode),
+        street: street.trim(),
+        number: number.trim(),
+        complement: complement.trim() || undefined,
+        district: district.trim(),
+        city: city.trim(),
+        state: normalizeStateCode(state),
+        ...coordinatePayload,
+        // O primeiro endereço vira o padrão: é o que o Express e o agendamento já sugerem.
+        isDefault: (existingAddresses.data ?? []).length === 0,
+      });
 
-    router.back();
+      goBack();
+    } catch {
+      // O aviso de erro já é mostrado pelo hook; o formulário fica aberto para corrigir.
+    }
   }
 
   return (

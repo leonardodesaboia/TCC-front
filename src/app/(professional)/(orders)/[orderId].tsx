@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { usePullToRefresh } from '@/lib/hooks/usePullToRefresh';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AlertTriangle, Camera, CheckCircle2, Clock, MapPin, MessageCircle } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
+import type { ImagePickerAsset } from 'expo-image-picker';
+import { pickImage } from '@/lib/utils/image-picker';
+import { ExpandableImage } from '@/components/ui/ExpandableImage';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { MoneyInput } from '@/components/forms/MoneyInput';
@@ -17,15 +20,7 @@ import { formatMoney, formatDateTime, formatDuration, formatRemaining } from '@/
 import { parseMoney } from '@/lib/utils/masks';
 import { colors, radius, spacing } from '@/theme';
 import { OrderMode, OrderStatus } from '@/types/order';
-
-const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'error' | 'info' | 'muted' }> = {
-  [OrderStatus.PENDING]: { label: 'Pendente', variant: 'warning' },
-  [OrderStatus.ACCEPTED]: { label: 'Em andamento', variant: 'info' },
-  [OrderStatus.COMPLETED_BY_PRO]: { label: 'Aguardando cliente', variant: 'default' },
-  [OrderStatus.COMPLETED]: { label: 'Concluído', variant: 'success' },
-  [OrderStatus.CANCELLED]: { label: 'Cancelado', variant: 'muted' },
-  [OrderStatus.DISPUTED]: { label: 'Em disputa', variant: 'error' },
-};
+import { PROFESSIONAL_ORDER_STATUS_BADGE } from '@/lib/constants/order-status';
 
 function InfoRow({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
@@ -43,6 +38,7 @@ export default function ProfessionalOrderDetailScreen() {
   const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const orderQuery = useProfessionalOrder(orderId);
+  const pullToRefresh = usePullToRefresh(orderQuery);
   const respondToOrder = useRespondToOrder(orderId);
   const respondOnDemand = useRespondOnDemandOrder(orderId);
   const completeOrder = useProCompleteOrder(orderId);
@@ -52,7 +48,7 @@ export default function ProfessionalOrderDetailScreen() {
 
   const [proposedAmount, setProposedAmount] = useState('');
   // Foto escolhida para concluir o serviço; só é enviada depois que o profissional confirma.
-  const [completionAsset, setCompletionAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [completionAsset, setCompletionAsset] = useState<ImagePickerAsset | null>(null);
   const now = useNow(1000, orderQuery.data?.status === OrderStatus.PENDING);
 
   if (orderQuery.isLoading || areasQuery.isLoading || categoriesQuery.isLoading) {
@@ -79,7 +75,7 @@ export default function ProfessionalOrderDetailScreen() {
     ? areasQuery.data?.find((a) => a.id === order.areaId)?.name
     : undefined;
   const categoryName = categoriesQuery.data?.find((c) => c.id === order.categoryId)?.name ?? 'Serviço';
-  const badge = STATUS_BADGE[order.status] ?? STATUS_BADGE[OrderStatus.PENDING];
+  const badge = PROFESSIONAL_ORDER_STATUS_BADGE[order.status] ?? PROFESSIONAL_ORDER_STATUS_BADGE[OrderStatus.PENDING];
   const requestPhoto = order.photos.find((p) => p.type === 'request');
   const completionPhotos = order.photos.filter((p) => p.type === 'completion_proof');
   const isOnDemand = order.mode === OrderMode.ON_DEMAND;
@@ -169,24 +165,8 @@ export default function ProfessionalOrderDetailScreen() {
   }
 
   async function handleComplete() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      if (Platform.OS === 'web') {
-        window.alert('Permissão necessária. Libere acesso à galeria para enviar a foto.');
-      } else {
-        Alert.alert('Permissão necessária', 'Libere acesso à galeria para enviar a foto.');
-      }
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.8,
-    });
-
-    if (result.canceled || !result.assets?.[0]) return;
-
-    setCompletionAsset(result.assets[0]);
+    const asset = await pickImage();
+    if (asset) setCompletionAsset(asset);
   }
 
   function handleSendCompletion() {
@@ -231,7 +211,7 @@ export default function ProfessionalOrderDetailScreen() {
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
       <Header title="Detalhes do pedido" showBack />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={pullToRefresh.refreshing} onRefresh={pullToRefresh.onRefresh} />}>
         {/* Status */}
         <View style={styles.statusSection}>
           <View style={styles.badgesRow}>
@@ -247,7 +227,7 @@ export default function ProfessionalOrderDetailScreen() {
           {areaName ? <Text variant="labelLg" color={colors.neutral[500]}>{areaName}</Text> : null}
           <Text variant="bodySm" color={colors.neutral[500]}>{order.description}</Text>
           {requestPhoto?.downloadUrl ? (
-            <Image source={{ uri: requestPhoto.downloadUrl }} style={styles.requestPhoto} resizeMode="cover" />
+            <ExpandableImage uri={requestPhoto.downloadUrl} style={styles.requestPhoto} containerStyle={styles.requestPhotoWrap} />
           ) : null}
           {isExpressInvitation ? (
             <Text variant="labelLg" color={colors.neutral[600]} style={styles.centered}>
@@ -350,7 +330,7 @@ export default function ProfessionalOrderDetailScreen() {
                 {completionPhotos.map((photo) => (
                   <View key={photo.id} style={styles.photoThumb}>
                     {photo.downloadUrl ? (
-                      <Image source={{ uri: photo.downloadUrl }} style={styles.photoImage} />
+                      <ExpandableImage uri={photo.downloadUrl} style={styles.photoImage} containerStyle={styles.photoImage} />
                     ) : (
                       <View style={styles.photoPlaceholder}>
                         <Camera color={colors.neutral[400]} size={24} />
@@ -690,6 +670,7 @@ const styles = StyleSheet.create({
     gap: spacing[3],
   },
   paymentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  requestPhotoWrap: { alignSelf: 'stretch' },
   requestPhoto: {
     width: '100%',
     height: 200,

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Send } from 'lucide-react-native';
 import { ErrorState } from '@/components/feedback/ErrorState';
@@ -10,12 +11,15 @@ import { Text } from '@/components/ui';
 import { useConversation, useConversationMessages, useMarkConversationRead, useSendMessage } from '@/lib/hooks/useConversations';
 import { useAuth } from '@/providers/AuthProvider';
 import { formatDateShort } from '@/lib/utils/formatters';
+import { getApiErrorMessage } from '@/lib/utils/errors';
+import { toast } from '@/lib/utils/toast';
 import { colors, radius, spacing } from '@/theme';
 
 export default function ProfessionalConversationDetailScreen() {
   const router = useRouter();
   const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const conversationQuery = useConversation(id);
   const messagesQuery = useConversationMessages(id);
   const markRead = useMarkConversationRead(id);
@@ -79,93 +83,103 @@ export default function ProfessionalConversationDetailScreen() {
     }
   };
 
+  function handleSend() {
+    const trimmed = content.trim();
+    if (!trimmed || sendMessage.isPending) return;
+    // Limpa na hora para a conversa fluir; se o envio falhar o texto volta, em vez de sumir.
+    setContent('');
+    sendMessage.mutate(trimmed, {
+      onError: (error) => {
+        setContent((current) => current || trimmed);
+        toast.error('Mensagem não enviada', getApiErrorMessage(error));
+      },
+    });
+  }
+
   return (
-    <Screen edges={['top']} scroll={false} style={styles.screen}>
+    <Screen edges={['top']} scroll={false} avoidKeyboard={false} style={styles.screen}>
       <Header
         title={conversation.otherParticipantName ? `Conversa com ${conversation.otherParticipantName}` : 'Conversa do pedido'}
         showBack
         onBackPress={from === 'order' ? handleBack : undefined}
       />
 
-      <ScrollView
-        ref={scrollRef}
-        contentContainerStyle={styles.messages}
-        showsVerticalScrollIndicator={false}
-      >
-        {messages.length === 0 ? (
-          <View style={styles.emptyChat}>
-            <Text variant="bodySm" color={colors.neutral[400]}>
-              Nenhuma mensagem ainda. Comece a conversa!
+      {/* Com edge-to-edge o Android não encolhe a tela quando o teclado abre. O keyboardDidShow
+          informa a posição do teclado na janela, mas o KeyboardAvoidingView se mede a partir do
+          pai, que começa abaixo da barra de status: o offset compensa essa diferença. */}
+      <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={insets.top} style={styles.chatArea}>
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={styles.messages}
+          showsVerticalScrollIndicator={false}
+        >
+          {messages.length === 0 ? (
+            <View style={styles.emptyChat}>
+              <Text variant="bodySm" color={colors.neutral[400]}>
+                Nenhuma mensagem ainda. Comece a conversa!
+              </Text>
+            </View>
+          ) : null}
+          {messages.map((message) => {
+            const isMine = message.senderId === user?.id;
+            return (
+              <View key={message.id} style={[styles.messageWrap, isMine ? styles.mineWrap : styles.otherWrap]}>
+                <View style={[styles.messageBubble, isMine ? styles.mineBubble : styles.otherBubble]}>
+                  {message.msgType === 'system' ? (
+                    <Text variant="labelSm" color={colors.neutral[500]} style={styles.systemText}>
+                      {message.content ?? '[sistema]'}
+                    </Text>
+                  ) : (
+                    <>
+                      <Text variant="bodySm" color={isMine ? colors.neutral[50] : colors.neutral[900]}>
+                        {message.content ?? '[mensagem sem texto]'}
+                      </Text>
+                      <Text variant="labelSm" color={isMine ? 'rgba(255,255,255,0.75)' : colors.neutral[400]}>
+                        {formatDateShort(message.sentAt)}
+                      </Text>
+                    </>
+                  )}
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
+
+        {isClosed ? (
+          <View style={styles.closedBanner}>
+            <Text variant="bodySm" color={colors.neutral[500]}>
+              Esta conversa foi encerrada.
             </Text>
           </View>
-        ) : null}
-        {messages.map((message) => {
-          const isMine = message.senderId === user?.id;
-          return (
-            <View key={message.id} style={[styles.messageWrap, isMine ? styles.mineWrap : styles.otherWrap]}>
-              <View style={[styles.messageBubble, isMine ? styles.mineBubble : styles.otherBubble]}>
-                {message.msgType === 'system' ? (
-                  <Text variant="labelSm" color={colors.neutral[500]} style={styles.systemText}>
-                    {message.content ?? '[sistema]'}
-                  </Text>
-                ) : (
-                  <>
-                    <Text variant="bodySm" color={isMine ? colors.neutral[50] : colors.neutral[900]}>
-                      {message.content ?? '[mensagem sem texto]'}
-                    </Text>
-                    <Text variant="labelSm" color={isMine ? 'rgba(255,255,255,0.75)' : colors.neutral[400]}>
-                      {formatDateShort(message.sentAt)}
-                    </Text>
-                  </>
-                )}
-              </View>
-            </View>
-          );
-        })}
-      </ScrollView>
-
-      {isClosed ? (
-        <View style={styles.closedBanner}>
-          <Text variant="bodySm" color={colors.neutral[500]}>
-            Esta conversa foi encerrada.
-          </Text>
-        </View>
-      ) : (
-        <View style={styles.composer}>
-          <TextInput
-            value={content}
-            onChangeText={setContent}
-            placeholder="Digite uma mensagem..."
-            placeholderTextColor={colors.neutral[400]}
-            style={styles.input}
-            returnKeyType="send"
-            onSubmitEditing={() => {
-              const trimmed = content.trim();
-              if (!trimmed) return;
-              sendMessage.mutate(trimmed);
-              setContent('');
-            }}
-          />
-          <Pressable
-            style={[styles.sendBtn, !content.trim() && styles.sendBtnDisabled]}
-            onPress={() => {
-              const trimmed = content.trim();
-              if (!trimmed) return;
-              sendMessage.mutate(trimmed);
-              setContent('');
-            }}
-            disabled={!content.trim()}
-          >
-            <Send color="#FFFFFF" size={18} />
-          </Pressable>
-        </View>
-      )}
+        ) : (
+          <View style={styles.composer}>
+            <TextInput
+              value={content}
+              onChangeText={setContent}
+              placeholder="Digite uma mensagem..."
+              placeholderTextColor={colors.neutral[400]}
+              style={styles.input}
+              returnKeyType="send"
+              onSubmitEditing={handleSend}
+            />
+            <Pressable
+              style={[styles.sendBtn, (!content.trim() || sendMessage.isPending) && styles.sendBtnDisabled]}
+              onPress={handleSend}
+              disabled={!content.trim() || sendMessage.isPending}
+              accessibilityLabel="Enviar mensagem"
+            >
+              <Send color="#FFFFFF" size={18} />
+            </Pressable>
+          </View>
+        )}
+      </KeyboardAvoidingView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { gap: 0 },
+  chatArea: { flex: 1 },
   messages: { gap: spacing[3], paddingBottom: spacing[4], flexGrow: 1 },
   emptyChat: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: spacing[10] },
   messageWrap: { flexDirection: 'row' },

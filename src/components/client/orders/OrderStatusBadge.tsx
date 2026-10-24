@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui';
+import { OrderMode } from '@/types/order';
 
 export type OrderStatus =
   | 'pending'
@@ -19,9 +20,14 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; variant: 'default' | '
 
 interface OrderStatusBadgeProps {
   status: OrderStatus;
+  /** No convencional o pedido já tem profissional: "pendente" é esperar a resposta dele, não buscar. */
+  mode?: OrderMode;
 }
 
-export function OrderStatusBadge({ status }: OrderStatusBadgeProps) {
+export function OrderStatusBadge({ status, mode }: OrderStatusBadgeProps) {
+  if (status === 'pending' && mode === OrderMode.ON_DEMAND) {
+    return <Badge label="Aguardando profissional" variant="warning" />;
+  }
   const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending;
   return <Badge label={config.label} variant={config.variant} />;
 }

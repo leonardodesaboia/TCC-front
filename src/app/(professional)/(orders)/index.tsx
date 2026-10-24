@@ -13,25 +13,17 @@ import { OrderMode, OrderStatus, type OrderSummary } from '@/types/order';
 import type { ServiceCategory } from '@/types/catalog';
 import { formatMoney, formatDateShort } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
+import { PROFESSIONAL_ORDER_STATUS_BADGE } from '@/lib/constants/order-status';
 
-const FILTERS = ['Todos', 'Pendente', 'Em andamento', 'Aguardando', 'Concluído', 'Cancelado'];
+const FILTERS = ['Todos', 'Pendente', 'Aceito', 'Aguardando', 'Concluído', 'Cancelado'];
 
 const STATUS_MAP: Record<string, OrderStatus | undefined> = {
   Todos: undefined,
   Pendente: OrderStatus.PENDING,
-  'Em andamento': OrderStatus.ACCEPTED,
+  Aceito: OrderStatus.ACCEPTED,
   Aguardando: OrderStatus.COMPLETED_BY_PRO,
   'Concluído': OrderStatus.COMPLETED,
   Cancelado: OrderStatus.CANCELLED,
-};
-
-const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'error' | 'info' | 'muted' }> = {
-  [OrderStatus.PENDING]: { label: 'Pendente', variant: 'warning' },
-  [OrderStatus.ACCEPTED]: { label: 'Em andamento', variant: 'info' },
-  [OrderStatus.COMPLETED_BY_PRO]: { label: 'Aguardando', variant: 'default' },
-  [OrderStatus.COMPLETED]: { label: 'Concluído', variant: 'success' },
-  [OrderStatus.CANCELLED]: { label: 'Cancelado', variant: 'muted' },
-  [OrderStatus.DISPUTED]: { label: 'Em disputa', variant: 'error' },
 };
 
 function isExpressInvitationOrder(order: OrderSummary): boolean {
@@ -56,7 +48,7 @@ function OrderCard({
 }) {
   const categoryName = categories.find((c) => c.id === order.categoryId)?.name ?? 'Serviço';
   const snapshot = order.addressSnapshot;
-  const badge = STATUS_BADGE[order.status] ?? STATUS_BADGE[OrderStatus.PENDING];
+  const badge = PROFESSIONAL_ORDER_STATUS_BADGE[order.status] ?? PROFESSIONAL_ORDER_STATUS_BADGE[OrderStatus.PENDING];
   const isExpressInvitation = isExpressInvitationOrder(order);
   const isAwaitingClientChoice =
     order.mode === OrderMode.EXPRESS &&
@@ -118,7 +110,7 @@ function OrderCard({
         </View>
         <View style={styles.metaItem}>
           <MapPin color={colors.neutral[400]} size={14} />
-          <Text variant="labelLg" color={colors.neutral[600]} numberOfLines={1}>
+          <Text variant="labelLg" color={colors.neutral[600]} numberOfLines={1} style={styles.metaText}>
             {snapshot ? `${snapshot.street}, ${snapshot.number} - ${snapshot.district}` : 'Endereço'}
           </Text>
         </View>
@@ -317,5 +309,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[2],
   },
+  metaText: { flexShrink: 1 },
   bottom: { alignItems: 'flex-end' },
 });

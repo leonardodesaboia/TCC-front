@@ -8,6 +8,7 @@ import {
   Clock,
   ShieldAlert,
   MapPin,
+  MessageCircle,
   Star,
   Zap,
 } from 'lucide-react-native';
@@ -19,6 +20,7 @@ import { Screen } from '@/components/layout/Screen';
 import { Badge, Text } from '@/components/ui';
 import { getCategoryVisual } from '@/lib/catalog/category-visuals';
 import { useServiceCategories } from '@/lib/hooks/useCatalog';
+import { useConversations } from '@/lib/hooks/useConversations';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { useMyProfessionalProfile, useProfessionalOrders } from '@/lib/hooks/useProfessionalArea';
 import { useAuth } from '@/providers/AuthProvider';
@@ -40,6 +42,7 @@ export default function ProfessionalDashboardScreen() {
   const ordersQuery = useProfessionalOrders();
   const categoriesQuery = useServiceCategories();
   const notificationsQuery = useNotifications();
+  const conversationsQuery = useConversations();
 
   if (profileQuery.isLoading || ordersQuery.isLoading || categoriesQuery.isLoading || notificationsQuery.isLoading) {
     return <LoadingScreen message="Carregando dashboard..." />;
@@ -63,6 +66,10 @@ export default function ProfessionalDashboardScreen() {
   const allOrders = ordersQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
   const unreadNotifications = (notificationsQuery.data ?? []).filter((n) => !n.readAt).length;
+  const unreadMessages = (conversationsQuery.data ?? []).reduce(
+    (sum, c) => sum + (c.unreadCount ?? 0),
+    0,
+  );
 
   const pendingOrders = sortByNewest(allOrders.filter((o) => o.status === OrderStatus.PENDING));
   const pendingDisplayOrders = pendingOrders;
@@ -80,6 +87,7 @@ export default function ProfessionalDashboardScreen() {
     void ordersQuery.refetch();
     void notificationsQuery.refetch();
     void profileQuery.refetch();
+    void conversationsQuery.refetch();
   }
 
   return (
@@ -107,6 +115,8 @@ export default function ProfessionalDashboardScreen() {
           onPress={() => router.push('/(professional)/notifications' as any)}
           style={styles.bellBtn}
           hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Notificações"
         >
           <Bell color={colors.neutral[700]} size={22} />
           {unreadNotifications > 0 ? (
@@ -136,6 +146,26 @@ export default function ProfessionalDashboardScreen() {
             </Text>
           </View>
           <ChevronRight color={colors.neutral[400]} size={18} />
+        </Pressable>
+      ) : null}
+
+      {unreadMessages > 0 ? (
+        <Pressable
+          onPress={() => router.push('/(professional)/conversations' as any)}
+          style={({ pressed }) => [styles.messagesCard, pressed && styles.pressed]}
+        >
+          <View style={styles.messagesIcon}>
+            <MessageCircle color={colors.primary.default} size={20} />
+          </View>
+          <View style={styles.messagesText}>
+            <Text variant="titleSm">
+              {unreadMessages === 1 ? '1 mensagem nova' : `${unreadMessages} mensagens novas`}
+            </Text>
+            <Text variant="bodySm" color={colors.neutral[600]} numberOfLines={1}>
+              Clientes aguardando sua resposta
+            </Text>
+          </View>
+          <ChevronRight color={colors.neutral[400]} size={20} />
         </Pressable>
       ) : null}
 
@@ -255,7 +285,7 @@ export default function ProfessionalDashboardScreen() {
                 <View style={styles.orderMeta}>
                   <View style={styles.metaItem}>
                     <MapPin color={colors.neutral[400]} size={14} />
-                    <Text variant="labelLg" color={colors.neutral[600]} numberOfLines={1}>
+                    <Text variant="labelLg" color={colors.neutral[600]} numberOfLines={1} style={styles.metaText}>
                       {snapshot ? `${snapshot.street}, ${snapshot.number}` : 'Endereço'}
                     </Text>
                   </View>
@@ -311,7 +341,7 @@ export default function ProfessionalDashboardScreen() {
                     </Text>
                   </View>
                   <Badge
-                    label={isWaitingClient ? 'Aguardando cliente' : 'Em andamento'}
+                    label={isWaitingClient ? 'Aguardando cliente' : 'Aceito'}
                     variant={isWaitingClient ? 'default' : 'info'}
                   />
                   <ChevronRight color={colors.neutral[400]} size={18} />
@@ -319,7 +349,7 @@ export default function ProfessionalDashboardScreen() {
                 <View style={styles.orderMeta}>
                   <View style={styles.metaItem}>
                     <MapPin color={colors.neutral[400]} size={14} />
-                    <Text variant="labelLg" color={colors.neutral[600]} numberOfLines={1}>
+                    <Text variant="labelLg" color={colors.neutral[600]} numberOfLines={1} style={styles.metaText}>
                       {snapshot ? `${snapshot.street}, ${snapshot.number}` : 'Endereço'}
                     </Text>
                   </View>
@@ -454,6 +484,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral[50],
   },
   pressed: { opacity: 0.85 },
+  messagesCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    padding: spacing[3],
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.primary.light,
+    backgroundColor: colors.neutral[50],
+  },
+  messagesIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary.light,
+  },
+  messagesText: {
+    flex: 1,
+    gap: 2,
+  },
   orderTop: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -471,6 +523,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing[3],
   },
   metaItem: {
     flexDirection: 'row',
@@ -478,4 +531,6 @@ const styles = StyleSheet.create({
     gap: spacing[2],
     flex: 1,
   },
+  // Sem flexShrink o texto ignora o numberOfLines e passa por cima do valor ao lado.
+  metaText: { flexShrink: 1 },
 });

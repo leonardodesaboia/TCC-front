@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { pickImage } from '@/lib/utils/image-picker';
 import { router } from 'expo-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, Check, Eye, EyeOff } from 'lucide-react-native';
@@ -205,7 +205,7 @@ function CredentialsStep({
         autoCapitalize="none"
         autoComplete="password"
         rightIcon={(
-          <Pressable hitSlop={10} onPress={() => setShowPassword((value) => !value)}>
+          <Pressable hitSlop={10} onPress={() => setShowPassword((value) => !value)} accessibilityRole="button" accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}>
             {showPassword ? <EyeOff color={colors.neutral[400]} size={20} /> : <Eye color={colors.neutral[400]} size={20} />}
           </Pressable>
         )}
@@ -222,7 +222,7 @@ function CredentialsStep({
         autoCapitalize="none"
         autoComplete="password"
         rightIcon={(
-          <Pressable hitSlop={10} onPress={() => setShowConfirmPassword((value) => !value)}>
+          <Pressable hitSlop={10} onPress={() => setShowConfirmPassword((value) => !value)} accessibilityRole="button" accessibilityLabel={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}>
             {showConfirmPassword ? <EyeOff color={colors.neutral[400]} size={20} /> : <Eye color={colors.neutral[400]} size={20} />}
           </Pressable>
         )}
@@ -353,22 +353,9 @@ export default function RegisterProfessionalScreen() {
   });
 
   async function pickDocument(target: 'front' | 'back') {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      toast.error('Permissão necessária', 'Libere acesso à galeria para enviar o documento.');
-      return;
-    }
+    const asset = await pickImage();
+    if (!asset) return;
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.8,
-    });
-
-    if (result.canceled || !result.assets?.[0]) {
-      return;
-    }
-
-    const asset = result.assets[0];
     const selectedDocument = {
       uri: asset.uri,
       mimeType: asset.mimeType ?? 'image/jpeg',
@@ -441,7 +428,7 @@ export default function RegisterProfessionalScreen() {
   return (
     <Screen edges={['top', 'bottom']}>
       <View style={styles.topRow}>
-        <Pressable onPress={goBack} hitSlop={8} style={styles.backBtn}>
+        <Pressable onPress={goBack} hitSlop={8} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Voltar">
           <ArrowLeft color={colors.neutral[900]} size={22} />
         </Pressable>
         <StepDots current={step} total={3} />

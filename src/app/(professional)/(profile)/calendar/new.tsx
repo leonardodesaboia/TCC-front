@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useGoBack } from '@/lib/navigation/back-history';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Button, Input, Text } from '@/components/ui';
@@ -50,7 +50,7 @@ function dateToApi(value: string): string {
 }
 
 export default function NewCalendarBlockScreen() {
-  const router = useRouter();
+  const goBack = useGoBack();
   const profileQuery = useMyProfessionalProfile();
   const profile = profileQuery.data;
   const createBlock = useCreateProfessionalCalendarBlock(profile?.id ?? '');
@@ -85,7 +85,7 @@ export default function NewCalendarBlockScreen() {
         endsAt: isValidTime(endsAt) ? endsAt : undefined,
         reason: reason.trim() || undefined,
       });
-      router.back();
+      goBack();
     } catch {
       // toast já exibido pelo hook
     }

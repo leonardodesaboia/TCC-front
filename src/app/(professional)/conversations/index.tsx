@@ -1,6 +1,8 @@
-import { useEffect } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { usePullToRefresh } from '@/lib/hooks/usePullToRefresh';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { forgetCurrentRoute } from '@/lib/navigation/back-history';
 import { MessageCircle } from 'lucide-react-native';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorState } from '@/components/feedback/ErrorState';
@@ -42,11 +44,17 @@ export default function ProfessionalConversationsScreen() {
   const router = useRouter();
   const { orderId, from } = useLocalSearchParams<{ orderId?: string; from?: string }>();
   const conversationsQuery = useConversations();
+  const pullToRefresh = usePullToRefresh(conversationsQuery);
+  const redirectedRef = useRef(false);
 
   useEffect(() => {
-    if (!orderId || !conversationsQuery.data?.length) return;
+    if (!orderId || !conversationsQuery.data?.length || redirectedRef.current) return;
     const match = conversationsQuery.data.find((item) => item.orderId === orderId);
     if (match) {
+      redirectedRef.current = true;
+      // Esta tela só redireciona para o chat do pedido: fica fora do histórico, senão o voltar
+      // do celular no chat caía aqui e era mandado de novo para o chat.
+      forgetCurrentRoute();
       router.replace({
         pathname: '/(professional)/conversations/[id]',
         params: { id: match.id, from },
@@ -65,7 +73,7 @@ export default function ProfessionalConversationsScreen() {
   const conversations = conversationsQuery.data ?? [];
 
   return (
-    <Screen edges={['top']}>
+    <Screen edges={['top']} refreshControl={<RefreshControl refreshing={pullToRefresh.refreshing} onRefresh={pullToRefresh.onRefresh} />}>
       <Header title="Conversas" showBack />
 
       {conversations.length > 0 ? (

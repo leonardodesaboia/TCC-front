@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { usePullToRefresh } from '@/lib/hooks/usePullToRefresh';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CalendarDays, Camera, ChevronRight, Clock, MapPin, MessageCircle, Star, Users } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
@@ -8,6 +9,7 @@ import { Avatar, Badge, Button, Divider, Text } from '@/components/ui';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { OrderStatusBadge } from '@/components/client/orders/OrderStatusBadge';
+import { ExpandableImage } from '@/components/ui/ExpandableImage';
 import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
 import { useCancelOrder, useChooseOrderProposal, useConfirmOrder, useOrder, useOrderProposals, useRespondNewPrice, useRespondServiceChange } from '@/lib/hooks/useOrders';
 import { useProfessional } from '@/lib/hooks/useProfessionals';
@@ -171,6 +173,7 @@ export default function OrderDetailScreen() {
   const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const orderQuery = useOrder(orderId);
+  const pullToRefresh = usePullToRefresh(orderQuery);
   const shouldLoadProposals =
     orderQuery.data !== undefined &&
     orderQuery.data.mode === OrderMode.EXPRESS &&
@@ -301,10 +304,10 @@ export default function OrderDetailScreen() {
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
       <Header title="Detalhes do pedido" showBack />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={pullToRefresh.refreshing} onRefresh={pullToRefresh.onRefresh} />}>
         <View style={styles.statusSection}>
           <View style={styles.badgesRow}>
-            <OrderStatusBadge status={order.status} />
+            <OrderStatusBadge status={order.status} mode={order.mode} />
             <Badge label={isOnDemand ? 'Sob demanda' : 'Express'} variant={isOnDemand ? 'info' : 'warning'} />
           </View>
           <Text variant="titleLg">{categoryName}</Text>
@@ -352,7 +355,7 @@ export default function OrderDetailScreen() {
               {requestPhotos.map((photo) => (
                 <View key={photo.id} style={styles.photoThumb}>
                   {photo.downloadUrl ? (
-                    <Image source={{ uri: photo.downloadUrl }} style={styles.photoImage} />
+                    <ExpandableImage uri={photo.downloadUrl} style={styles.photoImage} containerStyle={styles.photoImage} />
                   ) : (
                     <View style={styles.photoPlaceholder}>
                       <Camera color={colors.neutral[400]} size={24} />
@@ -574,7 +577,7 @@ export default function OrderDetailScreen() {
               {completionPhotos.map((photo) => (
                 <View key={photo.id} style={styles.photoThumb}>
                   {photo.downloadUrl ? (
-                    <Image source={{ uri: photo.downloadUrl }} style={styles.photoImage} />
+                    <ExpandableImage uri={photo.downloadUrl} style={styles.photoImage} containerStyle={styles.photoImage} />
                   ) : (
                     <View style={styles.photoPlaceholder}>
                       <Camera color={colors.neutral[400]} size={24} />

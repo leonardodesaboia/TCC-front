@@ -5,9 +5,7 @@ import {
   CalendarDays,
   ChevronRight,
   FileText,
-  HelpCircle,
   LogOut,
-  MapPin,
   MessageCircle,
   Settings,
   Star,
@@ -117,12 +115,6 @@ export default function ProfessionalProfileScreen() {
           CONTA
         </Text>
         <MenuItem
-          icon={<MapPin color={colors.neutral[600]} size={20} />}
-          label="Meus endereços"
-          onPress={() => {}}
-        />
-        <Divider />
-        <MenuItem
           icon={<Bell color={colors.neutral[600]} size={20} />}
           label="Notificações"
           onPress={() => router.push('/(professional)/notifications' as any)}
@@ -143,13 +135,7 @@ export default function ProfessionalProfileScreen() {
         <MenuItem
           icon={<Settings color={colors.neutral[600]} size={20} />}
           label="Configurações"
-          onPress={() => {}}
-        />
-        <Divider />
-        <MenuItem
-          icon={<HelpCircle color={colors.neutral[600]} size={20} />}
-          label="Ajuda"
-          onPress={() => {}}
+          onPress={() => router.push('/(professional)/(profile)/settings' as any)}
         />
       </View>
 

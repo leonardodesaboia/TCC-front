@@ -49,6 +49,13 @@ export function moneyToInput(value: number): string {
   return value.toFixed(2).replace('.', ',');
 }
 
+/** Telefone salvo (só dígitos ou com +55) no formato do campo: (00) 00000-0000. */
+export function phoneToInput(phone: string | null | undefined): string {
+  let digits = (phone ?? '').replace(/\D/g, '');
+  if (digits.length > 11 && digits.startsWith('55')) digits = digits.slice(2);
+  return maskPhone(digits);
+}
+
 export function unmask(value: string): string {
   return value.replace(/\D/g, '');
 }

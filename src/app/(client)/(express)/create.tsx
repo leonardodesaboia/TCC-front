@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
+import { pickImage } from '@/lib/utils/image-picker';
 import { Camera, Check, DollarSign, MapPin, Shield, X } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
@@ -58,15 +58,9 @@ export default function ExpressCreateScreen() {
     !!categoryId &&
     selectedAddress.expressReady;
 
-  async function pickImage() {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setImageUri(result.assets[0].uri);
-    }
+  async function handlePickImage() {
+    const asset = await pickImage({ allowsEditing: true });
+    if (asset) setImageUri(asset.uri);
   }
 
   async function handleSubmit() {
@@ -132,7 +126,7 @@ export default function ExpressCreateScreen() {
               </Pressable>
             </View>
           ) : (
-            <Pressable style={styles.imagePickerBtn} onPress={pickImage}>
+            <Pressable style={styles.imagePickerBtn} onPress={handlePickImage}>
               <Camera color={colors.neutral[500]} size={18} />
               <Text variant="labelLg" color={colors.neutral[500]}>Adicionar foto do problema (opcional)</Text>
             </Pressable>
