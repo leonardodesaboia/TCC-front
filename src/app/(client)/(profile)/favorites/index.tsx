@@ -26,6 +26,7 @@ function FavoriteProfessionalCard({
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
     >
       <Avatar
+        uri={professional.avatarUrl}
         name={professional.name}
         size="lg"
         backgroundColor={colors.primary.default}

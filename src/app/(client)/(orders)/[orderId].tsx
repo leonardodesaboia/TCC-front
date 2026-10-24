@@ -15,6 +15,7 @@ import { useCancelOrder, useChooseOrderProposal, useConfirmOrder, useOrder, useO
 import { useProfessional } from '@/lib/hooks/useProfessionals';
 import { useProfessionalService } from '@/lib/hooks/useServices';
 import { useOrderReviews } from '@/lib/hooks/useReviews';
+import { useAuth } from '@/providers/AuthProvider';
 import { useNow } from '@/lib/hooks/useNow';
 import { formatMoney, formatDateTime, formatRemaining, formatReviewCount } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
@@ -90,7 +91,7 @@ function ProposalCard({ professionalId, proposedAmount, respondedAt, onAccept, i
   return (
     <View style={styles.proposalCard}>
       <View style={styles.proposalTop}>
-        <Avatar name={pro?.name ?? 'P'} size="md" backgroundColor={colors.primary.default} />
+        <Avatar uri={pro?.avatarUrl} name={pro?.name ?? 'P'} size="md" backgroundColor={colors.primary.default} />
         <View style={styles.proposalInfo}>
           <Text variant="titleSm">{pro?.name ?? 'Carregando...'}</Text>
           {pro ? (
@@ -132,7 +133,7 @@ function AcceptedProfessionalCard({ professionalId, orderId, professionalName }:
         style={styles.professionalCard}
         onPress={() => router.push({ pathname: '/(client)/(search)/professionals/[id]', params: { id: professionalId } } as never)}
       >
-        <Avatar name={displayName} size="lg" backgroundColor={colors.primary.default} />
+        <Avatar uri={pro?.avatarUrl} name={displayName} size="lg" backgroundColor={colors.primary.default} />
         <View style={styles.professionalInfo}>
           <Text variant="titleSm">{displayName}</Text>
           {pro ? (
@@ -191,6 +192,7 @@ export default function OrderDetailScreen() {
   const areasQuery = useServiceAreas();
   const categoriesQuery = useServiceCategories();
   const reviewsQuery = useOrderReviews(orderId);
+  const { user } = useAuth();
   const now = useNow(1000, orderQuery.data?.status === OrderStatus.PENDING);
 
   if (orderQuery.isLoading) {
@@ -226,7 +228,8 @@ export default function OrderDetailScreen() {
   const isOnDemand = order.mode === OrderMode.ON_DEMAND;
   const timeline = buildTimeline(order.status, order.mode);
   const proposals = isOnDemand ? [] : (proposalsQuery.data ?? []);
-  const hasReview = (reviewsQuery.data ?? []).some((review) => !!review.comment);
+  // O comentário é opcional: a avaliação do cliente é a que ele mesmo enviou.
+  const hasReview = (reviewsQuery.data ?? []).some((review) => review.reviewerId === user?.id);
   const requestPhotos = order.photos.filter((photo) => photo.type === 'request');
   const completionPhotos = order.photos.filter((photo) => photo.type === 'completion_proof');
   const proposalDeadlineMs = order.proposalDeadline ? new Date(order.proposalDeadline).getTime() : null;

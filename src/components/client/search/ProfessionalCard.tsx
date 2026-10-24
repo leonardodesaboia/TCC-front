@@ -6,6 +6,7 @@ import { colors, radius, spacing } from '@/theme';
 export interface SearchProfessional {
   id: string;
   name: string;
+  avatarUrl?: string;
   area: string;
   specialties: string[];
   rating: string;
@@ -26,6 +27,7 @@ export function ProfessionalCard({ professional, onPress }: ProfessionalCardProp
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <Avatar
+        uri={professional.avatarUrl}
         name={professional.name}
         size="lg"
         backgroundColor={professional.accentColor ?? colors.primary.default}

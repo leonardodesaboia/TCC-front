@@ -149,7 +149,7 @@ export default function CheckoutScreen() {
       <Header title="Agendar serviço" showBack />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.serviceCard}>
-          <Avatar name={professional.name} size="md" backgroundColor={colors.primary.default} />
+          <Avatar uri={professional.avatarUrl} name={professional.name} size="md" backgroundColor={colors.primary.default} />
           <View style={styles.serviceInfo}>
             <Text variant="titleSm">{service.name}</Text>
             <Text variant="bodySm" color={colors.neutral[500]}>

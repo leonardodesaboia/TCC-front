@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Calendar, Clock, MapPin, Zap } from 'lucide-react-native';
-import { Avatar, Text } from '@/components/ui';
+import { Text } from '@/components/ui';
+import { ProfessionalAvatar } from '@/components/client/ProfessionalAvatar';
 import { OrderStatusBadge, type OrderStatus } from './OrderStatusBadge';
 import { formatDateFull, formatTime } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
@@ -9,6 +10,7 @@ import { OrderMode } from '@/types/order';
 export interface OrderCardItem {
   id: string;
   categoryName: string;
+  professionalId?: string;
   description: string;
   professionalName?: string;
   serviceName?: string;
@@ -46,7 +48,7 @@ export function OrderCard({ order, onPress }: OrderCardProps) {
     >
       <View style={styles.top}>
         {showProfessional ? (
-          <Avatar name={order.professionalName!} size="md" />
+          <ProfessionalAvatar professionalId={order.professionalId} name={order.professionalName!} size="md" />
         ) : (
           <View style={styles.categoryIcon}>
             <Text variant="titleSm" color={colors.primary.default}>

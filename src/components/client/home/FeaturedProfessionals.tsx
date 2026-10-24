@@ -6,6 +6,7 @@ import { colors, radius, spacing } from '@/theme';
 export interface FeaturedProfessional {
   id: string;
   name: string;
+  avatarUrl?: string;
   profession: string;
   highlight: string;
   rating: string;
@@ -23,7 +24,7 @@ export function FeaturedProfessionals({ professionals, onPressProfessional }: Fe
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scroll}>
       {professionals.map((p) => (
         <Pressable key={p.id} onPress={() => onPressProfessional?.(p.id)} style={styles.card}>
-          <Avatar name={p.name} size="lg" backgroundColor={p.accentColor} />
+          <Avatar uri={p.avatarUrl} name={p.name} size="lg" backgroundColor={p.accentColor} />
           <Text variant="titleSm">{p.name}</Text>
           <Text variant="labelLg" color={colors.neutral[500]}>{p.profession}</Text>
           <View style={styles.ratingRow}>
