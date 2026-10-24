@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
+import { forgetCurrentRoute } from '@/lib/navigation/back-history';
 import { queryKeys } from '@/lib/constants/query-keys';
 import { clientIntegration } from '@/lib/integrations/client';
 import { getApiErrorMessage } from '@/lib/utils/errors';
@@ -58,8 +59,8 @@ export function useCreateOrder() {
         try {
           const formData = await buildPhotoFormData(imageUri);
           await clientIntegration.orders.uploadPhoto(order.id, formData);
-        } catch {
-          toast.error('Foto não enviada', 'O pedido foi criado, mas a foto não pôde ser enviada.');
+        } catch (error) {
+          toast.error('Foto não enviada', `O pedido foi criado, mas a foto não pôde ser enviada. ${getApiErrorMessage(error)}`);
         }
       }
       return order;
@@ -70,6 +71,7 @@ export function useCreateOrder() {
       queryClient.setQueryData(queryKeys.orders.detail(order.id), order);
       queryClient.invalidateQueries({ queryKey: ['orders', 'my-orders'] });
       toast.success('Pedido enviado!', 'Os profissionais próximos estão sendo avisados.');
+      forgetCurrentRoute();
       router.push(`/(client)/(orders)/${order.id}`);
     },
     onError: (error: unknown) => {
@@ -89,8 +91,8 @@ export function useCreateOnDemandOrder() {
         try {
           const formData = await buildPhotoFormData(imageUri);
           await clientIntegration.orders.uploadPhoto(order.id, formData);
-        } catch {
-          toast.error('Foto não enviada', 'O pedido foi criado, mas a foto não pôde ser enviada.');
+        } catch (error) {
+          toast.error('Foto não enviada', `O pedido foi criado, mas a foto não pôde ser enviada. ${getApiErrorMessage(error)}`);
         }
       }
       return order;
@@ -98,6 +100,7 @@ export function useCreateOnDemandOrder() {
     onSuccess: (order) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
       toast.success('Pedido enviado!', 'O profissional será notificado');
+      forgetCurrentRoute();
       router.push(`/(client)/(orders)/${order.id}`);
     },
     onError: (error: unknown) => {
@@ -134,6 +137,7 @@ export function useCancelOrder(orderId: string) {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.detail(orderId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
       toast.success('Pedido cancelado.');
+      forgetCurrentRoute();
       router.replace('/(client)/(orders)');
     },
     onError: (error: unknown) => {

@@ -1,4 +1,5 @@
-import { Pressable, SectionList, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, SectionList, StyleSheet, View } from 'react-native';
+import { usePullToRefresh } from '@/lib/hooks/usePullToRefresh';
 import { useRouter } from 'expo-router';
 import { Calendar, Trash2 } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
@@ -12,7 +13,7 @@ import {
   useDeleteProfessionalCalendarBlock,
 } from '@/lib/hooks/useProfessionalManagement';
 import type { BlockedPeriod } from '@/types/professional-management';
-import { formatDateWithWeekday } from '@/lib/utils/formatters';
+import { formatDateWithWeekday, formatDateTime } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 
 const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -36,9 +37,7 @@ function blockSummary(block: BlockedPeriod): string {
     return `${date} • ${formatPeriod(block.startsAt, block.endsAt)}`;
   }
   if (block.orderStartsAt) {
-    return new Date(block.orderStartsAt).toLocaleString('pt-BR', {
-      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-    });
+    return formatDateTime(block.orderStartsAt);
   }
   return '—';
 }
@@ -48,6 +47,7 @@ export default function CalendarBlocksScreen() {
   const profileQuery = useMyProfessionalProfile();
   const profile = profileQuery.data;
   const blocksQuery = useProfessionalCalendarBlocks(profile?.id ?? '');
+  const pullToRefresh = usePullToRefresh(blocksQuery);
   const deleteBlock = useDeleteProfessionalCalendarBlock(profile?.id ?? '');
 
   if (profileQuery.isLoading || blocksQuery.isLoading) {
@@ -123,6 +123,7 @@ export default function CalendarBlocksScreen() {
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={pullToRefresh.refreshing} onRefresh={pullToRefresh.onRefresh} />}
         />
       )}
 

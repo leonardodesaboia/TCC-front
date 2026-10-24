@@ -97,7 +97,7 @@ export default function ForgotPasswordScreen() {
   return (
     <Screen edges={['top', 'bottom']}>
       <View style={styles.topRow}>
-        <Pressable onPress={goBack} hitSlop={8} style={styles.backBtn}>
+        <Pressable onPress={goBack} hitSlop={8} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Voltar">
           <ArrowLeft color={colors.neutral[900]} size={22} />
         </Pressable>
         <StepDots current={step} total={3} />
@@ -143,7 +143,7 @@ export default function ForgotPasswordScreen() {
             autoCapitalize="none"
             autoComplete="new-password"
             rightIcon={
-              <Pressable hitSlop={10} onPress={() => setShowPw((v) => !v)}>
+              <Pressable hitSlop={10} onPress={() => setShowPw((v) => !v)} accessibilityRole="button" accessibilityLabel={showPw ? 'Ocultar senha' : 'Mostrar senha'}>
                 {showPw ? <EyeOff color={colors.neutral[400]} size={20} /> : <Eye color={colors.neutral[400]} size={20} />}
               </Pressable>
             }

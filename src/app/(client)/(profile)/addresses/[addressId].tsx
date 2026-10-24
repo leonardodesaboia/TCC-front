@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/lib/navigation/back-history';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { FormField } from '@/components/forms/FormField';
@@ -31,7 +32,7 @@ function addressKey(parts: string[]): string {
 }
 
 export default function EditAddressScreen() {
-  const router = useRouter();
+  const goBack = useGoBack();
   const { addressId } = useLocalSearchParams<{ addressId: string }>();
   const addressesQuery = useAddresses();
   const updateAddress = useUpdateAddress(addressId);
@@ -236,19 +237,23 @@ export default function EditAddressScreen() {
   async function handleSave() {
     if (!canSave || !coordinatePayload) return;
 
-    await updateAddress.mutateAsync({
-      label: label.trim(),
-      zipCode: normalizeZipCode(zipCode),
-      street: street.trim(),
-      number: number.trim(),
-      complement: complement.trim() || undefined,
-      district: district.trim(),
-      city: city.trim(),
-      state: normalizeStateCode(state),
-      ...coordinatePayload,
-    });
+    try {
+      await updateAddress.mutateAsync({
+        label: label.trim(),
+        zipCode: normalizeZipCode(zipCode),
+        street: street.trim(),
+        number: number.trim(),
+        complement: complement.trim() || undefined,
+        district: district.trim(),
+        city: city.trim(),
+        state: normalizeStateCode(state),
+        ...coordinatePayload,
+      });
 
-    router.back();
+      goBack();
+    } catch {
+      // O aviso de erro já é mostrado pelo hook; o formulário fica aberto para corrigir.
+    }
   }
 
   if (addressesQuery.isLoading) {
@@ -265,7 +270,7 @@ export default function EditAddressScreen() {
   }
 
   if (!address) {
-    return <ErrorState message="Endereço não encontrado." onRetry={() => router.back()} />;
+    return <ErrorState message="Endereço não encontrado." onRetry={() => goBack()} />;
   }
 
   return (

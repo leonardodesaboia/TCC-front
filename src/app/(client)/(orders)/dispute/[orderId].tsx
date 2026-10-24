@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
+import { pickImage } from '@/lib/utils/image-picker';
 import { Camera, X } from 'lucide-react-native';
 import { AxiosError } from 'axios';
 import { ErrorState } from '@/components/feedback/ErrorState';
@@ -170,15 +170,9 @@ export default function OrderDisputeScreen() {
   const disputeId = disputeQuery.data?.id ?? '';
   const evidencesQuery = useDisputeEvidences(disputeId);
 
-  async function pickImage() {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setImageUri(result.assets[0].uri);
-    }
+  async function handlePickImage() {
+    const asset = await pickImage({ allowsEditing: true });
+    if (asset) setImageUri(asset.uri);
   }
 
   if (disputeQuery.isLoading) {
@@ -219,7 +213,7 @@ export default function OrderDisputeScreen() {
               </Pressable>
             </View>
           ) : (
-            <Pressable style={styles.imagePickerBtn} onPress={pickImage}>
+            <Pressable style={styles.imagePickerBtn} onPress={handlePickImage}>
               <Camera color={colors.neutral[500]} size={18} />
               <Text variant="labelLg" color={colors.neutral[500]}>Adicionar foto (opcional)</Text>
             </Pressable>
@@ -229,7 +223,12 @@ export default function OrderDisputeScreen() {
         <View style={styles.footer}>
           <Button
             onPress={async () => {
-              const dispute = await openDispute.mutateAsync(reason.trim());
+              let dispute;
+              try {
+                dispute = await openDispute.mutateAsync(reason.trim());
+              } catch {
+                return; // O aviso de erro já é mostrado pelo hook.
+              }
               if (imageUri) {
                 try {
                   await disputesApi.addPhotoEvidence(dispute.id, reason.trim(), imageUri);

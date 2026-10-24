@@ -97,7 +97,7 @@ function RegisterPasswordStep({
         autoCapitalize="none"
         autoComplete="password"
         rightIcon={
-          <Pressable hitSlop={10} onPress={() => setShowPassword((value) => !value)}>
+          <Pressable hitSlop={10} onPress={() => setShowPassword((value) => !value)} accessibilityRole="button" accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}>
             {showPassword ? <EyeOff color={colors.neutral[400]} size={20} /> : <Eye color={colors.neutral[400]} size={20} />}
           </Pressable>
         }
@@ -114,7 +114,7 @@ function RegisterPasswordStep({
         autoCapitalize="none"
         autoComplete="password"
         rightIcon={
-          <Pressable hitSlop={10} onPress={() => setShowConfirmPassword((value) => !value)}>
+          <Pressable hitSlop={10} onPress={() => setShowConfirmPassword((value) => !value)} accessibilityRole="button" accessibilityLabel={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}>
             {showConfirmPassword ? <EyeOff color={colors.neutral[400]} size={20} /> : <Eye color={colors.neutral[400]} size={20} />}
           </Pressable>
         }

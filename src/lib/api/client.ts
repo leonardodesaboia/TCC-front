@@ -1,4 +1,5 @@
 import axios, { InternalAxiosRequestConfig, AxiosError } from 'axios';
+import { Platform } from 'react-native';
 import { API_URL, API_TIMEOUT } from '@/lib/constants/config';
 import {
   ACCESS_TOKEN_KEY,
@@ -20,7 +21,15 @@ apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) =>
   }
 
   if (typeof FormData !== 'undefined' && config.data instanceof FormData && config.headers) {
-    delete config.headers['Content-Type'];
+    if (Platform.OS === 'web') {
+      // O navegador monta o Content-Type com o boundary sozinho.
+      delete config.headers['Content-Type'];
+    } else {
+      // Sem Content-Type o axios assume application/x-www-form-urlencoded nos POST,
+      // e o Android recusa montar o multipart ("multipart != application/x-www-form-urlencoded").
+      // O boundary é acrescentado pelo próprio React Native.
+      config.headers['Content-Type'] = 'multipart/form-data';
+    }
   }
 
   return config;

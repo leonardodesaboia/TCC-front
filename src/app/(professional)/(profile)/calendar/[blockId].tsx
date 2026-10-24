@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/lib/navigation/back-history';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Button, Input, Text } from '@/components/ui';
@@ -51,7 +52,7 @@ const BLOCK_TYPE_LABEL: Record<string, string> = {
 
 export default function EditCalendarBlockScreen() {
   const { blockId } = useLocalSearchParams<{ blockId: string }>();
-  const router = useRouter();
+  const goBack = useGoBack();
   const profileQuery = useMyProfessionalProfile();
   const profile = profileQuery.data;
   const blocksQuery = useProfessionalCalendarBlocks(profile?.id ?? '');
@@ -90,7 +91,7 @@ export default function EditCalendarBlockScreen() {
           reason: reason.trim() || null,
         },
       });
-      router.back();
+      goBack();
     } catch {
       // toast já exibido pelo hook
     }

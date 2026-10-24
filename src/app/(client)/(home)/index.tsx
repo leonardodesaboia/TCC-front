@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { usePullToRefresh } from '@/lib/hooks/usePullToRefresh';
 import { useRouter } from 'expo-router';
 import {
   Bell,
@@ -50,6 +51,7 @@ export default function ClientHomeScreen() {
   const ordersQuery = useMyOrders();
   const conversationsQuery = useConversations();
   const featuredQuery = useSearchProfessionals({ limit: 8 });
+  const pullToRefresh = usePullToRefresh(ordersQuery, notificationsQuery, conversationsQuery, featuredQuery);
 
   const lastCompletedProId = useMemo(() => {
     const orders = ordersQuery.data ?? [];
@@ -126,7 +128,7 @@ export default function ClientHomeScreen() {
     });
 
   return (
-    <Screen edges={['top']} style={styles.screen}>
+    <Screen edges={['top']} style={styles.screen} refreshControl={<RefreshControl refreshing={pullToRefresh.refreshing} onRefresh={pullToRefresh.onRefresh} />}>
       {/* Greeting */}
       <View style={styles.greeting}>
         <View style={styles.greetingLeft}>

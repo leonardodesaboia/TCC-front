@@ -4,12 +4,10 @@ import {
   Bell,
   ChevronRight,
   Heart,
-  HelpCircle,
   LogOut,
   MapPin,
   MessageCircle,
   Settings,
-  Shield,
 } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
 import { Avatar, Divider, Text } from '@/components/ui';
@@ -99,12 +97,7 @@ export default function ProfileScreen() {
           label="Profissionais salvos"
           onPress={() => router.push('/(client)/(profile)/favorites')}
         />
-        <Divider />
-        <MenuItem
-          icon={<Shield color={colors.neutral[600]} size={20} />}
-          label="Segurança"
-          onPress={() => {}}
-        />
+
       </View>
 
       <View style={styles.menuSection}>
@@ -116,12 +109,7 @@ export default function ProfileScreen() {
           label="Configurações"
           onPress={() => router.push('/(client)/(profile)/settings')}
         />
-        <Divider />
-        <MenuItem
-          icon={<HelpCircle color={colors.neutral[600]} size={20} />}
-          label="Ajuda"
-          onPress={() => {}}
-        />
+
       </View>
 
       <View style={styles.menuSection}>

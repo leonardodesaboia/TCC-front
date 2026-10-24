@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/lib/navigation/back-history';
 import { Star } from 'lucide-react-native';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorState } from '@/components/feedback/ErrorState';
@@ -13,7 +14,7 @@ import { colors, radius, spacing } from '@/theme';
 
 export default function OrderReviewScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
-  const router = useRouter();
+  const goBack = useGoBack();
   const reviewsQuery = useOrderReviews(orderId);
   const createReview = useCreateOrderReview(orderId);
   // Começa sem nota: a pessoa precisa escolher, em vez de enviar 5 estrelas sem perceber.
@@ -98,8 +99,12 @@ export default function OrderReviewScreen() {
         ) : null}
         <Button
           onPress={async () => {
-            await createReview.mutateAsync({ rating, comment: comment.trim() });
-            router.back();
+            try {
+              await createReview.mutateAsync({ rating, comment: comment.trim() });
+              goBack();
+            } catch {
+              // O aviso de erro já é mostrado pelo hook; a tela fica aberta para tentar de novo.
+            }
           }}
           loading={createReview.isPending}
           disabled={rating === 0 || comment.trim().length === 0}

@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -42,6 +42,14 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "O AllSet usa sua localização para encontrar pedidos Express próximos."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O AllSet usa sua galeria para você enviar fotos do serviço, documentos e foto de perfil.",
+          "cameraPermission": "O AllSet usa a câmera para você tirar fotos do serviço, documentos e foto de perfil.",
+          "microphonePermission": false
         }
       ],
       [

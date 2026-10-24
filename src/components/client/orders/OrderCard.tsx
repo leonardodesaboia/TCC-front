@@ -65,7 +65,7 @@ export function OrderCard({ order, onPress }: OrderCardProps) {
           </Text>
         </View>
         <View style={styles.badgesCol}>
-          <OrderStatusBadge status={order.status} />
+          <OrderStatusBadge status={order.status} mode={order.mode} />
           {order.mode === OrderMode.ON_DEMAND ? (
             <View style={[styles.modePill, styles.modePillSobDemanda]}>
               <Calendar color={colors.info} size={12} />
