@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
+import { forgetCurrentRoute } from '@/lib/navigation/back-history';
 import { queryKeys } from '@/lib/constants/query-keys';
 import { professionalIntegration } from '@/lib/integrations/professional';
 import { getApiErrorMessage } from '@/lib/utils/errors';
@@ -122,6 +123,7 @@ export function useProCancelOrder(orderId: string) {
       queryClient.invalidateQueries({ queryKey: queryKeys.professionalOrders.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
       toast.success('Pedido cancelado.');
+      forgetCurrentRoute();
       router.replace('/(professional)/(orders)');
     },
     onError: (error: unknown) => {
@@ -141,6 +143,7 @@ export function useReportScopeMismatch(orderId: string) {
       queryClient.invalidateQueries({ queryKey: queryKeys.professionalOrders.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
       toast.success('Pedido cancelado sem custo.', 'O cliente foi notificado sobre a divergência de escopo.');
+      forgetCurrentRoute();
       router.replace('/(professional)/(orders)');
     },
     onError: (error: unknown) => {

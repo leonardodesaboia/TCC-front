@@ -100,7 +100,7 @@ export default function ServiceDetailScreen() {
             <View style={styles.section}>
               <Text variant="titleSm">Profissional</Text>
               <View style={styles.professionalCard}>
-                <Avatar name={professional.name} size="lg" backgroundColor={colors.primary.default} />
+                <Avatar uri={professional.avatarUrl} name={professional.name} size="lg" backgroundColor={colors.primary.default} />
                 <View style={styles.professionalInfo}>
                   <View style={styles.professionalNameRow}>
                     <Text variant="titleSm">{professional.name}</Text>

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Button, Input, Text } from '@/components/ui';
+import { AvatarEditor } from '@/components/forms/AvatarEditor';
 import { FormField } from '@/components/forms/FormField';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { ErrorState } from '@/components/feedback/ErrorState';
@@ -11,10 +11,13 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useMyProfessionalProfile } from '@/lib/hooks/useProfessionalArea';
 import { useUpdateProfessionalProfile } from '@/lib/hooks/useProfessionalManagement';
 import { useUpdateProfile } from '@/lib/hooks/useUsers';
+import { useGoBack } from '@/lib/navigation/back-history';
+import { maskPhone, phoneToInput, unmask } from '@/lib/utils/masks';
+import { toast } from '@/lib/utils/toast';
 import { colors, spacing } from '@/theme';
 
 export default function EditProfessionalProfileScreen() {
-  const router = useRouter();
+  const goBack = useGoBack();
   const { user } = useAuth();
   const profileQuery = useMyProfessionalProfile();
   const profile = profileQuery.data;
@@ -31,7 +34,7 @@ export default function EditProfessionalProfileScreen() {
   useEffect(() => {
     setName(user?.name ?? '');
     setEmail(user?.email ?? '');
-    setPhone(user?.phone ?? '');
+    setPhone(phoneToInput(user?.phone));
   }, [user?.email, user?.name, user?.phone]);
 
   useEffect(() => {
@@ -46,19 +49,30 @@ export default function EditProfessionalProfileScreen() {
   if (profileQuery.isError) return <ErrorState message="Erro ao carregar perfil." onRetry={() => profileQuery.refetch()} />;
 
   async function handleSave() {
-    await updateUserProfile.mutateAsync({
-      name: name.trim() || undefined,
-      email: email.trim() || undefined,
-      phone: phone.trim() || undefined,
-    });
+    const phoneDigits = unmask(phone);
+    if (phoneDigits && phoneDigits.length < 10) {
+      toast.error('Informe um telefone válido com DDD.');
+      return;
+    }
 
-    await updateProfile.mutateAsync({
-      bio: bio.trim() || undefined,
-      yearsOfExperience: yearsOfExperience ? parseInt(yearsOfExperience, 10) : undefined,
-      baseHourlyRate: baseHourlyRate ? parseFloat(baseHourlyRate.replace(',', '.')) : undefined,
-    });
+    try {
+      await updateUserProfile.mutateAsync({
+        name: name.trim() || undefined,
+        email: email.trim() || undefined,
+        // Só envia o telefone se mudou: os já salvos podem estar em outro formato (ex.: +55...).
+        phone: phoneDigits && phoneDigits !== unmask(phoneToInput(user?.phone)) ? phoneDigits : undefined,
+      });
 
-    router.back();
+      await updateProfile.mutateAsync({
+        bio: bio.trim() || undefined,
+        yearsOfExperience: yearsOfExperience ? parseInt(yearsOfExperience, 10) : undefined,
+        baseHourlyRate: baseHourlyRate ? parseFloat(baseHourlyRate.replace(',', '.')) : undefined,
+      });
+
+      goBack();
+    } catch {
+      // O aviso de erro já é mostrado pelos hooks; a tela fica aberta para tentar de novo.
+    }
   }
 
   const isSaving = updateUserProfile.isPending || updateProfile.isPending;
@@ -66,6 +80,8 @@ export default function EditProfessionalProfileScreen() {
   return (
     <Screen edges={['top']} style={styles.screen}>
       <Header title="Editar perfil" showBack />
+
+      <AvatarEditor name={name} />
 
       <View style={styles.form}>
         <FormField label="Nome completo">
@@ -89,7 +105,8 @@ export default function EditProfessionalProfileScreen() {
         <FormField label="Telefone">
           <Input
             value={phone}
-            onChangeText={setPhone}
+            onChangeText={(value) => setPhone(maskPhone(value))}
+            maxLength={15}
             placeholder="(00) 00000-0000"
             keyboardType="phone-pad"
           />

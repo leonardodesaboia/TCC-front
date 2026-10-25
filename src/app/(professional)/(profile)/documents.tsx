@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { usePullToRefresh } from '@/lib/hooks/usePullToRefresh';
+import { pickImage } from '@/lib/utils/image-picker';
 import { CheckCircle2, Clock, FileText, XCircle } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
@@ -11,7 +12,6 @@ import { useMyProfessionalProfile } from '@/lib/hooks/useProfessionalArea';
 import { useProfessionalDocuments, useUploadProfessionalDocument } from '@/lib/hooks/useProfessionalManagement';
 import { formatDateFull } from '@/lib/utils/formatters';
 import { appendImage } from '@/lib/utils/form-data';
-import { toast } from '@/lib/utils/toast';
 import type { DocType, DocumentSide, ProfessionalDocument } from '@/types/professional-management';
 import { colors, radius, spacing } from '@/theme';
 
@@ -48,6 +48,7 @@ export default function ProfessionalDocumentsScreen() {
   const profileQuery = useMyProfessionalProfile();
   const profile = profileQuery.data;
   const documentsQuery = useProfessionalDocuments(profile?.id ?? '');
+  const pullToRefresh = usePullToRefresh(profileQuery, documentsQuery);
   const upload = useUploadProfessionalDocument(profile?.id ?? '');
   const documents = documentsQuery.data ?? [];
 
@@ -67,15 +68,9 @@ export default function ProfessionalDocumentsScreen() {
   const StatusIcon = info.Icon;
 
   async function pickAndUpload(side: DocumentSide) {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      toast.error('Permissão necessária', 'Libere acesso à galeria para enviar o documento.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
-    if (result.canceled || !result.assets?.[0]) return;
+    const asset = await pickImage();
+    if (!asset) return;
 
-    const asset = result.assets[0];
     const formData = new FormData();
     await appendImage(formData, 'file', asset, `${selectedType}-${side}.jpg`);
     upload.mutate({ docType: selectedType, docSide: side, formData });
@@ -84,7 +79,7 @@ export default function ProfessionalDocumentsScreen() {
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
       <Header title="Documentos" showBack />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={pullToRefresh.refreshing} onRefresh={pullToRefresh.onRefresh} />}>
         <View style={[styles.statusCard, { borderColor: info.color }]}>
           <StatusIcon color={info.color} size={22} />
           <View style={styles.statusText}>

@@ -69,6 +69,37 @@ export function compareWithGeocoded(
   return { filled, divergent };
 }
 
+/** O que foi escrito e o que o mapa diz, campo a campo, para explicar a divergência. */
+export interface AddressDivergence {
+  fields: Array<keyof AddressFormValues>;
+  typed: Partial<AddressFormValues>;
+  suggested: Partial<AddressFormValues>;
+  displayName: string | null;
+}
+
+export function buildDivergence(
+  current: AddressFormValues,
+  geocoded: GeocodedAddress,
+  fields: Array<keyof AddressFormValues>,
+): AddressDivergence | null {
+  if (fields.length === 0) return null;
+  const suggested = geocoded.normalizedAddress ?? {};
+  return {
+    fields,
+    typed: Object.fromEntries(fields.map((field) => [field, current[field]])),
+    suggested: Object.fromEntries(fields.map((field) => [field, suggested[field] ?? ''])),
+    displayName: geocoded.displayName ?? null,
+  };
+}
+
+export function divergenceMessage(divergence: AddressDivergence): string {
+  return `O ponto marcado fica em ${describeFields(divergence.fields)} diferente do que você escreveu. Confira antes de salvar.`;
+}
+
+export function fieldLabel(field: keyof AddressFormValues): string {
+  return FIELD_LABELS[field];
+}
+
 /** "rua e bairro" — para montar o aviso de divergência em linguagem corrida. */
 export function describeFields(fields: Array<keyof AddressFormValues>): string {
   const labels = fields.map((field) => FIELD_LABELS[field]);

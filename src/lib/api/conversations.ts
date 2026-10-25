@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { ordersApi } from './orders';
 import { unwrapItem, unwrapList, toNumber } from './utils';
 import type { ApiResponse, SpringPage } from '@/types/api';
 import { USE_MOCKS_ENABLED } from '@/lib/constants/config';
@@ -26,6 +27,7 @@ function mapConversationSummary(dto: ConversationSummaryDto): ConversationSummar
     otherParticipantId: dto.otherParticipantId,
     otherParticipantName: dto.otherParticipantName ?? undefined,
     lastMessage: lastMessagePreview,
+    lastMessageAt: dto.lastMessage?.sentAt,
     unreadCount: toNumber(dto.unreadCount),
   };
 }
@@ -64,11 +66,15 @@ export const conversationsApi = {
       return mockConversationsApi.getAll();
     }
 
-    const response = await apiClient.get<SpringPage<ConversationSummaryDto> | ApiResponse<ConversationSummaryDto[]> | ConversationSummaryDto[]>(
+    const [conversations, orders] = await Promise.allSettled([apiClient.get<SpringPage<ConversationSummaryDto> | ApiResponse<ConversationSummaryDto[]> | ConversationSummaryDto[]>(
       '/api/v1/conversations',
       { params: { size: 50 } },
-    );
-    return unwrapList<ConversationSummaryDto>(response.data).map(mapConversationSummary);
+    ), ordersApi.getMyOrders({ size: 100 })]);
+    if (conversations.status === 'rejected') throw conversations.reason;
+    const byId = new Map((orders.status === 'fulfilled' ? orders.value : []).map((order) => [order.id, order]));
+    return unwrapList<ConversationSummaryDto>(conversations.value.data).map((dto) => ({
+      ...mapConversationSummary(dto), order: byId.get(dto.orderId),
+    }));
   },
 
   async getById(id: string): Promise<Conversation> {

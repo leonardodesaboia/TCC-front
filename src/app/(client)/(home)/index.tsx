@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { usePullToRefresh } from '@/lib/hooks/usePullToRefresh';
 import { useRouter } from 'expo-router';
 import {
   Bell,
@@ -26,11 +27,13 @@ import {
 import { getAreaVisual } from '@/lib/catalog/area-visuals';
 import { useServiceAreas, useServiceCategories } from '@/lib/hooks/useCatalog';
 import { useConversations } from '@/lib/hooks/useConversations';
+import { useFavoriteProfessionals } from '@/lib/hooks/useFavorites';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { useMyOrders } from '@/lib/hooks/useOrders';
 import { useProfessional, useSearchProfessionals } from '@/lib/hooks/useProfessionals';
 import { useAuth } from '@/providers/AuthProvider';
 import { OrderStatus } from '@/types/order';
+import type { ProfessionalSummary } from '@/types/professional';
 import { sortByNewest } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 
@@ -50,6 +53,8 @@ export default function ClientHomeScreen() {
   const ordersQuery = useMyOrders();
   const conversationsQuery = useConversations();
   const featuredQuery = useSearchProfessionals({ limit: 8 });
+  const favoritesQuery = useFavoriteProfessionals();
+  const pullToRefresh = usePullToRefresh(ordersQuery, notificationsQuery, conversationsQuery, featuredQuery, favoritesQuery);
 
   const lastCompletedProId = useMemo(() => {
     const orders = ordersQuery.data ?? [];
@@ -82,17 +87,20 @@ export default function ClientHomeScreen() {
   const areas = areasQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
   const lastPro = lastProQuery.data;
+  const toFeatured = (p: ProfessionalSummary): FeaturedProfessional => ({
+    id: p.id,
+    name: p.name,
+    avatarUrl: p.avatarUrl,
+    profession: p.areas[0]?.name ?? p.profession,
+    highlight: p.specialties[0] ?? '',
+    rating: p.reviewCount > 0 ? (p.rating ?? 0).toFixed(1) : 'Novo',
+    badge: p.badgeLabel ?? '',
+  });
+  const favoritePros = (favoritesQuery.data ?? []).slice(0, 8).map(toFeatured);
   const featuredPros: FeaturedProfessional[] = (featuredQuery.data ?? [])
     .filter((p) => p.id !== lastPro?.id)
     .slice(0, 6)
-    .map((p) => ({
-      id: p.id,
-      name: p.name,
-      profession: p.areas[0]?.name ?? p.profession,
-      highlight: p.specialties[0] ?? '',
-      rating: p.reviewCount > 0 ? (p.rating ?? 0).toFixed(1) : 'Novo',
-      badge: p.badgeLabel ?? '',
-    }));
+    .map(toFeatured);
   const unreadNotifications = (notificationsQuery.data ?? []).filter((item) => !item.readAt).length;
   const unreadMessages = (conversationsQuery.data ?? []).reduce(
     (sum, c) => sum + (c.unreadCount ?? 0),
@@ -114,6 +122,7 @@ export default function ClientHomeScreen() {
         id: order.id,
         categoryName,
         description: order.description,
+        professionalId: order.professionalId ?? undefined,
         professionalName: order.professionalName ?? undefined,
         serviceName: order.serviceName ?? undefined,
         status: order.status,
@@ -126,7 +135,7 @@ export default function ClientHomeScreen() {
     });
 
   return (
-    <Screen edges={['top']} style={styles.screen}>
+    <Screen edges={['top']} style={styles.screen} refreshControl={<RefreshControl refreshing={pullToRefresh.refreshing} onRefresh={pullToRefresh.onRefresh} />}>
       {/* Greeting */}
       <View style={styles.greeting}>
         <View style={styles.greetingLeft}>
@@ -275,7 +284,7 @@ export default function ClientHomeScreen() {
             }
             style={({ pressed }) => [styles.repeatCard, pressed && styles.pressed]}
           >
-            <Avatar name={lastPro.name} size="md" />
+            <Avatar uri={lastPro.avatarUrl} name={lastPro.name} size="md" />
             <View style={styles.repeatText}>
               <Text variant="titleSm" numberOfLines={1}>{lastPro.name}</Text>
               <Text variant="bodySm" color={colors.neutral[500]} numberOfLines={1}>
@@ -287,6 +296,27 @@ export default function ClientHomeScreen() {
               <Text variant="labelLg" color={colors.primary.default}>Pedir</Text>
             </View>
           </Pressable>
+        </View>
+      ) : null}
+
+      {/* Favorite professionals */}
+      {favoritePros.length > 0 ? (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text variant="titleMd">Profissionais favoritos</Text>
+            <Pressable onPress={() => router.push('/(client)/(profile)/favorites')}>
+              <Text variant="labelLg" color={colors.primary.default}>Ver todos</Text>
+            </Pressable>
+          </View>
+          <FeaturedProfessionals
+            professionals={favoritePros}
+            onPressProfessional={(id) =>
+              router.push({
+                pathname: '/(client)/(search)/professionals/[id]',
+                params: { id },
+              } as never)
+            }
+          />
         </View>
       ) : null}
 

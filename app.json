@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -31,6 +31,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "expo-font",
       [
         "expo-router",
         {
@@ -45,12 +46,19 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "O AllSet usa sua galeria para você enviar fotos do serviço, documentos e foto de perfil.",
+          "cameraPermission": "O AllSet usa a câmera para você tirar fotos do serviço, documentos e foto de perfil.",
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-notifications",
         {
           "color": "#FF6B35"
         }
-      ],
-      "expo-font"
+      ]
     ]
   }
 }

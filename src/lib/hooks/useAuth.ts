@@ -7,6 +7,7 @@ import { toast } from '@/lib/utils/toast';
 import { getApiErrorMessage } from '@/lib/utils/errors';
 import { queryKeys } from '@/lib/constants/query-keys';
 import { resetNavigationHistory } from '@/lib/navigation/back-history';
+import { registrationFeedback } from '@/lib/utils/registration-feedback';
 import { UserRole } from '@/types/user';
 import type { LoginRequest, RegisterClientRequest, RegisterProfessionalRequest, User } from '@/types/user';
 
@@ -73,7 +74,7 @@ export function useRegisterProfessional() {
   const setUser = useAuthStore((s) => s.setUser);
   const queryClient = useQueryClient();
 
-  return useMutation<{ user: User; documentsUploaded: boolean }, unknown, RegisterProfessionalRequest>({
+  return useMutation<{ user: User; documentsUploaded: boolean; verificationStatus?: string }, unknown, RegisterProfessionalRequest>({
     mutationFn: async (data) => {
       if (AUTH_BYPASS_ENABLED) {
         return {
@@ -88,20 +89,14 @@ export function useRegisterProfessional() {
         };
       }
 
-      const { documentsUploaded } = await authApi.registerProfessional(data);
-      return { user: await authApi.getProfile(), documentsUploaded };
+      const { documentsUploaded, verificationStatus } = await authApi.registerProfessional(data);
+      return { user: await authApi.getProfile(), documentsUploaded, verificationStatus };
     },
-    onSuccess: async ({ user, documentsUploaded }) => {
+    onSuccess: async ({ user, documentsUploaded, verificationStatus }) => {
       setUser(user);
       queryClient.invalidateQueries({ queryKey: queryKeys.user });
-      if (documentsUploaded) {
-        toast.success('Conta profissional criada!', 'Seus documentos estão em análise.');
-      } else {
-        toast.info(
-          'Conta criada, mas faltam os documentos',
-          'Não foi possível enviar as fotos. Envie de novo em Perfil > Documentos.',
-        );
-      }
+      const feedback = registrationFeedback(documentsUploaded, verificationStatus);
+      toast[feedback.kind](feedback.title, feedback.message);
       router.replace(getPostAuthRoute(user));
     },
     onError: (error: unknown) => {

@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { ScrollView, View, StyleSheet, ViewProps, RefreshControlProps } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, View, StyleSheet, ViewProps, RefreshControlProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { layout, colors } from '@/theme';
 
@@ -8,6 +8,8 @@ interface ScreenProps extends ViewProps {
   padded?: boolean;
   edges?: ('top' | 'bottom' | 'left' | 'right')[];
   refreshControl?: ReactElement<RefreshControlProps>;
+  /** Empurra o conteúdo para cima do teclado. Telas que tratam o teclado sozinhas (chat) desligam. */
+  avoidKeyboard?: boolean;
 }
 
 export function Screen({
@@ -15,6 +17,7 @@ export function Screen({
   padded = true,
   edges = ['top'],
   refreshControl,
+  avoidKeyboard = true,
   children,
   style,
   ...props
@@ -29,9 +32,19 @@ export function Screen({
       }
     : { style: [styles.flex, padded && styles.padded, style] };
 
+  const content = <Container {...containerProps}>{children}</Container>;
+
   return (
     <SafeAreaView edges={edges} style={styles.safe} {...props}>
-      <Container {...containerProps}>{children}</Container>
+      {avoidKeyboard ? (
+        // Com edge-to-edge o Android não encolhe a tela quando o teclado abre; sem isto o
+        // teclado cobre os campos do fim dos formulários.
+        <KeyboardAvoidingView behavior="padding" style={styles.flex}>
+          {content}
+        </KeyboardAvoidingView>
+      ) : (
+        content
+      )}
     </SafeAreaView>
   );
 }

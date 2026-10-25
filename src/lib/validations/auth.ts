@@ -20,7 +20,7 @@ export const clientRegisterStep2Schema = z.object({
     .regex(/[A-Z]/, 'Deve conter pelo menos 1 letra maiúscula')
     .regex(/[a-z]/, 'Deve conter pelo menos 1 letra minúscula')
     .regex(/[0-9]/, 'Deve conter pelo menos 1 número')
-    .regex(/[^A-Za-z0-9]/, 'Deve conter pelo menos 1 caractere especial'),
+    .regex(/[^A-Za-z0-9]/, 'Inclua 1 símbolo, como !, @ ou #'),
   confirmPassword: z.string().min(1, 'Confirmação é obrigatória'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Senhas não conferem',
@@ -41,7 +41,7 @@ export const newPasswordSchema = z.object({
     .regex(/[A-Z]/, 'Deve conter pelo menos 1 letra maiúscula')
     .regex(/[a-z]/, 'Deve conter pelo menos 1 letra minúscula')
     .regex(/[0-9]/, 'Deve conter pelo menos 1 número')
-    .regex(/[^A-Za-z0-9]/, 'Deve conter pelo menos 1 caractere especial'),
+    .regex(/[^A-Za-z0-9]/, 'Inclua 1 símbolo, como !, @ ou #'),
 });
 
 export const proRegisterStep1Schema = z.object({
@@ -62,7 +62,7 @@ export const proRegisterStep3Schema = z.object({
     .regex(/[A-Z]/, 'Deve conter pelo menos 1 letra maiúscula')
     .regex(/[a-z]/, 'Deve conter pelo menos 1 letra minúscula')
     .regex(/[0-9]/, 'Deve conter pelo menos 1 número')
-    .regex(/[^A-Za-z0-9]/, 'Deve conter pelo menos 1 caractere especial'),
+    .regex(/[^A-Za-z0-9]/, 'Inclua 1 símbolo, como !, @ ou #'),
   confirmPassword: z.string().min(1, 'Confirmação é obrigatória'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Senhas não conferem',

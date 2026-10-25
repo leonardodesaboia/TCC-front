@@ -39,6 +39,11 @@ export function Button({
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={children}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      aria-disabled={isDisabled}
+      aria-busy={loading}
       onPress={onPress}
       disabled={isDisabled}
       style={({ pressed }) => [
@@ -95,7 +100,7 @@ const variantStyles: Record<ButtonVariant, ViewStyle> = {
 };
 
 const sizeStyles: Record<ButtonSize, ViewStyle> = {
-  sm: { height: 40, paddingHorizontal: spacing[4] },
-  md: { height: 50, paddingHorizontal: spacing[5] },
-  lg: { height: 56, paddingHorizontal: spacing[6] },
+  sm: { minHeight: 44, paddingVertical: spacing[2], paddingHorizontal: spacing[4] },
+  md: { minHeight: 50, paddingVertical: spacing[3], paddingHorizontal: spacing[5] },
+  lg: { minHeight: 56, paddingVertical: spacing[3], paddingHorizontal: spacing[6] },
 };

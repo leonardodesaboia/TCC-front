@@ -147,7 +147,7 @@ export default function ProfessionalProfileScreen() {
       />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.profileHeader}>
-          <Avatar name={professional.name} size="xl" backgroundColor={colors.primary.default} />
+          <Avatar uri={professional.avatarUrl} name={professional.name} size="xl" backgroundColor={colors.primary.default} />
           <Text variant="titleLg">{professional.name}</Text>
           {professional.areas.length > 0 ? (
             <Text variant="bodySm" color={colors.neutral[500]}>

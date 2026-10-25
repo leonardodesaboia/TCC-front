@@ -1,6 +1,6 @@
-import { ActivityIndicator, Pressable, StyleSheet, Switch, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { Zap } from 'lucide-react-native';
-import { Text } from '@/components/ui';
+import { Button, Text } from '@/components/ui';
 import { useExpressAvailability } from '@/lib/availability/useExpressAvailability';
 import { useNow } from '@/lib/hooks/useNow';
 import { formatTimeAgo } from '@/lib/utils/formatters';
@@ -56,18 +56,18 @@ function compactToneFor(status: ExpressAvailabilityStatus): CompactCardTone {
 function messageFor(status: ExpressAvailabilityStatus, lastCapturedAt: Date | null, now: number): string {
   switch (status) {
     case 'idle':
-      return 'Ative para receber pedidos de clientes a até 5 km de você.';
+      return 'Ative para receber pedidos Express próximos. Sua localização é usada para encontrar atendimentos na área de busca do cliente.';
     case 'requesting-permission':
-      return 'Solicitando permissão de localização...';
+      return 'Permita a localização na mensagem do celular ou navegador. Você pode cancelar e tentar depois.';
     case 'permission-denied':
       return 'O app precisa da sua localização para saber quais pedidos estão perto de você. '
-        + 'Libere a localização para o AllSet nas configurações do celular e toque em "Tentar de novo".';
+        + 'Libere a localização para o AllSet no celular ou nas permissões do site e toque em "Tentar de novo".';
     case 'capturing':
-      return 'Localizando você...';
+      return 'Buscando sua localização. Se demorar, verifique o GPS. Você pode cancelar e tentar depois.';
     case 'active': {
-      if (!lastCapturedAt) return 'Você está recebendo pedidos de clientes a até 5 km.';
+      if (!lastCapturedAt) return 'Express ligado para pedidos próximos.';
       const secondsAgo = Math.max(0, (now - lastCapturedAt.getTime()) / 1000);
-      return `Você está recebendo pedidos de clientes a até 5 km. Localização atualizada ${formatTimeAgo(secondsAgo)}.`;
+      return `Express ligado para pedidos próximos. Localização atualizada ${formatTimeAgo(secondsAgo)}.`;
     }
     case 'stale':
       return 'Sua localização não é atualizada há alguns minutos. Tentando de novo...';
@@ -80,7 +80,7 @@ function messageFor(status: ExpressAvailabilityStatus, lastCapturedAt: Date | nu
 function compactProblemFor(status: ExpressAvailabilityStatus): string | null {
   switch (status) {
     case 'permission-denied':
-      return 'Libere a localização nas configurações do celular para receber pedidos.';
+      return 'Permita a localização no celular ou navegador para receber pedidos Express.';
     case 'unavailable':
       return 'Não conseguimos sua localização. Verifique o GPS.';
     default:
@@ -118,11 +118,10 @@ export function ExpressAvailabilityCard({ variant = 'default' }: ExpressAvailabi
         </View>
 
         <Switch
-          value={geoActive}
+          value={geoActive || busy}
           onValueChange={toggle}
-          accessibilityRole="switch"
-          accessibilityState={{ checked: geoActive, busy }}
-          accessibilityLabel={`Express ${geoActive ? 'ativo' : 'desligado'}`}
+          {...(Platform.OS === 'web' ? {} : { accessibilityRole: 'switch' as const, accessibilityState: { checked: geoActive || busy, busy } })}
+          accessibilityLabel={`Express ${busy ? 'ativando' : geoActive ? 'ativo' : 'desligado'}`}
           trackColor={{ false: colors.neutral[300], true: colors.success }}
           thumbColor="#FFFFFF"
           ios_backgroundColor={colors.neutral[300]}
@@ -130,9 +129,14 @@ export function ExpressAvailabilityCard({ variant = 'default' }: ExpressAvailabi
         {compactProblemFor(status) ? (
           <View style={styles.compactProblem}>
             <Text variant="labelLg" color={colors.neutral[700]}>{compactProblemFor(status)}</Text>
-            <Pressable onPress={() => void toggle(true)} hitSlop={6}>
-              <Text variant="labelLg" color={colors.primary.default}>Tentar de novo</Text>
-            </Pressable>
+            <Button variant="secondary" size="sm" onPress={() => void toggle(true)}>Tentar de novo</Button>
+            {status === 'permission-denied' ? <Button variant="ghost" size="sm" onPress={() => void openSettings()}>Ver permissões</Button> : null}
+          </View>
+        ) : null}
+        {busy ? (
+          <View style={styles.compactProblem}>
+            <Text variant="bodySm" aria-live="polite">{messageFor(status, lastCapturedAt, now)}</Text>
+            <Button variant="secondary" size="sm" onPress={() => void toggle(false)}>Cancelar localização</Button>
           </View>
         ) : null}
       </View>
@@ -148,10 +152,10 @@ export function ExpressAvailabilityCard({ variant = 'default' }: ExpressAvailabi
         </View>
 
         <Switch
-          value={geoActive}
+          value={geoActive || busy}
           onValueChange={toggle}
-          accessibilityRole="switch"
-          accessibilityState={{ checked: geoActive, busy }}
+          {...(Platform.OS === 'web' ? {} : { accessibilityRole: 'switch' as const, accessibilityState: { checked: geoActive || busy, busy } })}
+          accessibilityLabel="Disponibilidade para pedidos Express"
           trackColor={{ false: colors.neutral[300], true: colors.success }}
           thumbColor="#FFFFFF"
           ios_backgroundColor={colors.neutral[300]}
@@ -160,7 +164,8 @@ export function ExpressAvailabilityCard({ variant = 'default' }: ExpressAvailabi
 
       <View
         style={[styles.badge, styles.defaultBadge, { backgroundColor: badge.backgroundColor }]}
-        accessibilityLabel={badge.label}
+        accessibilityLiveRegion="polite"
+        aria-live="polite"
       >
         {busy ? <ActivityIndicator size="small" color={badge.foregroundColor} /> : null}
         <Text variant="labelSm" color={badge.foregroundColor}>
@@ -174,12 +179,12 @@ export function ExpressAvailabilityCard({ variant = 'default' }: ExpressAvailabi
 
       {status === 'permission-denied' ? (
         <View style={styles.actionsRow}>
-          <Pressable style={styles.actionButton} onPress={() => void openSettings()}>
+          <Pressable accessibilityRole="button" style={styles.actionButton} onPress={() => void openSettings()}>
             <Text variant="labelLg" color={colors.primary.default}>
-              Abrir configurações
+              Ver permissões
             </Text>
           </Pressable>
-          <Pressable style={styles.actionButton} onPress={() => void toggle(true)}>
+          <Pressable accessibilityRole="button" style={styles.actionButton} onPress={() => void toggle(true)}>
             <Text variant="labelLg" color={colors.primary.default}>
               Tentar de novo
             </Text>
@@ -188,12 +193,13 @@ export function ExpressAvailabilityCard({ variant = 'default' }: ExpressAvailabi
       ) : null}
 
       {status === 'stale' || status === 'unavailable' ? (
-        <Pressable style={styles.actionButton} onPress={() => void forceCapture()}>
+        <Pressable accessibilityRole="button" style={styles.actionButton} onPress={() => void (geoActive ? forceCapture() : toggle(true))}>
           <Text variant="labelLg" color={colors.primary.default}>
             {status === 'stale' ? 'Atualizar agora' : 'Tentar de novo'}
           </Text>
         </Pressable>
       ) : null}
+      {busy ? <Button variant="secondary" size="sm" onPress={() => void toggle(false)}>Cancelar localização</Button> : null}
     </View>
   );
 }
@@ -256,9 +262,12 @@ const styles = StyleSheet.create({
   },
   actionsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing[4],
   },
   actionButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     alignSelf: 'flex-start',
     paddingVertical: spacing[1],
   },

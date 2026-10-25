@@ -5,9 +5,7 @@ import {
   CalendarDays,
   ChevronRight,
   FileText,
-  HelpCircle,
   LogOut,
-  MapPin,
   MessageCircle,
   Settings,
   Star,
@@ -31,6 +29,8 @@ interface MenuItemProps {
 function MenuItem({ icon, label, onPress, danger }: MenuItemProps) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
       onPress={onPress}
       style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
     >
@@ -61,6 +61,8 @@ export default function ProfessionalProfileScreen() {
     <Screen edges={['top']} style={styles.screen}>
       {/* Profile card */}
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Editar meus dados de perfil"
         style={({ pressed }) => [styles.profileCard, pressed && styles.profileCardPressed]}
         onPress={() => router.push('/(professional)/(profile)/edit' as any)}
       >
@@ -117,12 +119,6 @@ export default function ProfessionalProfileScreen() {
           CONTA
         </Text>
         <MenuItem
-          icon={<MapPin color={colors.neutral[600]} size={20} />}
-          label="Meus endereços"
-          onPress={() => {}}
-        />
-        <Divider />
-        <MenuItem
           icon={<Bell color={colors.neutral[600]} size={20} />}
           label="Notificações"
           onPress={() => router.push('/(professional)/notifications' as any)}
@@ -143,13 +139,7 @@ export default function ProfessionalProfileScreen() {
         <MenuItem
           icon={<Settings color={colors.neutral[600]} size={20} />}
           label="Configurações"
-          onPress={() => {}}
-        />
-        <Divider />
-        <MenuItem
-          icon={<HelpCircle color={colors.neutral[600]} size={20} />}
-          label="Ajuda"
-          onPress={() => {}}
+          onPress={() => router.push('/(professional)/(profile)/settings' as any)}
         />
       </View>
 
@@ -215,6 +205,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[2],
   },
   menuItem: {
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[3],

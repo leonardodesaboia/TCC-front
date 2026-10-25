@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { pickImage } from '@/lib/utils/image-picker';
 import { router } from 'expo-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, Check, Eye, EyeOff } from 'lucide-react-native';
@@ -44,7 +44,7 @@ interface SelectedDocument {
 
 function StepDots({ current, total }: { current: number; total: number }) {
   return (
-    <View style={styles.stepDots}>
+    <View style={styles.stepDots} accessible accessibilityLabel={`Etapa ${current} de ${total}`}>
       {Array.from({ length: total }, (_, i) => (
         <View key={i} style={[styles.dot, i + 1 <= current && styles.dotActive]} />
       ))}
@@ -54,11 +54,11 @@ function StepDots({ current, total }: { current: number; total: number }) {
 
 function PasswordRule({ label, met }: { label: string; met: boolean }) {
   return (
-    <View style={styles.ruleRow}>
+    <View style={styles.ruleRow} accessible accessibilityLabel={`${label}: ${met ? 'atendido' : 'a preencher'}`}>
       <View style={[styles.ruleIcon, met && styles.ruleIconMet]}>
         <Check color={met ? colors.neutral[50] : colors.neutral[400]} size={10} />
       </View>
-      <Text variant="labelLg" color={met ? colors.neutral[800] : colors.neutral[400]}>
+      <Text variant="labelLg" color={met ? colors.neutral[800] : colors.neutral[600]}>
         {label}
       </Text>
     </View>
@@ -73,7 +73,7 @@ function PasswordRules({ control }: { control: Control<ProRegisterStep3Data> }) 
     { label: '1 letra maiúscula', met: /[A-Z]/.test(password) },
     { label: '1 letra minúscula', met: /[a-z]/.test(password) },
     { label: '1 número', met: /[0-9]/.test(password) },
-    { label: '1 caractere especial', met: /[^A-Za-z0-9]/.test(password) },
+    { label: '1 símbolo, como !, @ ou #', met: /[^A-Za-z0-9]/.test(password) },
   ];
 
   return (
@@ -203,9 +203,9 @@ function CredentialsStep({
         placeholder="Crie uma senha"
         secureTextEntry={!showPassword}
         autoCapitalize="none"
-        autoComplete="password"
+        autoComplete="new-password"
         rightIcon={(
-          <Pressable hitSlop={10} onPress={() => setShowPassword((value) => !value)}>
+          <Pressable hitSlop={10} onPress={() => setShowPassword((value) => !value)} accessibilityRole="button" accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}>
             {showPassword ? <EyeOff color={colors.neutral[400]} size={20} /> : <Eye color={colors.neutral[400]} size={20} />}
           </Pressable>
         )}
@@ -220,9 +220,9 @@ function CredentialsStep({
         placeholder="Repita a senha"
         secureTextEntry={!showConfirmPassword}
         autoCapitalize="none"
-        autoComplete="password"
+        autoComplete="new-password"
         rightIcon={(
-          <Pressable hitSlop={10} onPress={() => setShowConfirmPassword((value) => !value)}>
+          <Pressable hitSlop={10} onPress={() => setShowConfirmPassword((value) => !value)} accessibilityRole="button" accessibilityLabel={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}>
             {showConfirmPassword ? <EyeOff color={colors.neutral[400]} size={20} /> : <Eye color={colors.neutral[400]} size={20} />}
           </Pressable>
         )}
@@ -353,22 +353,9 @@ export default function RegisterProfessionalScreen() {
   });
 
   async function pickDocument(target: 'front' | 'back') {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      toast.error('Permissão necessária', 'Libere acesso à galeria para enviar o documento.');
-      return;
-    }
+    const asset = await pickImage();
+    if (!asset) return;
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.8,
-    });
-
-    if (result.canceled || !result.assets?.[0]) {
-      return;
-    }
-
-    const asset = result.assets[0];
     const selectedDocument = {
       uri: asset.uri,
       mimeType: asset.mimeType ?? 'image/jpeg',
@@ -441,7 +428,7 @@ export default function RegisterProfessionalScreen() {
   return (
     <Screen edges={['top', 'bottom']}>
       <View style={styles.topRow}>
-        <Pressable onPress={goBack} hitSlop={8} style={styles.backBtn}>
+        <Pressable onPress={goBack} hitSlop={8} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Voltar">
           <ArrowLeft color={colors.neutral[900]} size={22} />
         </Pressable>
         <StepDots current={step} total={3} />

@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { usePullToRefresh } from '@/lib/hooks/usePullToRefresh';
 import { useRouter } from 'expo-router';
 import { Heart } from 'lucide-react-native';
 import { EmptyState } from '@/components/feedback/EmptyState';
@@ -25,6 +26,7 @@ function FavoriteProfessionalCard({
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
     >
       <Avatar
+        uri={professional.avatarUrl}
         name={professional.name}
         size="lg"
         backgroundColor={colors.primary.default}
@@ -48,6 +50,7 @@ function FavoriteProfessionalCard({
 export default function FavoriteProfessionalsScreen() {
   const router = useRouter();
   const { data: professionals, isLoading, isError, refetch } = useFavoriteProfessionals();
+  const pullToRefresh = usePullToRefresh({ refetch });
 
   if (isLoading) {
     return <LoadingScreen message="Carregando favoritos..." />;
@@ -60,7 +63,7 @@ export default function FavoriteProfessionalsScreen() {
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
       <Header title="Profissionais salvos" showBack />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={pullToRefresh.refreshing} onRefresh={pullToRefresh.onRefresh} />}>
         {professionals && professionals.length > 0 ? (
           professionals.map((professional) => (
             <FavoriteProfessionalCard

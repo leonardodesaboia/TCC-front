@@ -63,7 +63,7 @@ export default function LoginScreen() {
             autoCapitalize="none"
             autoComplete="password"
             rightIcon={
-              <Pressable hitSlop={10} onPress={() => setShowPassword((v) => !v)}>
+              <Pressable hitSlop={10} onPress={() => setShowPassword((v) => !v)} accessibilityRole="button" accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}>
                 {showPassword ? (
                   <EyeOff color={colors.neutral[400]} size={20} />
                 ) : (

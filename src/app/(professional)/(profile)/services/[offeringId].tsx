@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/lib/navigation/back-history';
 import { Trash2 } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
 import { Button, Input, Text } from '@/components/ui';
 import { FormField } from '@/components/forms/FormField';
 import { MoneyInput } from '@/components/forms/MoneyInput';
+import { DurationInput } from '@/components/forms/DurationInput';
+import { durationInMinutes, durationParts } from '@/lib/utils/duration-input';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { useServiceCategories } from '@/lib/hooks/useCatalog';
@@ -21,7 +24,7 @@ import type { PricingType } from '@/types/service-meta';
 import { colors, radius, spacing } from '@/theme';
 
 export default function EditProfessionalServiceScreen() {
-  const router = useRouter();
+  const goBack = useGoBack();
   const { offeringId } = useLocalSearchParams<{ offeringId: string }>();
   const profileQuery = useMyProfessionalProfile();
   const profile = profileQuery.data;
@@ -36,7 +39,7 @@ export default function EditProfessionalServiceScreen() {
   const [description, setDescription] = useState('');
   const [pricingType, setPricingType] = useState<PricingType>('fixed');
   const [price, setPrice] = useState('');
-  const [duration, setDuration] = useState('');
+  const [duration, setDuration] = useState(durationParts());
   const [clearPrice, setClearPrice] = useState(false);
 
   useEffect(() => {
@@ -45,7 +48,7 @@ export default function EditProfessionalServiceScreen() {
       setDescription(offering.description);
       setPricingType(offering.pricingType);
       setPrice(offering.price != null ? moneyToInput(offering.price) : '');
-      setDuration(String(offering.estimatedDurationMinutes ?? 0));
+      setDuration(durationParts(offering.estimatedDurationMinutes));
       setClearPrice(false);
     }
   }, [offering]);
@@ -62,12 +65,14 @@ export default function EditProfessionalServiceScreen() {
 
   const categoryName = categoriesQuery.data?.find((c) => c.id === offering.categoryId)?.name ?? 'Categoria';
   const parsedPrice = parseMoney(price);
-  const parsedDuration = duration ? parseInt(duration, 10) : 0;
+  const parsedDuration = durationInMinutes(duration);
+  const useSpecialtyPrice = pricingType === 'hourly' && clearPrice;
+  const validPrice = pricingType === 'hourly' && (useSpecialtyPrice || !price.trim()) || parsedPrice !== null && parsedPrice > 0;
   const canSubmit =
     title.trim().length > 0 &&
     description.trim().length > 0 &&
     (pricingType === 'hourly' || parsedDuration > 0) &&
-    (clearPrice || pricingType === 'hourly' || (parsedPrice !== null && !Number.isNaN(parsedPrice) && parsedPrice > 0));
+    validPrice;
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -76,11 +81,11 @@ export default function EditProfessionalServiceScreen() {
         title: title.trim(),
         description: description.trim(),
         pricingType,
-        price: clearPrice ? null : parsedPrice,
-        clearPrice,
+        price: useSpecialtyPrice ? null : parsedPrice,
+        clearPrice: useSpecialtyPrice,
         estimatedDurationMinutes: pricingType === 'hourly' ? null : parsedDuration,
       });
-      router.back();
+      goBack();
     } catch {
       // toast já exibido pelo hook
     }
@@ -90,7 +95,7 @@ export default function EditProfessionalServiceScreen() {
     const confirmDelete = async () => {
       try {
         await deleteOffering.mutateAsync(offeringId);
-        router.back();
+        goBack();
       } catch {
         // toast já exibido
       }
@@ -144,7 +149,10 @@ export default function EditProfessionalServiceScreen() {
         <FormField label="Tipo de cobrança">
           <View style={styles.chipsRow}>
             <Pressable
-              onPress={() => setPricingType('fixed')}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: pricingType === 'fixed' }}
+              aria-checked={pricingType === 'fixed'}
+              onPress={() => { setPricingType('fixed'); setClearPrice(false); }}
               style={[styles.chip, pricingType === 'fixed' && styles.chipActive]}
             >
               <Text variant="labelLg" color={pricingType === 'fixed' ? '#FFFFFF' : colors.neutral[700]}>
@@ -152,6 +160,9 @@ export default function EditProfessionalServiceScreen() {
               </Text>
             </Pressable>
             <Pressable
+              accessibilityRole="radio"
+              accessibilityState={{ checked: pricingType === 'hourly' }}
+              aria-checked={pricingType === 'hourly'}
               onPress={() => setPricingType('hourly')}
               style={[styles.chip, pricingType === 'hourly' && styles.chipActive]}
             >
@@ -170,7 +181,7 @@ export default function EditProfessionalServiceScreen() {
               if (value) setClearPrice(false);
             }}
             placeholder="Ex: 100"
-            editable={!clearPrice}
+            editable={!useSpecialtyPrice}
           />
           {pricingType === 'hourly' ? (
             <Pressable onPress={() => { setClearPrice((value) => !value); if (!clearPrice) setPrice(''); }}>
@@ -182,9 +193,7 @@ export default function EditProfessionalServiceScreen() {
         </FormField>
 
         {pricingType !== 'hourly' ? (
-          <FormField label="Duração estimada (minutos)">
-            <Input value={duration} onChangeText={setDuration} placeholder="Ex: 60" keyboardType="numeric" />
-          </FormField>
+          <DurationInput value={duration} onChange={setDuration} />
         ) : null}
 
         <Pressable
@@ -199,6 +208,7 @@ export default function EditProfessionalServiceScreen() {
       </ScrollView>
 
       <View style={styles.bottomBar}>
+        {!canSubmit ? <Text variant="bodySm" color={colors.neutral[600]}>Confira título, descrição, valor e duração antes de salvar.</Text> : null}
         <Button
           variant="primary"
           size="lg"
@@ -206,7 +216,7 @@ export default function EditProfessionalServiceScreen() {
           disabled={!canSubmit}
           loading={updateOffering.isPending}
         >
-          Salvar alteracoes
+          Salvar alterações
         </Button>
       </View>
     </Screen>
@@ -226,6 +236,8 @@ const styles = StyleSheet.create({
   },
   chipsRow: { flexDirection: 'row', gap: spacing[2] },
   chip: {
+    minHeight: 44,
+    justifyContent: 'center',
     borderRadius: radius.full,
     backgroundColor: colors.neutral[100],
     paddingHorizontal: spacing[4],

@@ -19,6 +19,15 @@ export function getApiErrorMessage(error: unknown): string {
     if (error.response?.status === 401) return 'E-mail ou senha inválidos.';
     if (error.response?.status === 403) return 'Sua conta não pode acessar o AllSet no momento.';
     if (error.response?.status === 423) return 'Sua conta está em processo de exclusão temporária.';
+
+    // Sem resposta, o axios só diz "Network Error". No celular o motivo real
+    // (ex.: falha ao ler o arquivo, conexão encerrada) fica em request._response.
+    if (!error.response && error.code === AxiosError.ERR_NETWORK) {
+      const nativeDetail = (error.request as { _response?: unknown } | undefined)?._response;
+      if (typeof nativeDetail === 'string' && nativeDetail.trim()) {
+        return `Falha de conexão: ${nativeDetail.trim()}`;
+      }
+    }
   }
 
   if (error instanceof Error) return error.message;

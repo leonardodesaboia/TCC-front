@@ -4,12 +4,10 @@ import {
   Bell,
   ChevronRight,
   Heart,
-  HelpCircle,
   LogOut,
   MapPin,
   MessageCircle,
   Settings,
-  Shield,
 } from 'lucide-react-native';
 import { Screen } from '@/components/layout/Screen';
 import { Avatar, Divider, Text } from '@/components/ui';
@@ -27,6 +25,8 @@ interface MenuItemProps {
 function MenuItem({ icon, label, onPress, danger }: MenuItemProps) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
       onPress={onPress}
       style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
     >
@@ -55,6 +55,8 @@ export default function ProfileScreen() {
     <Screen edges={['top']} style={styles.screen}>
       {/* Profile card */}
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Editar meus dados de perfil"
         style={({ pressed }) => [styles.profileCard, pressed && styles.profileCardPressed]}
         onPress={() => router.push('/(client)/(profile)/edit')}
       >
@@ -99,12 +101,7 @@ export default function ProfileScreen() {
           label="Profissionais salvos"
           onPress={() => router.push('/(client)/(profile)/favorites')}
         />
-        <Divider />
-        <MenuItem
-          icon={<Shield color={colors.neutral[600]} size={20} />}
-          label="Segurança"
-          onPress={() => {}}
-        />
+
       </View>
 
       <View style={styles.menuSection}>
@@ -116,12 +113,7 @@ export default function ProfileScreen() {
           label="Configurações"
           onPress={() => router.push('/(client)/(profile)/settings')}
         />
-        <Divider />
-        <MenuItem
-          icon={<HelpCircle color={colors.neutral[600]} size={20} />}
-          label="Ajuda"
-          onPress={() => {}}
-        />
+
       </View>
 
       <View style={styles.menuSection}>
@@ -182,6 +174,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[2],
   },
   menuItem: {
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[3],

@@ -16,6 +16,17 @@ function pushOrUpdate(entry: HistoryEntry) {
     stack[stack.length - 1] = entry;
     return;
   }
+
+  // Chegar na tela anterior por outro caminho (router.back() depois de salvar um formulário,
+  // replace do chat para o pedido) é uma volta: sem isto a tela que ficou para trás era empilhada
+  // de novo e o botão de voltar reabria o formulário já salvo.
+  const previous = stack[stack.length - 2];
+  if (previous && previous.pathname === entry.pathname) {
+    stack.pop();
+    stack[stack.length - 1] = entry;
+    return;
+  }
+
   stack.push(entry);
 }
 
@@ -26,6 +37,10 @@ export function useTrackNavigationHistory() {
   const goBack = useGoBack();
   const segmentKey = segments.join('/');
 
+  // O Android chama primeiro o último listener registrado. O do React Navigation é registrado
+  // ao montar o app e, quando ele abre já logado, fica na frente deste: o voltar do celular
+  // seguia a pilha da aba em vez de voltar para a tela/aba anterior. Registrar de novo a cada
+  // troca de tela mantém este listener sempre na frente.
   useEffect(() => {
     if (Platform.OS !== 'android') return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -34,7 +49,7 @@ export function useTrackNavigationHistory() {
       return true;
     });
     return () => sub.remove();
-  }, [goBack]);
+  }, [goBack, pathname]);
 
   useEffect(() => {
     if (!pathname || !segmentKey) return;
@@ -48,14 +63,59 @@ export function useTrackNavigationHistory() {
 
 export function useGoBack() {
   const router = useRouter();
+  const segments: readonly string[] = useSegments();
+  const segmentKey = segments.join('/');
 
   return useCallback(() => {
-    if (stack.length < 2) return;
+    // An order opened from another tab still belongs to Pedidos. The header and
+    // Android Back must agree, including after restoring a tab's nested screen.
+    const orderDetail = /^\((client|professional)\)\/\(orders\)\/\[orderId\]$/.exec(segmentKey);
+    if (orderDetail) {
+      if (stack.at(-1)?.segmentKey === segmentKey) stack.pop();
+      router.navigate(`/(${orderDetail[1]})/(orders)` as never);
+      return;
+    }
+    if (stack.length < 2) {
+      // Deep links/reloads can contain only the nested screen, with no parent to pop.
+      const role = segments[0];
+      if ((role === '(professional)' || role === '(client)') && segments[1]?.startsWith('(')) {
+        router.navigate(`/${role}/${segments[1]}` as never);
+      } else if (router.canGoBack()) router.back();
+      return;
+    }
 
-    stack.pop();
+    const current = stack.pop();
     const previous = stack[stack.length - 1];
+
+    // Tela anterior na mesma aba fica logo abaixo na pilha: desempilhar mantém o que
+    // foi digitado nela (ex.: voltar do novo endereço para o pedido em andamento).
+    // `navigate` montaria uma tela nova, em branco.
+    const sameTab = current?.segmentKey.split('/')[1] === previous.segmentKey.split('/')[1];
+    if (sameTab && router.canGoBack()) {
+      router.back();
+      return;
+    }
     router.navigate({ pathname: previous.pathname, params: previous.params } as never);
-  }, [router]);
+  }, [router, segmentKey]);
+}
+
+/**
+ * Tira a tela atual do histórico antes de sair dela: o voltar da próxima tela
+ * não deve reabrir um formulário já enviado (ex.: criar pedido → detalhes do pedido).
+ */
+export function forgetCurrentRoute() {
+  stack.pop();
+}
+
+/**
+ * Tocar na aba em que já se está volta para a raiz dela: as telas internas dessa aba
+ * saem do histórico, para o voltar do celular ir para a aba anterior e não reabrir
+ * a tela que acabou de ser fechada.
+ */
+export function forgetTabScreens(tabName: string) {
+  while (stack.length > 0 && stack[stack.length - 1].segmentKey.split('/')[1] === tabName) {
+    stack.pop();
+  }
 }
 
 export function resetNavigationHistory() {
