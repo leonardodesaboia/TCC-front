@@ -7,7 +7,9 @@ import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { Header } from '@/components/layout/Header';
 import { Screen } from '@/components/layout/Screen';
-import { Text } from '@/components/ui';
+import { Button, Text } from '@/components/ui';
+import { ConversationOrderInfo } from '@/components/conversations/ConversationOrderInfo';
+import { useOrder } from '@/lib/hooks/useOrders';
 import { useConversation, useConversationMessages, useMarkConversationRead, useSendMessage } from '@/lib/hooks/useConversations';
 import { useAuth } from '@/providers/AuthProvider';
 import { formatDateShort } from '@/lib/utils/formatters';
@@ -21,6 +23,7 @@ export default function ConversationDetailScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const conversationQuery = useConversation(id);
+  const orderQuery = useOrder(conversationQuery.data?.orderId ?? '');
   const messagesQuery = useConversationMessages(id);
   const markRead = useMarkConversationRead(id);
   const sendMessage = useSendMessage(id);
@@ -105,8 +108,13 @@ export default function ConversationDetailScreen() {
       <Header
         title={conversation.otherParticipantName ? `Conversa com ${conversation.otherParticipantName}` : 'Conversa do pedido'}
         showBack
-        onBackPress={from === 'order' ? handleBack : undefined}
+        onBackPress={from === 'order' ? handleBack : () => router.replace('/(client)/conversations' as never)}
+        backLabel={from === 'order' ? 'Voltar para o pedido' : 'Voltar para conversas'}
       />
+      <View style={styles.orderContext}>
+        <ConversationOrderInfo orderId={conversation.orderId} order={orderQuery.data} />
+        <Button variant="secondary" size="sm" onPress={() => router.push(`/(client)/(orders)/${conversation.orderId}` as never)}>Ver pedido</Button>
+      </View>
 
       {/* Com edge-to-edge o Android não encolhe a tela quando o teclado abre. O keyboardDidShow
           informa a posição do teclado na janela, mas o KeyboardAvoidingView se mede a partir do
@@ -158,6 +166,7 @@ export default function ConversationDetailScreen() {
         ) : (
           <View style={styles.composer}>
             <TextInput
+              accessibilityLabel="Mensagem para o profissional"
               value={content}
               onChangeText={setContent}
               placeholder="Digite uma mensagem..."
@@ -167,6 +176,8 @@ export default function ConversationDetailScreen() {
               onSubmitEditing={handleSend}
             />
             <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !content.trim() || sendMessage.isPending, busy: sendMessage.isPending }}
               style={[styles.sendBtn, (!content.trim() || sendMessage.isPending) && styles.sendBtnDisabled]}
               onPress={handleSend}
               disabled={!content.trim() || sendMessage.isPending}
@@ -183,6 +194,7 @@ export default function ConversationDetailScreen() {
 
 const styles = StyleSheet.create({
   screen: { gap: 0 },
+  orderContext: { gap: spacing[2], paddingVertical: spacing[3], borderBottomWidth: 1, borderBottomColor: colors.neutral[200] },
   chatArea: { flex: 1 },
   messages: { gap: spacing[3], paddingBottom: spacing[4], flexGrow: 1 },
   emptyChat: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: spacing[10] },

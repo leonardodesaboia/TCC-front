@@ -12,6 +12,8 @@ import { Header } from '@/components/layout/Header';
 import { Badge, Text } from '@/components/ui';
 import { OrderProfessionalAvatar } from '@/components/client/ProfessionalAvatar';
 import { useConversations } from '@/lib/hooks/useConversations';
+import { ConversationOrderInfo } from '@/components/conversations/ConversationOrderInfo';
+import { formatDateTime } from '@/lib/utils/formatters';
 import type { ConversationSummary } from '@/types/conversation';
 import { colors, radius, spacing } from '@/theme';
 
@@ -20,6 +22,8 @@ function ConversationCard({ conversation, onPress }: { conversation: Conversatio
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityHint="Abre a conversa deste pedido"
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
@@ -34,9 +38,11 @@ function ConversationCard({ conversation, onPress }: { conversation: Conversatio
           <Text variant="titleSm" numberOfLines={1} style={styles.titleFlex}>{displayName}</Text>
           {conversation.unreadCount > 0 ? <Badge label={String(conversation.unreadCount)} /> : null}
         </View>
+        <ConversationOrderInfo orderId={conversation.orderId} order={conversation.order} />
         <Text variant="bodySm" color={colors.neutral[500]} numberOfLines={1}>
           {conversation.lastMessage ?? 'Conversa iniciada.'}
         </Text>
+        {conversation.lastMessageAt ? <Text variant="labelSm" color={colors.neutral[600]}>Última mensagem: {formatDateTime(conversation.lastMessageAt)}</Text> : null}
       </View>
     </Pressable>
   );
@@ -47,13 +53,13 @@ export default function ConversationsScreen() {
   const { orderId, from } = useLocalSearchParams<{ orderId?: string; from?: string }>();
   const conversationsQuery = useConversations();
   const pullToRefresh = usePullToRefresh(conversationsQuery);
-  const redirectedRef = useRef(false);
+  const redirectedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!orderId || !conversationsQuery.data?.length || redirectedRef.current) return;
+    if (!orderId || !conversationsQuery.data?.length || redirectedRef.current === orderId) return;
     const match = conversationsQuery.data.find((item) => item.orderId === orderId);
     if (match) {
-      redirectedRef.current = true;
+      redirectedRef.current = orderId;
       // Esta tela só redireciona para o chat do pedido: fica fora do histórico, senão o voltar
       // do celular no chat caía aqui e era mandado de novo para o chat.
       forgetCurrentRoute();

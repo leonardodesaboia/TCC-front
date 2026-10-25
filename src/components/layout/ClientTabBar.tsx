@@ -38,6 +38,7 @@ export function ClientTabBar({ state, descriptors, navigation }: BottomTabBarPro
               key={tab.name}
               accessibilityRole="tab"
               accessibilityState={{ selected: isFocused }}
+              aria-selected={isFocused}
               accessibilityLabel={descriptor.options.tabBarAccessibilityLabel ?? tab.label}
               onPress={() => handleTabPress(navigation, route, isFocused)}
               style={styles.tab}

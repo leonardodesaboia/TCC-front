@@ -63,11 +63,24 @@ export function useTrackNavigationHistory() {
 
 export function useGoBack() {
   const router = useRouter();
+  const segments: readonly string[] = useSegments();
+  const segmentKey = segments.join('/');
 
   return useCallback(() => {
+    // An order opened from another tab still belongs to Pedidos. The header and
+    // Android Back must agree, including after restoring a tab's nested screen.
+    const orderDetail = /^\((client|professional)\)\/\(orders\)\/\[orderId\]$/.exec(segmentKey);
+    if (orderDetail) {
+      if (stack.at(-1)?.segmentKey === segmentKey) stack.pop();
+      router.navigate(`/(${orderDetail[1]})/(orders)` as never);
+      return;
+    }
     if (stack.length < 2) {
-      // Tela aberta direto (ex.: pela notificação) ainda não tem histórico próprio.
-      if (router.canGoBack()) router.back();
+      // Deep links/reloads can contain only the nested screen, with no parent to pop.
+      const role = segments[0];
+      if ((role === '(professional)' || role === '(client)') && segments[1]?.startsWith('(')) {
+        router.navigate(`/${role}/${segments[1]}` as never);
+      } else if (router.canGoBack()) router.back();
       return;
     }
 
@@ -83,7 +96,7 @@ export function useGoBack() {
       return;
     }
     router.navigate({ pathname: previous.pathname, params: previous.params } as never);
-  }, [router]);
+  }, [router, segmentKey]);
 }
 
 /**

@@ -17,6 +17,7 @@ import {
 } from '@/lib/utils/token-storage';
 import { getAuthenticatedUserId } from '@/lib/utils/auth-session';
 import { appendImage } from '@/lib/utils/form-data';
+import { professionalIntegration } from '@/lib/integrations/professional';
 
 export const authApi = {
   async login(data: LoginRequest): Promise<AuthTokens> {
@@ -39,7 +40,7 @@ export const authApi = {
    * Nesse caso o cadastro termina normalmente e `documentsUploaded` volta false, para o app
    * orientar o reenvio em Perfil > Documentos.
    */
-  async registerProfessional(data: RegisterProfessionalRequest): Promise<{ tokens: AuthTokens; documentsUploaded: boolean }> {
+  async registerProfessional(data: RegisterProfessionalRequest): Promise<{ tokens: AuthTokens; documentsUploaded: boolean; verificationStatus?: string }> {
     const user = await usersApi.createProfessional(data);
     const tokens = await this.login({ email: data.email, password: data.password });
     const professional = await professionalManagementApi.createProfile({
@@ -63,7 +64,13 @@ export const authApi = {
       return { tokens, documentsUploaded: false };
     }
 
-    return { tokens, documentsUploaded: true };
+    // Re-read after uploads: the environment may activate the account immediately.
+    // A failed status refresh must not turn an already-created account into a signup error.
+    let verificationStatus: string | undefined;
+    try {
+      verificationStatus = (await professionalIntegration.profile.getMyProfile()).verificationStatus;
+    } catch { /* The dashboard will refresh the status. */ }
+    return { tokens, documentsUploaded: true, verificationStatus };
   },
 
   async getProfile() {

@@ -6,6 +6,8 @@ import { Header } from '@/components/layout/Header';
 import { Button, Input, Text } from '@/components/ui';
 import { FormField } from '@/components/forms/FormField';
 import { MoneyInput } from '@/components/forms/MoneyInput';
+import { DurationInput } from '@/components/forms/DurationInput';
+import { durationInMinutes, durationParts } from '@/lib/utils/duration-input';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingScreen } from '@/components/feedback/LoadingScreen';
 import { getCategoryVisual } from '@/lib/catalog/category-visuals';
@@ -27,7 +29,7 @@ export default function NewProfessionalServiceScreen() {
   const [description, setDescription] = useState('');
   const [pricingType, setPricingType] = useState<PricingType>('fixed');
   const [price, setPrice] = useState('');
-  const [duration, setDuration] = useState('');
+  const [duration, setDuration] = useState(durationParts());
 
   // Com uma única profissão no perfil não há escolha a fazer: ela já vem selecionada.
   const onlySpecialtyId = profile?.specialties?.length === 1 ? profile.specialties[0].categoryId : null;
@@ -62,20 +64,21 @@ export default function NewProfessionalServiceScreen() {
   }
 
   const parsedPrice = parseMoney(price);
-  const parsedDuration = duration ? parseInt(duration, 10) : 0;
+  const parsedDuration = durationInMinutes(duration);
+  const validPrice = pricingType === 'hourly' && !price.trim() || parsedPrice !== null && parsedPrice > 0;
   const canSubmit =
     !!categoryId &&
     title.trim().length > 0 &&
     description.trim().length > 0 &&
     (pricingType === 'hourly' || parsedDuration > 0) &&
-    (pricingType === 'hourly' || (parsedPrice !== null && !Number.isNaN(parsedPrice) && parsedPrice > 0));
+    validPrice;
 
   // Lista o que ainda falta, para o botão desabilitado não ficar sem explicação.
   const missingFields = [
     !categoryId && 'profissão',
     !title.trim() && 'título',
     !description.trim() && 'descrição',
-    pricingType === 'fixed' && !(parsedPrice && parsedPrice > 0) && 'valor',
+    !validPrice && 'valor maior que zero',
     pricingType === 'fixed' && !(parsedDuration > 0) && 'duração',
   ].filter(Boolean) as string[];
 
@@ -115,6 +118,9 @@ export default function NewProfessionalServiceScreen() {
                 const Icon = visual.Icon;
                 return (
                   <Pressable
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: active }}
+                    aria-checked={active}
                     key={specialty.categoryId}
                     onPress={() => handleSelectCategory(specialty)}
                     style={[styles.chip, active && styles.chipActive]}
@@ -157,6 +163,9 @@ export default function NewProfessionalServiceScreen() {
         <FormField label="Tipo de cobrança">
           <View style={styles.chipsRow}>
             <Pressable
+              accessibilityRole="radio"
+              accessibilityState={{ checked: pricingType === 'fixed' }}
+              aria-checked={pricingType === 'fixed'}
               onPress={() => handleSelectPricingType('fixed')}
               style={[styles.chip, pricingType === 'fixed' && styles.chipActive]}
             >
@@ -165,6 +174,9 @@ export default function NewProfessionalServiceScreen() {
               </Text>
             </Pressable>
             <Pressable
+              accessibilityRole="radio"
+              accessibilityState={{ checked: pricingType === 'hourly' }}
+              aria-checked={pricingType === 'hourly'}
               onPress={() => handleSelectPricingType('hourly')}
               style={[styles.chip, pricingType === 'hourly' && styles.chipActive]}
             >
@@ -179,15 +191,13 @@ export default function NewProfessionalServiceScreen() {
           <MoneyInput value={price} onChangeText={setPrice} placeholder="Ex: 100" />
           {pricingType === 'hourly' ? (
             <Text variant="labelSm" color={colors.neutral[500]}>
-              Preenchido automaticamente com o valor da profissão selecionada.
+              Se deixar em branco, será usado o valor por hora da profissão selecionada. Você pode informar outro valor para este serviço.
             </Text>
           ) : null}
         </FormField>
 
         {pricingType !== 'hourly' ? (
-          <FormField label="Duração estimada (minutos)">
-            <Input value={duration} onChangeText={setDuration} placeholder="Ex: 60" keyboardType="numeric" />
-          </FormField>
+          <DurationInput value={duration} onChange={setDuration} />
         ) : null}
 
         <View style={{ height: spacing[4] }} />
@@ -218,6 +228,8 @@ const styles = StyleSheet.create({
   scrollContent: { gap: spacing[4], paddingTop: spacing[4], paddingBottom: spacing[4] },
   chipsRow: { flexDirection: 'row', gap: spacing[2], paddingRight: spacing[4] },
   chip: {
+    minHeight: 44,
+    justifyContent: 'center',
     borderRadius: radius.full,
     backgroundColor: colors.neutral[100],
     paddingHorizontal: spacing[4],

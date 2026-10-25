@@ -29,7 +29,7 @@ export function ExpandableImage({ uri, style, containerStyle, resizeMode = 'cove
 
   return (
     <>
-      <Pressable onPress={() => setOpen(true)} style={containerStyle} accessibilityRole="imagebutton" accessibilityLabel={accessibilityLabel}>
+      <Pressable onPress={() => setOpen(true)} style={containerStyle} accessibilityRole="button" accessibilityLabel={accessibilityLabel}>
         <Image source={{ uri }} style={style} resizeMode={resizeMode} />
       </Pressable>
 

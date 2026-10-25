@@ -25,6 +25,8 @@ interface MenuItemProps {
 function MenuItem({ icon, label, onPress, danger }: MenuItemProps) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
       onPress={onPress}
       style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
     >
@@ -53,6 +55,8 @@ export default function ProfileScreen() {
     <Screen edges={['top']} style={styles.screen}>
       {/* Profile card */}
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Editar meus dados de perfil"
         style={({ pressed }) => [styles.profileCard, pressed && styles.profileCardPressed]}
         onPress={() => router.push('/(client)/(profile)/edit')}
       >
@@ -170,6 +174,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[2],
   },
   menuItem: {
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[3],

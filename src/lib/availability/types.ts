@@ -35,3 +35,5 @@ export const FLUSH_DISTANCE_M = 50;
 export const WATCH_TIME_INTERVAL_MS = 60 * 1000;
 export const WATCH_DISTANCE_INTERVAL_M = 25;
 export const TOGGLE_OFF_RETRY_DELAYS_MS = [1000, 2000, 4000] as const;
+export const PERMISSION_TIMEOUT_MS = 30000;
+export const LOCATION_TIMEOUT_MS = 20000;

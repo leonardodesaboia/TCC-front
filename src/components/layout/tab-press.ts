@@ -22,7 +22,15 @@ export function handleTabPress(
   }
 
   const nested = route.state as NavigationState | PartialState<NavigationState> | undefined;
-  if (!nested?.key || !nested.index) return;
+  if (!nested?.key) return;
+  if (!nested.index) {
+    // A deep link may initialize a stack with a detail/form as its only screen.
+    if (nested.routes[0]?.name !== 'index') {
+      forgetTabScreens(route.name);
+      navigation.navigate(route.name, { screen: 'index' });
+    }
+    return;
+  }
 
   forgetTabScreens(route.name);
   navigation.dispatch({ ...StackActions.popToTop(), target: nested.key });
