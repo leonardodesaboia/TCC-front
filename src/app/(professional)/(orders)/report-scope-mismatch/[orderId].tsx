@@ -15,6 +15,8 @@ import {
   useReportScopeMismatch,
 } from '@/lib/hooks/useProfessionalArea';
 import { useProfessionalOfferings } from '@/lib/hooks/useProfessionalManagement';
+import { DurationInput } from '@/components/forms/DurationInput';
+import { durationInMinutes, durationParts } from '@/lib/utils/duration-input';
 import { formatMoney } from '@/lib/utils/formatters';
 import { colors, radius, spacing } from '@/theme';
 import { OrderMode } from '@/types/order';
@@ -37,7 +39,7 @@ export default function ReportScopeMismatchScreen() {
   const [action, setAction] = useState<Action>('cancel');
   const [reason, setReason] = useState('');
   const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>();
-  const [durationText, setDurationText] = useState('');
+  const [duration, setDuration] = useState(durationParts());
 
   if (orderQuery.isLoading || (isOnDemand && (profileQuery.isLoading || offeringsQuery.isLoading))) {
     return <LoadingScreen message="Carregando pedido..." />;
@@ -62,7 +64,7 @@ export default function ReportScopeMismatchScreen() {
   );
   const selectedOffering = availableOfferings.find((o) => o.id === selectedServiceId);
   const needsDuration = selectedOffering?.pricingType === 'hourly' && !selectedOffering.estimatedDurationMinutes;
-  const durationMinutes = parseInt(durationText.replace(/\D/g, '') || '0', 10);
+  const durationMinutes = durationInMinutes(duration);
 
   const canSubmitCancel = reason.trim().length > 0;
   const canSubmitServiceChange =
@@ -198,12 +200,8 @@ export default function ReportScopeMismatchScreen() {
                   Esse serviço é cobrado por hora e não tem uma duração padrão — informe quanto
                   tempo o serviço deve levar (múltiplo de 30 minutos).
                 </Text>
-                <Input
-                  value={durationText}
-                  onChangeText={(text) => setDurationText(text.replace(/\D/g, ''))}
-                  placeholder="Duração em minutos (ex: 90)"
-                  keyboardType="numeric"
-                />
+                <DurationInput value={duration} onChange={setDuration} />
+                {durationMinutes > 0 && durationMinutes % 30 !== 0 ? <Text accessibilityLiveRegion="polite" color={colors.error}>Para esta troca, use intervalos de 30 minutos, como 1 hora ou 1 hora e 30 minutos.</Text> : null}
               </View>
             ) : null}
           </>

@@ -176,7 +176,7 @@ export default function ProfessionalDashboardScreen() {
             {activeOrders.length}
           </Text>
           <Text variant="labelSm" color={colors.neutral[500]} style={styles.metricLabel}>
-            Em andamento
+            Ativos
           </Text>
         </View>
         <View style={styles.metricChip}>

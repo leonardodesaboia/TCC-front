@@ -43,3 +43,10 @@ npm run typecheck
 ```
 
 O build web é validado durante `docker compose build`. GPS foi coberto nos testes de lógica; a captura física em Android/iOS ainda requer teste em aparelho.
+
+## Correções de experiência e acessibilidade
+
+Consulte [o registro de alterações e verificações de 24/10/2026](docs/ux-accessibility-20261024.md).
+`npm run start:cloud -- --go --clear` usa a API hospedada e, em checkouts no OneDrive,
+executa o Expo em uma cópia local fora da pasta sincronizada. Continue editando e usando
+Git no checkout original.

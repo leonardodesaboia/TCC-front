@@ -1,12 +1,15 @@
 import { createContext, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
-import { AppState, Linking, type AppStateStatus } from 'react-native';
+import { AppState, Linking, Platform, type AppStateStatus } from 'react-native';
 import { professionalManagementApi } from '@/lib/api/professional-management';
 import { queryKeys } from '@/lib/constants/query-keys';
 import { toast } from '@/lib/utils/toast';
+import { withTimeout } from '@/lib/utils/timeout';
 import {
   FLUSH_DISTANCE_M,
+  LOCATION_TIMEOUT_MS,
+  PERMISSION_TIMEOUT_MS,
   FLUSH_TIME_MS,
   RECENCY_CHECK_INTERVAL_MS,
   PROACTIVE_REFRESH_MS,
@@ -89,6 +92,7 @@ export function ExpressAvailabilityProvider({
   const autoResumeStartedForRef = useRef<string | null>(null);
   const desiredGeoActiveRef = useRef(initialGeoActive);
   const trackingTokenRef = useRef(0);
+  const disableTaskRef = useRef<Promise<void> | null>(null);
 
   const invalidateProfileQueries = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.professionals.myProfile });
@@ -154,8 +158,9 @@ export function ExpressAvailabilityProvider({
     });
 
     if (!isTrackingTokenCurrent(trackingToken)) {
-      stopWatch();
       try {
+        if (desiredGeoActiveRef.current) return false;
+        stopWatch();
         await professionalManagementApi.updateGeo(professionalId, { geoActive: false });
       } catch (error) {
         console.warn('[express-availability] failed to rollback stale activation', error);
@@ -179,17 +184,15 @@ export function ExpressAvailabilityProvider({
 
   const handleCaptureFailure = useCallback((error: unknown) => {
     consecutiveFailuresRef.current += 1;
-    if (consecutiveFailuresRef.current >= 2) {
-      setStatus('unavailable');
-    }
+    setStatus('unavailable');
     console.warn('[express-availability] capture failed', error);
   }, []);
 
   const captureOnce = useCallback(async (force = false, trackingToken = trackingTokenRef.current) => {
     try {
-      const position = await Location.getCurrentPositionAsync({
+      const position = await withTimeout(Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
-      });
+      }), LOCATION_TIMEOUT_MS);
       if (!isTrackingTokenCurrent(trackingToken)) {
         return null;
       }
@@ -197,14 +200,15 @@ export function ExpressAvailabilityProvider({
       await flushIfNeeded(coords, force, position.timestamp ?? Date.now(), trackingToken);
       return coords;
     } catch (error) {
-      handleCaptureFailure(error);
+      if (isTrackingTokenCurrent(trackingToken)) handleCaptureFailure(error);
       return null;
     }
   }, [flushIfNeeded, handleCaptureFailure, isTrackingTokenCurrent]);
 
   const startWatch = useCallback(async (trackingToken = trackingTokenRef.current) => {
     if (subscriptionRef.current || !isTrackingTokenCurrent(trackingToken)) return;
-    subscriptionRef.current = await Location.watchPositionAsync(
+    let expired = false;
+    const pending = Location.watchPositionAsync(
       {
         accuracy: Location.Accuracy.Balanced,
         timeInterval: WATCH_TIME_INTERVAL_MS,
@@ -212,13 +216,26 @@ export function ExpressAvailabilityProvider({
       },
       (location) => {
         if (!isTrackingTokenCurrent(trackingToken)) {
-          stopWatch();
           return;
         }
         const coords = toCoords(location);
-        void flushIfNeeded(coords, false, location.timestamp ?? Date.now(), trackingToken).catch(handleCaptureFailure);
+        void flushIfNeeded(coords, false, location.timestamp ?? Date.now(), trackingToken).catch((error) => {
+          if (isTrackingTokenCurrent(trackingToken)) handleCaptureFailure(error);
+        });
       },
-    );
+    ).then((subscription) => {
+      if (expired || !isTrackingTokenCurrent(trackingToken)) {
+        subscription.remove();
+        return null;
+      }
+      return subscription;
+    });
+    try {
+      subscriptionRef.current = await withTimeout(pending, LOCATION_TIMEOUT_MS);
+    } catch (error) {
+      expired = true;
+      if (isTrackingTokenCurrent(trackingToken)) handleCaptureFailure(error);
+    }
   }, [flushIfNeeded, handleCaptureFailure, isTrackingTokenCurrent, stopWatch]);
 
   const disableOnPermissionLoss = useCallback(async () => {
@@ -241,68 +258,81 @@ export function ExpressAvailabilityProvider({
     if (!geoActive || !professionalId) return;
     const trackingToken = trackingTokenRef.current;
 
-    const permission = await Location.getForegroundPermissionsAsync();
-    if (permission.status !== 'granted') {
-      await disableOnPermissionLoss();
-      return;
+    try {
+      const permission = await withTimeout(Location.getForegroundPermissionsAsync(), PERMISSION_TIMEOUT_MS);
+      if (!isTrackingTokenCurrent(trackingToken)) return;
+      if (permission.status !== 'granted') {
+        await disableOnPermissionLoss();
+        return;
+      }
+      setStatus('capturing');
+      const coords = await captureOnce(true, trackingToken);
+      if (!isTrackingTokenCurrent(trackingToken) || !coords) return;
+      await startWatch(trackingToken);
+    } catch (error) {
+      if (isTrackingTokenCurrent(trackingToken)) handleCaptureFailure(error);
     }
-
-    setStatus('capturing');
-
-    const coords = await captureOnce(true, trackingToken);
-    if (!isTrackingTokenCurrent(trackingToken)) return;
-    if (!coords) return;
-    await startWatch(trackingToken);
-  }, [captureOnce, disableOnPermissionLoss, geoActive, isTrackingTokenCurrent, lastCapturedAt, professionalId, startWatch]);
+  }, [captureOnce, disableOnPermissionLoss, geoActive, handleCaptureFailure, isTrackingTokenCurrent, professionalId, startWatch]);
 
   const toggle = useCallback(async (next: boolean) => {
     if (!professionalId) return;
 
     if (!next) {
-      beginTrackingTransition(false);
+      const disablingToken = beginTrackingTransition(false);
       stopWatch();
-
-      let lastError: unknown = null;
-      for (let attempt = 0; attempt <= TOGGLE_OFF_RETRY_DELAYS_MS.length; attempt += 1) {
-        try {
-          await professionalManagementApi.updateGeo(professionalId, { geoActive: false });
-          invalidateProfileQueries();
-          lastError = null;
-          break;
-        } catch (error) {
-          lastError = error;
-          if (attempt === TOGGLE_OFF_RETRY_DELAYS_MS.length) {
-            break;
-          }
-          await delay(TOGGLE_OFF_RETRY_DELAYS_MS[attempt]);
-        }
-      }
-
       applyInactiveState('idle');
-      if (lastError) {
-        toast.error('Erro ao desativar Express', 'Não foi possível sincronizar a desativação no servidor.');
-      }
+
+      const disableTask = (async () => {
+        let lastError: unknown = null;
+        for (let attempt = 0; attempt <= TOGGLE_OFF_RETRY_DELAYS_MS.length; attempt += 1) {
+          try {
+            await professionalManagementApi.updateGeo(professionalId, { geoActive: false });
+            invalidateProfileQueries();
+            lastError = null;
+            break;
+          } catch (error) {
+            lastError = error;
+            if (attempt === TOGGLE_OFF_RETRY_DELAYS_MS.length) break;
+            await delay(TOGGLE_OFF_RETRY_DELAYS_MS[attempt]);
+          }
+        }
+
+        if (trackingTokenRef.current === disablingToken) applyInactiveState('idle');
+        if (lastError && trackingTokenRef.current === disablingToken) {
+          toast.error('Erro ao desativar Express', 'Não foi possível sincronizar a desativação no servidor.');
+        }
+      })();
+      disableTaskRef.current = disableTask;
+      await disableTask;
+      if (disableTaskRef.current === disableTask) disableTaskRef.current = null;
       return;
     }
 
     const trackingToken = beginTrackingTransition(true);
     setStatus('requesting-permission');
-    const permission = await Location.requestForegroundPermissionsAsync();
-    if (trackingTokenRef.current !== trackingToken) return;
-    if (permission.status !== 'granted') {
-      desiredGeoActiveRef.current = false;
-      setStatus('permission-denied');
-      setGeoActive(false);
-      return;
+    try {
+      // Finish a previous OFF request before sending a new activation.
+      // Otherwise a slow OFF response can disable the newly activated session.
+      await disableTaskRef.current;
+      if (!isTrackingTokenCurrent(trackingToken)) return;
+      const permission = await withTimeout(Location.requestForegroundPermissionsAsync(), PERMISSION_TIMEOUT_MS);
+      if (trackingTokenRef.current !== trackingToken) return;
+      if (permission.status !== 'granted') {
+        if (geoActive) await disableOnPermissionLoss();
+        else {
+          desiredGeoActiveRef.current = false;
+          applyInactiveState('permission-denied');
+        }
+        return;
+      }
+      setStatus('capturing');
+      const coords = await captureOnce(true, trackingToken);
+      if (!isTrackingTokenCurrent(trackingToken) || !coords) return;
+      await startWatch(trackingToken);
+    } catch (error) {
+      if (isTrackingTokenCurrent(trackingToken)) handleCaptureFailure(error);
     }
-
-    setStatus('capturing');
-    const coords = await captureOnce(true, trackingToken);
-    if (!isTrackingTokenCurrent(trackingToken)) return;
-    if (!coords) return;
-
-    await startWatch(trackingToken);
-  }, [applyInactiveState, beginTrackingTransition, captureOnce, invalidateProfileQueries, isTrackingTokenCurrent, professionalId, startWatch, stopWatch]);
+  }, [applyInactiveState, beginTrackingTransition, captureOnce, disableOnPermissionLoss, geoActive, handleCaptureFailure, invalidateProfileQueries, isTrackingTokenCurrent, professionalId, startWatch, stopWatch]);
 
   const forceCapture = useCallback(async () => {
     if (!geoActive || !professionalId) return;
@@ -315,7 +345,15 @@ export function ExpressAvailabilityProvider({
   }, [captureOnce, geoActive, isTrackingTokenCurrent, professionalId, startWatch]);
 
   const openSettings = useCallback(async () => {
-    await Linking.openSettings();
+    if (Platform.OS === 'web') {
+      toast.info('Permissão de localização', 'Abra as permissões deste site na barra de endereço do navegador e permita a localização. Depois toque em Tentar de novo.');
+      return;
+    }
+    try {
+      await Linking.openSettings();
+    } catch {
+      toast.info('Permissão de localização', 'Abra as configurações do celular, procure AllSet e permita a localização durante o uso.');
+    }
   }, []);
 
   useEffect(() => {
@@ -371,7 +409,10 @@ export function ExpressAvailabilityProvider({
     void resumeTracking();
   }, [initialGeoActive, professionalId, resumeTracking]);
 
-  useEffect(() => () => stopWatch(), [stopWatch]);
+  useEffect(() => () => {
+    beginTrackingTransition(false);
+    stopWatch();
+  }, [beginTrackingTransition, stopWatch]);
 
   const value = useMemo<ExpressAvailabilityContextValue>(() => ({
     status,

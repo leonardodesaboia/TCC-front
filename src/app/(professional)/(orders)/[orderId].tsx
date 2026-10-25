@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Alert, Image, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { usePullToRefresh } from '@/lib/hooks/usePullToRefresh';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AlertTriangle, Camera, CheckCircle2, Clock, MapPin, MessageCircle } from 'lucide-react-native';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { pickImage } from '@/lib/utils/image-picker';
+import { appendImage } from '@/lib/utils/form-data';
+import { getApiErrorMessage } from '@/lib/utils/errors';
+import { toast } from '@/lib/utils/toast';
 import { ExpandableImage } from '@/components/ui/ExpandableImage';
 import { Screen } from '@/components/layout/Screen';
 import { Header } from '@/components/layout/Header';
@@ -49,6 +52,9 @@ export default function ProfessionalOrderDetailScreen() {
   const [proposedAmount, setProposedAmount] = useState('');
   // Foto escolhida para concluir o serviço; só é enviada depois que o profissional confirma.
   const [completionAsset, setCompletionAsset] = useState<ImagePickerAsset | null>(null);
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
+  const [completionError, setCompletionError] = useState<string | null>(null);
+  const completionInFlight = useRef(false);
   const now = useNow(1000, orderQuery.data?.status === OrderStatus.PENDING);
 
   if (orderQuery.isLoading || areasQuery.isLoading || categoriesQuery.isLoading) {
@@ -165,27 +171,31 @@ export default function ProfessionalOrderDetailScreen() {
   }
 
   async function handleComplete() {
-    const asset = await pickImage();
-    if (asset) setCompletionAsset(asset);
+    try {
+      const asset = await pickImage();
+      if (asset) { setCompletionAsset(asset); setCompletionError(null); }
+    } catch (error) {
+      toast.error('Não foi possível abrir a foto', getApiErrorMessage(error));
+    }
   }
 
-  function handleSendCompletion() {
+  async function handleSendCompletion() {
     const asset = completionAsset;
-    if (!asset) return;
+    if (!asset || completionInFlight.current) return;
+    completionInFlight.current = true;
+    setPreparingPhoto(true);
+    setCompletionError(null);
     const formData = new FormData();
-    const webFile = (asset as typeof asset & { file?: File }).file;
-
-    if (Platform.OS === 'web' && webFile instanceof File) {
-      formData.append('file', webFile, webFile.name);
-    } else {
-      formData.append('file', {
-        uri: asset.uri,
-        type: asset.mimeType ?? 'image/jpeg',
-        name: asset.fileName ?? 'completion.jpg',
-      } as any);
+    try {
+      await appendImage(formData, 'file', asset, 'completion.jpg');
+      await completeOrder.mutateAsync(formData);
+      setCompletionAsset(null);
+    } catch (error) {
+      setCompletionError(`A foto foi mantida. Confira a conexão e tente enviar novamente. ${getApiErrorMessage(error)}`);
+    } finally {
+      completionInFlight.current = false;
+      setPreparingPhoto(false);
     }
-
-    completeOrder.mutate(formData, { onSuccess: () => setCompletionAsset(null) });
   }
 
   function handleCancel() {
@@ -210,7 +220,7 @@ export default function ProfessionalOrderDetailScreen() {
 
   return (
     <Screen edges={['top']} scroll={false} style={styles.screen}>
-      <Header title="Detalhes do pedido" showBack />
+      <Header title="Detalhes do pedido" showBack backLabel="Voltar para pedidos" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={pullToRefresh.refreshing} onRefresh={pullToRefresh.onRefresh} />}>
         {/* Status */}
         <View style={styles.statusSection}>
@@ -495,17 +505,19 @@ export default function ProfessionalOrderDetailScreen() {
               {completionAsset ? (
                 <View style={styles.previewCard}>
                   <Text variant="titleSm">Confira a foto antes de concluir</Text>
-                  <Image source={{ uri: completionAsset.uri }} style={styles.previewImage} resizeMode="cover" />
+                  <Text variant="bodySm">Use uma foto do serviço finalizado para o cliente conferir o resultado.</Text>
+                  <Image accessible accessibilityLabel="Foto selecionada para comprovar a conclusão do serviço" source={{ uri: completionAsset.uri }} style={styles.previewImage} resizeMode="cover" />
                   <Text variant="labelLg" color={colors.neutral[500]}>
                     Ao enviar, o pedido fica aguardando a confirmação do cliente. Essa ação não pode ser desfeita.
                   </Text>
+                  {completionError ? <Text accessibilityRole="alert" variant="bodySm" color={colors.error}>{completionError}</Text> : null}
                   <View style={styles.actionsRow}>
                     <Button
                       variant="secondary"
                       size="sm"
                       fullWidth={false}
                       onPress={() => { void handleComplete(); }}
-                      disabled={completeOrder.isPending}
+                      disabled={preparingPhoto || completeOrder.isPending}
                     >
                       Trocar foto
                     </Button>
@@ -514,11 +526,12 @@ export default function ProfessionalOrderDetailScreen() {
                       size="sm"
                       fullWidth={false}
                       onPress={handleSendCompletion}
-                      loading={completeOrder.isPending}
+                      loading={preparingPhoto || completeOrder.isPending}
                     >
                       Enviar e concluir
                     </Button>
                   </View>
+                  <Button variant="ghost" size="sm" disabled={preparingPhoto || completeOrder.isPending} onPress={() => { setCompletionAsset(null); setCompletionError(null); }}>Cancelar envio</Button>
                 </View>
               ) : null}
               <Button

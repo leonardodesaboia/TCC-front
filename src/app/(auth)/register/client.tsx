@@ -20,7 +20,7 @@ import { colors, radius, spacing } from '@/theme';
 
 function StepDots({ current, total }: { current: number; total: number }) {
   return (
-    <View style={styles.stepDots}>
+    <View style={styles.stepDots} accessible accessibilityLabel={`Etapa ${current} de ${total}`}>
       {Array.from({ length: total }, (_, i) => (
         <View
           key={i}
@@ -36,7 +36,7 @@ function StepDots({ current, total }: { current: number; total: number }) {
 
 function PasswordRule({ label, met }: { label: string; met: boolean }) {
   return (
-    <View style={styles.ruleRow}>
+    <View style={styles.ruleRow} accessible accessibilityLabel={`${label}: ${met ? 'atendido' : 'a preencher'}`}>
       <View style={[styles.ruleIcon, met && styles.ruleIconMet]}>
         <Check color={met ? colors.neutral[50] : colors.neutral[400]} size={10} />
       </View>
@@ -59,7 +59,7 @@ function RegisterPasswordRules({ control }: { control: Control<ClientRegisterSte
     { label: '1 letra maiúscula', met: /[A-Z]/.test(password) },
     { label: '1 letra minúscula', met: /[a-z]/.test(password) },
     { label: '1 número', met: /[0-9]/.test(password) },
-    { label: '1 caractere especial', met: /[^A-Za-z0-9]/.test(password) },
+    { label: '1 símbolo, como !, @ ou #', met: /[^A-Za-z0-9]/.test(password) },
   ];
 
   return (

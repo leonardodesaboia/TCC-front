@@ -43,6 +43,8 @@ export function OrderCard({ order, onPress }: OrderCardProps) {
 
   return (
     <Pressable
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityHint={onPress ? 'Abre os detalhes deste pedido' : undefined}
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >

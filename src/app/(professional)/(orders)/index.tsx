@@ -62,6 +62,8 @@ function OrderCard({
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityHint="Abre os detalhes deste pedido"
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
@@ -184,6 +186,9 @@ export default function ProfessionalOrdersScreen() {
           return (
             <Pressable
               key={f}
+              accessibilityRole="radio"
+              aria-checked={active}
+              accessibilityState={{ checked: active }}
               onPress={() => setFilter(f)}
               style={[styles.chip, active && styles.chipActive]}
             >

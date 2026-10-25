@@ -11,10 +11,10 @@ interface BadgeProps {
 
 const VARIANT_STYLES: Record<BadgeVariant, { bg: string; text: string }> = {
   default: { bg: colors.primary.light, text: colors.primary.dark },
-  success: { bg: '#DCFCE7', text: '#16A34A' },
-  warning: { bg: '#FEF3C7', text: '#D97706' },
-  error: { bg: '#FEE2E2', text: '#DC2626' },
-  info: { bg: '#DBEAFE', text: '#2563EB' },
+  success: { bg: '#DCFCE7', text: colors.success },
+  warning: { bg: '#FEF3C7', text: colors.warning },
+  error: { bg: '#FEE2E2', text: colors.error },
+  info: { bg: '#DBEAFE', text: colors.info },
   muted: { bg: colors.neutral[200], text: colors.neutral[600] },
 };
 

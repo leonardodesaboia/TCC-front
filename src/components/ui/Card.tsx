@@ -15,7 +15,7 @@ export function Card({ children, onPress, style, variant = 'outlined' }: CardPro
 
   if (onPress) {
     return (
-      <Pressable onPress={onPress} style={({ pressed }) => [styles.base, cardStyle, pressed && styles.pressed, style]}>
+      <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.base, cardStyle, pressed && styles.pressed, style]}>
         {children}
       </Pressable>
     );

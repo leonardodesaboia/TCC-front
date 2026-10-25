@@ -28,6 +28,7 @@ function ToggleItem({ icon, label, description, value, onValueChange }: ToggleIt
         {description ? <Text variant="labelSm" color={colors.neutral[500]}>{description}</Text> : null}
       </View>
       <Switch
+        accessibilityLabel={label}
         value={value}
         onValueChange={onValueChange}
         trackColor={{ false: colors.neutral[300], true: colors.primary.default }}
@@ -46,7 +47,7 @@ interface NavItemProps {
 
 function NavItem({ icon, label, onPress, danger }: NavItemProps) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.menuItem, pressed && styles.pressed]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [styles.menuItem, pressed && styles.pressed]}>
       {icon}
       <Text variant="bodySm" color={danger ? colors.error : colors.neutral[900]} style={styles.menuLabelFlex}>
         {label}

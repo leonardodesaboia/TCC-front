@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-import { TextInput, TextInputProps, StyleSheet, View } from 'react-native';
+import { Platform, TextInput, TextInputProps, StyleSheet, View } from 'react-native';
 import { colors, radius, spacing, typography } from '@/theme';
+import { FormFieldContext } from '@/components/forms/field-context';
 
 interface InputProps extends TextInputProps {
   error?: boolean;
@@ -11,6 +12,7 @@ interface InputProps extends TextInputProps {
 
 export function Input({ error, leftIcon, rightIcon, style, ...props }: InputProps) {
   const [focused, setFocused] = useState(false);
+  const field = useContext(FormFieldContext);
   const isMultiline = !!props.multiline;
 
   return (
@@ -24,11 +26,15 @@ export function Input({ error, leftIcon, rightIcon, style, ...props }: InputProp
     >
       {leftIcon}
       <TextInput
+        {...props}
+        accessibilityLabel={props.accessibilityLabel ?? field?.label}
+        accessibilityHint={[props.accessibilityHint, field?.error].filter(Boolean).join('. ') || undefined}
+        aria-invalid={error || !!field?.error || undefined}
+        {...(Platform.OS === 'web' && field?.error ? { 'aria-describedby': field.errorId } : {})}
         style={[styles.input, isMultiline && styles.inputMultiline, style]}
         placeholderTextColor={colors.neutral[400]}
         onFocus={(e) => { setFocused(true); props.onFocus?.(e); }}
         onBlur={(e) => { setFocused(false); props.onBlur?.(e); }}
-        {...props}
       />
       {rightIcon}
     </View>
@@ -43,7 +49,7 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral[300],
     borderRadius: radius.md,
     paddingHorizontal: spacing[4],
-    height: 52,
+    minHeight: 52,
     backgroundColor: colors.neutral[50],
     gap: spacing[3],
   },
@@ -64,6 +70,7 @@ const styles = StyleSheet.create({
     flex: 1,
     ...typography.bodySm,
     color: colors.neutral[900],
+    paddingVertical: spacing[3],
   },
   inputMultiline: {
     minHeight: 52,

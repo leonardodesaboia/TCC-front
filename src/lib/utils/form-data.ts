@@ -17,6 +17,7 @@ export async function appendImage(formData: FormData, field: string, image: Pick
 
   if (Platform.OS === 'web') {
     const response = await fetch(image.uri);
+    if (!response.ok) throw new Error('Não foi possível ler a foto selecionada. Escolha a imagem novamente.');
     const blob = await response.blob();
     formData.append(field, blob, name);
     return;

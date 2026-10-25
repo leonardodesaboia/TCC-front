@@ -1,4 +1,5 @@
 import type { StorageRef } from './api';
+import type { OrderSummary } from './order';
 
 export type MessageType = 'text' | 'image' | 'system';
 
@@ -9,6 +10,8 @@ export interface ConversationSummary {
   otherParticipantName?: string;
   lastMessage?: string;
   unreadCount: number;
+  lastMessageAt?: string;
+  order?: OrderSummary;
 }
 
 export interface ConversationSummaryDto {

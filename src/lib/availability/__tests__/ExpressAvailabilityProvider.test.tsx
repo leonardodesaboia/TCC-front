@@ -5,6 +5,7 @@ import { AppState, Linking } from 'react-native';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ExpressAvailabilityProvider } from '../ExpressAvailabilityProvider';
 import { useExpressAvailability } from '../useExpressAvailability';
+import { LOCATION_TIMEOUT_MS, PERMISSION_TIMEOUT_MS } from '../types';
 
 const requestForegroundPermissionsAsync = vi.fn();
 const getForegroundPermissionsAsync = vi.fn();
@@ -96,6 +97,87 @@ afterEach(() => {
 });
 
 describe('ExpressAvailabilityProvider', () => {
+  it('leaves a permission prompt that never resolves and ignores its late grant', async () => {
+    let grant!: (value: { status: string }) => void;
+    requestForegroundPermissionsAsync.mockImplementation(() => new Promise((resolve) => { grant = resolve; }));
+    const { result } = renderHook(() => useExpressAvailability(), { wrapper: createWrapper() });
+    let pending!: Promise<void>;
+    await act(async () => { pending = result.current.toggle(true); });
+    expect(result.current.status).toBe('requesting-permission');
+    await act(async () => { await vi.advanceTimersByTimeAsync(PERMISSION_TIMEOUT_MS); await pending; });
+    expect(result.current.status).toBe('unavailable');
+    await act(async () => { grant({ status: 'granted' }); });
+    expect(getCurrentPositionAsync).not.toHaveBeenCalled();
+    expect(updateGeo).not.toHaveBeenCalled();
+  });
+
+  it('times out a GPS reading, ignores late coordinates, and allows a successful retry', async () => {
+    requestForegroundPermissionsAsync.mockResolvedValue({ status: 'granted' });
+    let resolvePosition!: (value: unknown) => void;
+    getCurrentPositionAsync.mockImplementationOnce(() => new Promise((resolve) => { resolvePosition = resolve; }));
+    const { result } = renderHook(() => useExpressAvailability(), { wrapper: createWrapper() });
+    let pending!: Promise<void>;
+    await act(async () => { pending = result.current.toggle(true); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(LOCATION_TIMEOUT_MS); await pending; });
+    expect(result.current.status).toBe('unavailable');
+    expect(result.current.geoActive).toBe(false);
+    const position = { coords: { latitude: -3.73, longitude: -38.52, accuracy: 10 }, timestamp: Date.now() };
+    await act(async () => { resolvePosition(position); });
+    expect(updateGeo).not.toHaveBeenCalled();
+    getCurrentPositionAsync.mockResolvedValue(position);
+    await act(async () => { await result.current.toggle(true); });
+    expect(result.current.status).toBe('active');
+    expect(updateGeo).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not revive an activation cancelled while permission is pending', async () => {
+    let grant!: (value: { status: string }) => void;
+    requestForegroundPermissionsAsync.mockImplementation(() => new Promise((resolve) => { grant = resolve; }));
+    const { result } = renderHook(() => useExpressAvailability(), { wrapper: createWrapper() });
+    let pending!: Promise<void>;
+    await act(async () => { pending = result.current.toggle(true); });
+    await act(async () => { await result.current.toggle(false); grant({ status: 'granted' }); await pending; });
+    expect(result.current.status).toBe('idle');
+    expect(getCurrentPositionAsync).not.toHaveBeenCalled();
+    expect(updateGeo).toHaveBeenCalledWith(PRO_ID, { geoActive: false });
+  });
+
+  it('recovers immediately from a rejected permission request', async () => {
+    requestForegroundPermissionsAsync.mockRejectedValue(new Error('Location unavailable'));
+    const { result } = renderHook(() => useExpressAvailability(), { wrapper: createWrapper() });
+    await act(async () => { await result.current.toggle(true); });
+    expect(result.current.status).toBe('unavailable');
+    expect(result.current.geoActive).toBe(false);
+  });
+
+  it('removes a watch that finishes starting after the user turned Express off', async () => {
+    requestForegroundPermissionsAsync.mockResolvedValue({ status: 'granted' });
+    getCurrentPositionAsync.mockResolvedValue({ coords: { latitude: 0, longitude: 0 }, timestamp: Date.now() });
+    let startWatch!: (value: { remove: typeof remove }) => void;
+    watchPositionAsync.mockImplementation(() => new Promise((resolve) => { startWatch = resolve; }));
+    const { result } = renderHook(() => useExpressAvailability(), { wrapper: createWrapper() });
+    let pending!: Promise<void>;
+    await act(async () => { pending = result.current.toggle(true); });
+    await act(async () => { await result.current.toggle(false); startWatch({ remove }); await pending; });
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(result.current.geoActive).toBe(false);
+    expect(result.current.status).toBe('idle');
+  });
+
+  it('waits for a slow deactivation before reactivating', async () => {
+    let finishOff!: (value: object) => void;
+    updateGeo.mockImplementationOnce(() => new Promise((resolve) => { finishOff = resolve; }));
+    requestForegroundPermissionsAsync.mockResolvedValue({ status: 'granted' });
+    getCurrentPositionAsync.mockResolvedValue({ coords: { latitude: 0, longitude: 0 }, timestamp: Date.now() });
+    const { result } = renderHook(() => useExpressAvailability(), { wrapper: createWrapper() });
+    let off!: Promise<void>; let on!: Promise<void>;
+    await act(async () => { off = result.current.toggle(false); on = result.current.toggle(true); });
+    expect(requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+    await act(async () => { finishOff({}); await off; await on; });
+    expect(updateGeo.mock.calls.map((call) => call[1].geoActive)).toEqual([false, true]);
+    expect(result.current.status).toBe('active');
+  });
+
   it('starts in idle when initialGeoActive is false', () => {
     const { result } = renderHook(() => useExpressAvailability(), {
       wrapper: createWrapper(),
